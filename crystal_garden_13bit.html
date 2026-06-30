@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#04050a">
+<title>Crystal Garden · 13-bit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#04050a;--bg-0:#07090f;--bg-1:#0c1019;--bg-2:#131826;--bg-3:#1c2335;
+  --line:#1e2638;--line-2:#2f3a52;--fg-0:#ebeef5;--fg-1:#b9bfcc;--fg-2:#6e7588;--fg-3:#3b4254;
+  --green:#6df0c8;--green-d:#2d8470;--red:#ee6868;--amber:#f3a953;--indigo:#6cb8ff;--magenta:#db7ae0;--gold:#e3c264;
+  --serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;height:100dvh;overflow:hidden;}
+body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-size:12px;line-height:1.45;user-select:none;-webkit-user-select:none;
+ background-image:radial-gradient(ellipse 600px 400px at 25% 0%,rgba(227,194,100,.03),transparent 65%),radial-gradient(ellipse 500px 300px at 90% 100%,rgba(109,240,200,.02),transparent 60%);}
+.head{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;background:var(--bg-0);flex-shrink:0;}
+.brand{display:flex;align-items:baseline;gap:9px;flex:1;}
+.brand .logo{font-family:var(--serif);font-size:17px;font-weight:500;letter-spacing:-.012em;color:var(--fg-0);}
+.brand .logo .roman{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.04em;color:var(--gold);margin-left:3px;vertical-align:.5px;}
+.brand .ver{font-family:var(--mono);font-size:8px;color:var(--fg-2);letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--line-2);padding:2px 6px;border-radius:1px;white-space:nowrap;}
+.head .info-btn{background:transparent;border:1px solid var(--line-2);color:var(--fg-2);font-family:var(--serif);font-size:14px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:1px;font-style:italic;}
+.head .info-btn:active{background:var(--bg-2);color:var(--fg-0);}
+.app{display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+.viewer{flex:1;position:relative;background:radial-gradient(ellipse at 50% 55%,#0d121d 0%,#04050a 100%);overflow:hidden;min-height:200px;touch-action:none;}
+.viewer canvas{display:block;width:100%;height:100%;}
+.viewer-overlay{position:absolute;inset:0;pointer-events:none;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;}
+.stage-card{background:rgba(7,9,15,.78);backdrop-filter:blur(10px);border:1px solid var(--line-2);padding:8px 11px;align-self:flex-start;pointer-events:none;max-width:76%;}
+.stage-card .label{color:var(--fg-3);font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;}
+.stage-card .title{font-family:var(--serif);font-weight:500;font-size:15px;color:var(--fg-0);margin-top:1px;line-height:1.15;}
+.stage-card .rule{font-size:9px;color:var(--fg-2);margin-top:4px;font-variant-numeric:tabular-nums;}
+.stage-card .rule b{color:var(--gold);font-weight:500;}
+.stage-card .rule .s{color:var(--indigo);}
+.vel-badge{background:rgba(7,9,15,.78);backdrop-filter:blur(10px);border:1px solid var(--line-2);padding:7px 12px;align-self:flex-end;text-align:right;pointer-events:none;}
+.vel-badge .lbl{color:var(--fg-3);font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;}
+.vel-badge .val{font-family:var(--serif);font-size:22px;color:var(--gold);font-weight:500;line-height:1;margin-top:2px;}
+.vel-badge .small{font-size:9px;color:var(--fg-2);margin-top:3px;font-variant-numeric:tabular-nums;}
+.swipe-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:8.5px;color:var(--fg-3);letter-spacing:.22em;text-transform:uppercase;opacity:0;transition:opacity .6s;pointer-events:none;}
+.swipe-hint.show{opacity:1;}
+.player{display:grid;grid-template-columns:1fr 1fr 1.4fr 1fr 1fr;border-top:1px solid var(--line);background:var(--bg-0);flex-shrink:0;}
+.player button{background:transparent;border:none;border-right:1px solid var(--line);color:var(--fg-1);font-family:var(--mono);font-size:13px;padding:13px 0;cursor:pointer;transition:all .1s ease;}
+.player button:last-child{border-right:none;}
+.player button:active{background:var(--bg-2);color:var(--gold);}
+.player button.primary{color:var(--gold);font-size:14px;}
+.meta-row{background:var(--bg-0);border-top:1px solid var(--line);padding:9px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;font-variant-numeric:tabular-nums;font-size:9.5px;color:var(--fg-2);}
+.meta-row .k{color:var(--fg-3);font-size:8px;letter-spacing:.16em;text-transform:uppercase;}
+.meta-row b{color:var(--fg-1);font-weight:500;}
+.demo-strip{background:var(--bg-0);border-top:1px solid var(--line);padding:10px 12px 12px;flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.demo-strip::-webkit-scrollbar{display:none;}
+.demo-row{display:flex;gap:6px;white-space:nowrap;}
+.demo-pill{background:transparent;border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:10.5px;padding:7px 11px;cursor:pointer;border-radius:1px;display:inline-flex;align-items:center;gap:7px;transition:all .12s ease;flex-shrink:0;}
+.demo-pill .glyph{font-size:12px;color:var(--gold);line-height:1;}
+.demo-pill.active{background:rgba(227,194,100,.07);border-color:#6e5e2e;color:var(--fg-0);}
+.demo-pill.bs .glyph{color:var(--red);}
+.demo-pill:active{background:var(--bg-2);}
+.bottom-row{background:var(--bg-0);border-top:1px solid var(--line);padding:9px 12px;display:flex;gap:8px;flex-shrink:0;align-items:center;}
+.spacer{flex:1;}
+.toggle-btn{background:transparent;border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:10px;padding:6px 9px;cursor:pointer;border-radius:1px;display:inline-flex;align-items:center;gap:5px;flex-shrink:0;}
+.toggle-btn .dot{width:7px;height:7px;border-radius:50%;background:var(--fg-3);}
+.toggle-btn.on{color:var(--amber);border-color:var(--amber);}
+.toggle-btn.on .dot{background:var(--amber);}
+.toggle-btn:active{background:var(--bg-2);}
+.speed-btn{background:transparent;border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:10px;padding:6px 10px;cursor:pointer;border-radius:1px;flex-shrink:0;}
+.speed-btn:active{background:var(--bg-2);}
+.modal-bg{position:fixed;inset:0;background:rgba(4,5,10,.92);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-bg.show{opacity:1;pointer-events:auto;}
+.modal{background:var(--bg-0);border-top:1px solid var(--line-2);width:100%;max-height:92vh;overflow-y:auto;padding:26px 22px 80px;transform:translateY(20px);transition:transform .28s cubic-bezier(.2,.9,.3,1);position:relative;}
+.modal-bg.show .modal{transform:translateY(0);}
+.modal h2{font-family:var(--serif);font-weight:500;font-size:24px;margin:0 0 10px;}
+.modal h2 em{font-style:italic;color:var(--gold);}
+.modal h3{font-family:var(--serif);font-weight:500;font-size:16px;margin:18px 0 6px;color:var(--fg-1);}
+.modal p{font-size:12px;color:var(--fg-1);margin:0 0 10px;line-height:1.6;}
+.modal p em{font-family:var(--serif);font-style:italic;color:var(--gold);}
+.modal code{background:var(--bg-2);padding:1px 5px;border-radius:1px;color:var(--green);font-size:11px;}
+.modal .close{position:absolute;top:14px;right:16px;background:transparent;border:1px solid var(--line-2);color:var(--fg-1);font-size:16px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:1px;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 12px;}
+.legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-2);}
+.legend .sw{width:11px;height:11px;border-radius:2px;}
+/* studio */
+.bitgrid{display:flex;flex-wrap:wrap;gap:4px;flex:1;}
+.bc{flex:0 0 auto;min-width:30px;text-align:center;background:var(--bg-1);border:1px solid var(--line);color:var(--fg-2);font-size:11px;padding:7px 2px;cursor:pointer;border-radius:1px;}
+.bc:active{transform:scale(.94);}
+.bc.on{background:rgba(109,240,200,.12);border-color:var(--green-d);color:var(--green);font-weight:600;}
+.bc.self{min-width:42px;}
+.bc.self.on{background:rgba(227,194,100,.16);border-color:#6e5e2e;color:var(--gold);}
+.io-row{display:flex;gap:8px;align-items:flex-start;margin-top:8px;}
+.io-row .lab{font-size:8px;color:var(--fg-3);letter-spacing:.14em;text-transform:uppercase;width:30px;padding-top:8px;flex-shrink:0;}
+.readout{font-size:9.5px;color:var(--fg-2);font-variant-numeric:tabular-nums;margin:5px 0 0 38px;}
+.readout b{color:var(--fg-0);}
+.qbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.qbtns button{background:var(--bg-1);border:1px solid var(--line-2);color:var(--fg-1);font-family:var(--mono);font-size:10.5px;padding:7px 10px;border-radius:1px;cursor:pointer;}
+.qbtns button:active{background:var(--bg-2);color:var(--amber);}
+.entries{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
+.entry{display:flex;align-items:center;gap:9px;background:var(--bg-1);border:1px solid var(--line);padding:8px 11px;border-radius:1px;font-size:12px;font-variant-numeric:tabular-nums;}
+.entry .ein{color:var(--indigo);}.entry .eout{color:var(--gold);}.entry .ar{color:var(--fg-3);}
+.entry button{margin-left:auto;background:transparent;border:1px solid var(--line-2);color:var(--fg-2);font-size:11px;width:24px;height:24px;border-radius:1px;cursor:pointer;}
+.dice-btn{margin-top:10px;background:var(--bg-1);border:1px solid var(--line-2);color:var(--fg-1);font-family:var(--mono);font-size:11.5px;padding:9px 14px;cursor:pointer;border-radius:1px;width:100%;}
+.dice-btn:active{background:var(--bg-2);color:var(--amber);}
+.row2{display:flex;gap:20px;flex-wrap:wrap;margin-top:6px;}
+.row2 .lab2{font-size:8px;color:var(--fg-3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px;}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:1px;overflow:hidden;}
+.stepper button{background:var(--bg-1);border:none;color:var(--fg-1);font-size:16px;width:40px;height:34px;cursor:pointer;}
+.stepper button:active{background:var(--bg-2);color:var(--amber);}
+.stepper span{min-width:44px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px;}
+.run-btn{width:100%;margin-top:16px;background:rgba(227,194,100,.1);border:1px solid #6e5e2e;color:var(--gold);font-family:var(--mono);font-size:13px;padding:14px 0;cursor:pointer;border-radius:1px;letter-spacing:.05em;}
+.run-btn:active{background:rgba(227,194,100,.18);}
+.result{margin-top:12px;padding:11px 12px;border:1px solid var(--line-2);border-radius:1px;background:var(--bg-1);font-size:11.5px;color:var(--fg-1);line-height:1.5;}
+.result b{color:var(--gold);}
+.codebox{display:flex;gap:8px;align-items:stretch;}
+.codebox code{flex:1;background:var(--bg-2);border:1px solid var(--line);padding:11px 12px;border-radius:1px;color:var(--gold);font-size:11.5px;overflow-x:auto;white-space:nowrap;display:flex;align-items:center;}
+.codebox button,.loadrow button,.saverow button{background:var(--bg-1);border:1px solid var(--line-2);color:var(--fg-1);font-family:var(--mono);font-size:11px;padding:0 15px;cursor:pointer;border-radius:1px;flex-shrink:0;}
+.loadrow,.saverow{display:flex;gap:8px;margin-top:9px;}
+.loadrow input,.saverow input{flex:1;min-width:0;background:var(--bg-2);border:1px solid var(--line);color:var(--fg-0);font-family:var(--mono);font-size:12px;padding:11px 12px;border-radius:1px;outline:none;}
+.loadmsg{font-size:10px;margin-top:7px;min-height:13px;color:var(--fg-2);}
+.loadmsg.ok{color:var(--green);}.loadmsg.err{color:var(--red);}
+.liblist{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.libitem{display:flex;align-items:center;gap:8px;background:var(--bg-1);border:1px solid var(--line);padding:9px 11px;border-radius:1px;}
+.libitem .ln{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;}
+.libitem .lc{font-size:9px;color:var(--fg-3);}
+.libitem button{background:transparent;border:1px solid var(--line-2);color:var(--fg-2);font-size:10px;padding:5px 9px;border-radius:1px;cursor:pointer;}
+.libitem button.lload{color:var(--gold);border-color:#6e5e2e;}
+.libempty{font-size:10.5px;color:var(--fg-3);padding:4px 0;}
+/* spectrum */
+.qbtns button.sel{background:rgba(227,194,100,.12);border-color:#6e5e2e;color:var(--gold);}
+.splist{margin-top:8px;display:flex;flex-direction:column;gap:5px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.sp-row{display:flex;align-items:center;gap:10px;background:var(--bg-1);border:1px solid var(--line);padding:8px 11px;border-radius:1px;cursor:pointer;}
+.sp-row:active{background:var(--bg-2);}
+.sp-row .nm{font-size:12px;color:var(--fg-0);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.sp-row.k1 .nm{color:var(--gold);}
+.sp-row .meta{font-size:9px;color:var(--fg-3);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.sp-row .vv{font-size:11px;color:var(--green);font-variant-numeric:tabular-nums;min-width:50px;text-align:right;}
+.sp-row .sp-edit{flex-shrink:0;background:transparent;border:1px solid var(--line-2);color:var(--gold);font-size:12px;width:30px;height:28px;border-radius:1px;cursor:pointer;font-family:var(--mono);}
+.sp-row .sp-edit:active{background:rgba(227,194,100,.12);}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <div class="brand">
+      <span class="logo">Crystal Garden <span class="roman">13-bit</span></span>
+      <span class="ver">self + 12 directions</span>
+    </div>
+    <button class="info-btn" id="spectrumBtn" style="margin-right:8px;font-style:normal;">⊞</button>
+    <button class="info-btn" id="studioBtn" style="margin-right:8px;font-style:normal;">✎</button>
+    <button class="info-btn" id="infoBtn">i</button>
+  </header>
+
+  <section class="viewer">
+    <canvas id="canvas"></canvas>
+    <div class="viewer-overlay">
+      <div class="stage-card">
+        <div class="label">specimen</div>
+        <div class="title" id="title">light-speed gun</div>
+        <div class="rule" id="rule">—</div>
+      </div>
+      <div class="vel-badge">
+        <div class="lbl">velocity</div>
+        <div class="val" id="velVal">c</div>
+        <div class="small" id="velSub">—</div>
+      </div>
+    </div>
+    <div class="swipe-hint" id="swipeHint">↔ swipe to switch specimen</div>
+  </section>
+
+  <div class="player">
+    <button id="prevDemoBtn">⏮</button>
+    <button id="stepBackBtn">⏪</button>
+    <button id="playBtn" class="primary">❚❚</button>
+    <button id="stepFwdBtn">⏩</button>
+    <button id="nextDemoBtn">⏭</button>
+  </div>
+
+  <div class="meta-row">
+    <span><span class="k">tick</span> <b id="mStep">0</b></span>
+    <span><span class="k">signals</span> <b id="mPop">1</b></span>
+    <span id="mThird"><span class="k">front</span> <b id="mDisp">r=0</b></span>
+  </div>
+
+  <div class="demo-strip"><div class="demo-row" id="demoRow"></div></div>
+
+  <div class="bottom-row">
+    <button class="toggle-btn on" id="sigToggle"><span class="dot"></span>signals</button>
+    <button class="toggle-btn on" id="trailToggle"><span class="dot"></span>trail</button>
+    <button class="toggle-btn" id="gridToggle"><span class="dot"></span>grid</button>
+    <div class="spacer"></div>
+    <button class="speed-btn" id="speedBtn">1×</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalSpectrum"><div class="modal">
+  <button class="close" data-close>×</button>
+  <h2><em>Particle</em> spectrum</h2>
+  <p>211 stable single particles enumerated along (1,0,1): 107 massless (<em>k=0</em>) + 104 massive (<em>k=1</em>, the cycle runs through the self-bit). Speed is exactly <em>v = m / N</em>. Tap a row to run it, or <em>✎</em> to load its rule into the studio (add collision / transmutation entries on top).</p>
+  <div class="lab2">family</div>
+  <div class="qbtns" id="spMode"></div>
+  <div class="lab2" style="margin-top:10px;">cycle length N</div>
+  <div class="qbtns" id="spN"></div>
+  <div class="lab2" style="margin-top:10px;">sort</div>
+  <div class="qbtns" id="spSort"></div>
+  <div class="loadmsg" id="spCount" style="margin-top:9px;"></div>
+  <div class="splist" id="spList"></div>
+</div></div>
+
+<div class="modal-bg" id="modalStudio">
+  <div class="modal studio">
+    <button class="close" data-close>×</button>
+    <h2><em>Rule</em> studio</h2>
+    <p>Edit the 8192-entry table: map any input 13-bit state to an output. A <em>self → direction</em> map is <em>emission</em>; <em>direction → self</em> is <em>absorption</em>. Hunt for a glowing gun or a moving cluster.</p>
+
+    <h3>Add an entry — <span style="color:var(--indigo)">input</span> → <span style="color:var(--gold)">output</span></h3>
+    <div class="io-row"><span class="lab">in</span><div class="bitgrid" id="inGrid"></div></div>
+    <div class="readout" id="inReadout">—</div>
+    <div class="io-row"><span class="lab">out</span><div class="bitgrid" id="outGrid"></div></div>
+    <div class="readout" id="outReadout">—</div>
+    <button class="dice-btn" id="addEntry">+ add this entry to the table</button>
+    <div class="qbtns">
+      <button data-preset="gun">gun 1→3→6→1</button>
+      <button data-preset="emit">emit S→S·A</button>
+      <button data-preset="absorb">absorb A→S</button>
+      <button data-preset="clear">clear</button>
+    </div>
+    <button class="dice-btn" id="rollEntry">🎲 random emit / absorb</button>
+
+    <h3>Rule table — overrides (else identity)</h3>
+    <div class="entries" id="entryList"></div>
+
+    <h3>Seed &amp; cluster</h3>
+    <div class="io-row"><span class="lab">seed</span><div class="bitgrid" id="seedGrid"></div></div>
+    <div class="readout" id="seedReadout">—</div>
+    <div class="row2">
+      <div class="col"><div class="lab2">copies</div><div class="stepper"><button id="cntMinus">−</button><span id="cntVal">1</span><button id="cntPlus">+</button></div></div>
+      <div class="col"><div class="lab2">ticks</div><div class="stepper"><button id="stepMinus">−</button><span id="stepVal">18</span><button id="stepPlus">+</button></div></div>
+    </div>
+
+    <button class="run-btn" id="runBtn">▶  run &amp; analyze</button>
+    <div class="result" id="resultBox">—</div>
+
+    <h3>Auto-search</h3>
+    <p style="font-size:10.5px;color:var(--fg-3);margin:2px 0 9px;line-height:1.5;">Generate random self↔direction rule-sets, batch-run them, and keep the ones that turn into ✨ glowing movers or 🌱⚡ guns.</p>
+    <div class="row2" style="align-items:flex-end;gap:12px;">
+      <div class="col"><div class="lab2">candidates</div><div class="stepper"><button id="nMinus">−</button><span id="nVal">500</span><button id="nPlus">+</button></div></div>
+      <button class="dice-btn" id="searchBtn" style="flex:1;margin-top:0;">🔭 search</button>
+    </div>
+    <div class="loadmsg" id="searchMsg"></div>
+    <div class="liblist" id="hitList"></div>
+
+    <h3>Share code</h3>
+    <div class="codebox"><code id="shareCode">—</code><button id="copyCode">copy</button></div>
+    <div class="loadrow"><input id="codeInput" placeholder="paste a CG13 code…" autocapitalize="characters" autocomplete="off" spellcheck="false"><button id="loadCode">load</button></div>
+    <div class="loadmsg" id="loadMsg"></div>
+
+    <h3>Library</h3>
+    <div class="saverow"><input id="nameInput" placeholder="name this rule…" autocomplete="off" spellcheck="false" maxlength="40"><button id="saveCre">save</button></div>
+    <div class="liblist" id="libList"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalInfo">
+  <div class="modal">
+    <button class="close" data-close>×</button>
+    <h2>The <em>13-bit rule</em></h2>
+    <p>
+      The full Cosmic Grid cell is <em>13 bits</em>: one <em>self-bit</em> plus twelve direction bits
+      (A–F and their opposites). That's <code>8192 = 2 × 4096</code> — self × directions.
+    </p>
+    <h3>Reading the colours</h3>
+    <div class="legend">
+      <span class="lg"><span class="sw" style="background:#e3c264"></span>self-bit · rest matter (v = 0)</span>
+      <span class="lg"><span class="sw" style="background:#6df0c8"></span>one direction · photon (v = c)</span>
+      <span class="lg"><span class="sw" style="background:#f3a953"></span>composite radiation</span>
+      <span class="lg"><span class="sw" style="background:#ff9d5c"></span>mass + radiation</span>
+    </div>
+    <h3>The full-signal view</h3>
+    <p>
+      The rhombic dodecahedron is the FCC cell's Voronoi shell — its <em>12 faces</em> point at the
+      12 neighbours exactly. So the 13-bit state draws literally: the <em>self-bit</em> is the
+      translucent body, and every active direction bit is an <em>arrow</em> from the centre to the
+      face it leaves through next tick. Toggle <em>signals</em> for this view, or off for solid voxels.
+    </p>
+    <h3>Evolution = R ∘ T</h3>
+    <p>
+      <em>Transport T</em>: each direction bit hops to its neighbour, keeping its index; the self-bit
+      <em>stays put</em> — that's why it has zero velocity, the discrete meaning of <em>rest mass</em>.
+      <em>Routing R</em>: a single lookup table is applied per cell. Speed is graph distance per tick,
+      so <code>v ≤ c</code> always.
+    </p>
+    <h3>The specimens</h3>
+    <p>
+      <em>rest matter</em> — a lone self-bit, frozen forever (v = 0).<br>
+      <em>photon</em> — a lone direction bit, streaming straight at v = c.<br>
+      <em>mass + radiation</em> — self ⊕ direction: the photon flies off, the mass remains.<br>
+      <em>light-speed gun</em> — the single bijective rule <code>1→3→6→1</code> (A → A·B → B·C → A)
+      from one A signal grows a beam at exactly one signal per tick (slope 1), travelling at c. This is
+      the rule proven Turing-complete on FCC.<br>
+      <em>Glider I / II</em> — moving structures in the <em>broadcast</em> (B/S) projection, lit from
+      asymmetric seeds.
+    </p>
+    <h3>Why self-bit unlocks matter</h3>
+    <p>
+      Without it, every signal must move; the lattice is pure radiation. The self-bit is the one
+      degree of freedom that can <em>stand still</em>, so the same grid carries both massless and
+      massive things — the door to a particle spectrum.
+    </p>
+    <h3>Gestures</h3>
+    <p>• <em>swipe</em> switch specimen · <em>tap</em> play/pause<br>• <em>drag</em> rotate · <em>pinch</em> zoom · <em>two-finger tap</em> reset</p>
+    <p style="font-size:10px;color:var(--fg-2);margin-top:18px;">Forrest Shen, with Claude · 2026 · 13-bit model per Cosmic Grid ch.5 &amp; Shen (2026), <em>FCC single-rule Turing completeness</em></p>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const DIRS=[[0,1,1],[1,0,1],[1,1,0],[0,-1,1],[1,0,-1],[-1,1,0],[0,-1,-1],[-1,0,-1],[-1,-1,0],[0,1,-1],[-1,0,1],[1,-1,0]];
+// 0-2 A,B,C · 3-5 D=B-C,E=C-A,F=A-B (⊥ A,B,C) · 6-11 opposites a..f = −A..−F
+const kkey=(x,y,z)=>x+','+y+','+z;
+const parse=k=>k.split(',').map(Number);
+const SELF=1<<12;
+const popcount=m=>{let c=0;while(m){c+=m&1;m>>=1;}return c;};
+const gdist=(x,y,z)=>Math.max(Math.abs(x),Math.abs(y),Math.abs(z),Math.ceil((Math.abs(x)+Math.abs(y)+Math.abs(z))/2));
+
+// ---- RD voxel ----
+const RD_POSITIONS=new Float32Array([0,0,1,0.5,0.5,0.5,0,1,0,-0.5,0.5,0.5,0.5,0.5,0.5,1,0,0,0.5,0.5,-0.5,0,1,0,0.5,-0.5,0.5,1,0,0,0.5,0.5,0.5,0,0,1,0,0,-1,0.5,0.5,-0.5,1,0,0,0.5,-0.5,-0.5,0,-1,0,0.5,-0.5,0.5,0,0,1,-0.5,-0.5,0.5,-1,0,0,-0.5,0.5,0.5,0,1,0,-0.5,0.5,-0.5,0,0,-1,0.5,-0.5,-0.5,0,-1,0,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0,-1,0,-0.5,-0.5,0.5,-1,0,0,-1,0,0,-0.5,0.5,-0.5,0,0,-1,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,0,0,1,-0.5,0.5,0.5,-1,0,0,-0.5,0.5,-0.5,0,1,0,0.5,0.5,-0.5,0,0,-1,0.5,-0.5,-0.5,1,0,0,0.5,-0.5,0.5,0,-1,0]);
+const RD_INDICES=new Uint16Array([0,1,2,0,2,3,4,5,6,4,6,7,8,9,10,8,10,11,12,13,14,12,14,15,16,17,18,16,18,19,20,21,22,20,22,23,24,25,26,24,26,27,28,29,30,28,30,31,32,33,34,32,34,35,36,37,38,36,38,39,40,41,42,40,42,43,44,45,46,44,46,47]);
+function makeRD(scale){const g=new THREE.BufferGeometry();const p=new Float32Array(RD_POSITIONS.length);for(let i=0;i<p.length;i++)p[i]=RD_POSITIONS[i]*scale;g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setIndex(new THREE.BufferAttribute(RD_INDICES,1));g.computeVertexNormals();return g;}
+
+// ═══════════ ENGINES ═══════════
+// (A) totalistic broadcast B/S — gliders
+function stepBS(occ,Bm,Sm){
+  const cnt=new Map();
+  for(const k of occ){const [x,y,z]=parse(k);for(const d of DIRS){const nk=kkey(x+d[0],y+d[1],z+d[2]);cnt.set(nk,(cnt.get(nk)||0)+1);}}
+  const nx=new Set();
+  for(const k of occ){if(Sm[cnt.get(k)||0])nx.add(k);}
+  for(const [k,c] of cnt){if(!occ.has(k)&&Bm[c])nx.add(k);}
+  return nx;
+}
+function simulateBS(B,S,seed,steps){
+  const Bm=Array(13).fill(false);B.forEach(b=>Bm[b]=true);
+  const Sm=Array(13).fill(false);S.forEach(s=>Sm[s]=true);
+  let occ=new Set(seed.map(p=>kkey(...p)));
+  const frames=[];
+  for(let t=0;t<=steps;t++){ frames.push([...occ].map(k=>{const [x,y,z]=parse(k);return [x,y,z,-1];})); occ=stepBS(occ,Bm,Sm); }
+  return frames;
+}
+// (B) 13-bit R ∘ T — self-bit + 12 directions
+function stepR13(cells,RT){
+  const agg=new Map();
+  const add=(k,bits)=>agg.set(k,(agg.get(k)||0)|bits);
+  for(const [k,st] of cells){
+    const [x,y,z]=parse(k);
+    if(st&SELF) add(k,SELF);
+    const dir=st&0xFFF;
+    for(let i=0;i<12;i++) if(dir&(1<<i)) add(kkey(x+DIRS[i][0],y+DIRS[i][1],z+DIRS[i][2]),1<<i);
+  }
+  const next=new Map();
+  for(const [k,m] of agg){const ns=RT.has(m)?RT.get(m):m;if(ns)next.set(k,ns);}  // full 13-bit rule: self↔direction (emit/absorb) allowed
+  return next;
+}
+function simulateR13(ruleArr,seed,steps){
+  const RT=new Map(ruleArr);
+  let cells=new Map(); for(const [pos,st] of seed) cells.set(kkey(...pos),st);
+  const frames=[];
+  for(let t=0;t<=steps;t++){
+    let pop=0,mr=0;const arr=[];
+    for(const [k,st] of cells){const [x,y,z]=parse(k);arr.push([x,y,z,st]);pop+=popcount(st);const r=gdist(x,y,z);if(r>mr)mr=r;}
+    frames.push(arr);
+    if(cells.size===0) break;
+    if(pop>2500 || mr>34) break;          // safety caps for runaway custom rules
+    cells=stepR13(cells,RT);
+  }
+  return frames;
+}
+
+// ═══════════ SPECIMENS ═══════════
+const SPECS=[
+ {id:'gun', engine:'r13', glyph:'⟶', name:'light-speed gun', rule:[[1,3],[3,6],[6,1]], seed:[[[0,0,0],1]], steps:16, vel:'c', note:'single bijective rule · slope 1', ruleTxt:'R <b>1→3→6→1</b> · seed A'},
+ {id:'photon', engine:'r13', glyph:'·', name:'photon', rule:[], seed:[[[0,0,0],1]], steps:14, vel:'c', note:'one direction bit · radiation', ruleTxt:'R <b>identity</b> · transport only'},
+ {id:'mass', engine:'r13', glyph:'●', name:'rest matter', rule:[], seed:[[[0,0,0],SELF]], steps:10, vel:'0', note:'self-bit · static mass', ruleTxt:'R <b>identity</b> · self-bit holds'},
+ {id:'massrad', engine:'r13', glyph:'☄', name:'mass + radiation', rule:[], seed:[[[0,0,0],SELF|1]], steps:14, vel:'c', note:'photon flies, mass stays', ruleTxt:'R <b>identity</b> · self ⊕ A'},
+ {id:'g1', engine:'bs', glyph:'➤', name:'Glider I', B:[3,6,11,12],S:[0,1,3], seed:[[0,0,0],[1,1,0],[2,2,0],[2,0,0]], period:4, disp:[-1,1,0], vel:'c/4', loops:7},
+ {id:'g2', engine:'bs', glyph:'➤', name:'Glider II', B:[3,8,11],S:[0,2,6,8,9,11], seed:[[0,0,0],[0,0,2],[2,0,2],[2,2,2]], period:3, disp:[0,-1,1], vel:'c/3', loops:8},
+];
+
+// ---- scene ----
+const canvas=document.getElementById('canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,1,0.1,500);
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const k1=new THREE.DirectionalLight(0xffd9c0,0.6);k1.position.set(14,22,16);scene.add(k1);
+const k2=new THREE.DirectionalLight(0x9cc4ff,0.3);k2.position.set(-14,-6,-10);scene.add(k2);
+const k3=new THREE.DirectionalLight(0x6df0c8,0.18);k3.position.set(0,-18,6);scene.add(k3);
+
+const VOX=0.9;
+const rd=makeRD(VOX);
+const matLive=new THREE.MeshLambertMaterial({color:0xffffff});
+const matTrail=new THREE.MeshLambertMaterial({color:0x76808d,transparent:true,opacity:0.16,depthWrite:false});
+const grpLive=new THREE.Group();scene.add(grpLive);
+const grpTrail=new THREE.Group();scene.add(grpTrail);
+
+// Two-layer FCC lattice reference (toggleable via "grid"):
+//   active layer  —  bright white, the signalled sites themselves (已占据)
+//   dim    layer  —  cool gray, the 12 FCC neighbours (可达空位) ∪ trail sites if trail is on
+// Both layers rebuild each frame so the lattice cloud tracks the active region.
+const matGridA=new THREE.PointsMaterial({color:0xffffff,size:0.085,sizeAttenuation:true,transparent:true,opacity:0.92,depthWrite:false});
+const matGridD=new THREE.PointsMaterial({color:0x9aa3b0,size:0.085,sizeAttenuation:true,transparent:true,opacity:0.92,depthWrite:false});
+const gridGeoA=new THREE.BufferGeometry();gridGeoA.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(0),3));
+const gridGeoD=new THREE.BufferGeometry();gridGeoD.setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(0),3));
+const gridPA=new THREE.Points(gridGeoA,matGridA);gridPA.visible=false;gridPA.frustumCulled=false;scene.add(gridPA);
+const gridPD=new THREE.Points(gridGeoD,matGridD);gridPD.visible=false;gridPD.frustumCulled=false;scene.add(gridPD);
+let gridOn=false;
+function _fillGrid(geo,keys){
+  const pos=new Float32Array(keys.size*3);let j=0;
+  for(const k of keys){const d=disp(parse(k));pos[j++]=d[0];pos[j++]=d[1];pos[j++]=d[2];}
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+}
+function updateGrid(){
+  if(!gridOn){gridPA.visible=gridPD.visible=false;return;}
+  const A=new Set(), D=new Set();
+  const live=frames[step_i]||[];
+  for(const p of live) A.add(kkey(p[0],p[1],p[2]));                                            // active
+  for(const p of live) for(let i=0;i<12;i++){                                                   // 12 FCC neighbours (not in A)
+    const k=kkey(p[0]+DIRS[i][0],p[1]+DIRS[i][1],p[2]+DIRS[i][2]);
+    if(!A.has(k)) D.add(k);
+  }
+  if(trailOn) for(const k of trailSet) if(!A.has(k)) D.add(k);                                  // + trail sites
+  _fillGrid(gridGeoA,A);_fillGrid(gridGeoD,D);
+  gridPA.visible=A.size>0;gridPD.visible=D.size>0;
+}
+
+// full-signal view: translucent shells + per-direction face arrows
+const matSelfRD=new THREE.MeshLambertMaterial({color:0xe3c264,transparent:true,opacity:0.30,depthWrite:false});
+const matBSRD  =new THREE.MeshLambertMaterial({color:0xee6868,transparent:true,opacity:0.22,depthWrite:false});
+const faceDir=DIRS.map(d=>new THREE.Vector3(d[0],d[1],d[2]).normalize());      // unit normal of face d
+const faceLen=DIRS.map(d=>0.5*VOX*Math.hypot(d[0],d[1],d[2]));                  // centre → face-centre distance
+// thick signal arrows: real cylinder shaft + cone head (WebGL ignores Line width)
+const ALEN=faceLen[0]*0.97, AHEAD=ALEN*0.42, ASHAFT=ALEN-AHEAD;
+const gArrowShaft=new THREE.CylinderGeometry(0.058,0.058,ASHAFT,10);
+const gArrowHead =new THREE.ConeGeometry(0.14,AHEAD,14);
+const BLEN=ALEN*0.74, BHEAD=BLEN*0.40, BSHAFT=BLEN-BHEAD;                       // thin/short variant for 12-way broadcast
+const gArrowShaftT=new THREE.CylinderGeometry(0.026,0.026,BSHAFT,8);
+const gArrowHeadT =new THREE.ConeGeometry(0.072,BHEAD,12);
+const _AY=new THREE.Vector3(0,1,0);
+const qDir=faceDir.map(fd=>new THREE.Quaternion().setFromUnitVectors(_AY,fd));  // +Y → face direction
+const _arrowMatCache=new Map();
+const SHARED=new Set([rd,matLive,matTrail,matSelfRD,matBSRD,gArrowShaft,gArrowHead,gArrowShaftT,gArrowHeadT]);
+function arrowMat(hex,opacity){const key=hex+'_'+opacity;let m=_arrowMatCache.get(key);if(!m){m=new THREE.MeshBasicMaterial({color:hex,transparent:opacity<1,opacity});_arrowMatCache.set(key,m);SHARED.add(m);}return m;}
+// 12-direction arrow palette · shaft + head coloured independently (matches Crystal Garden III)
+//  solid colour      = primary axis     (A, B, C)
+//  white shaft       = perpendicular ⟂  (D, E, F)
+//  white head        = opposite −       (a, b, c)
+//  pale solid colour = opposite of ⟂    (d, e, f)
+const _R=0xe8443a, _Y=0xe8c23a, _B=0x3a82e8, _W=0xffffff;
+const _r=0xf2a39d, _y=0xf2e3a0, _b=0xa8c4f2;
+const ARROW_SHAFT_COLORS=[_R,_Y,_B,_W,_W,_W,_R,_Y,_B,_r,_y,_b];   // A B C D E F a b c d e f
+const ARROW_HEAD_COLORS =[_R,_Y,_B,_R,_Y,_B,_W,_W,_W,_r,_y,_b];
+let pathLine=null;
+
+const C_MASS=new THREE.Color(0xe3c264), C_PHOTON=new THREE.Color(0x6df0c8), C_COMP=new THREE.Color(0xf3a953), C_MIX=new THREE.Color(0xff9d5c), C_WHITE=new THREE.Color(0xffffff);
+function colorForState(st){
+  const self=st&SELF, dir=st&0xFFF, pc=popcount(dir);
+  if(self&&!dir) return C_MASS;
+  if(self&&dir)  return C_MIX;
+  if(pc===1)     return C_PHOTON;
+  return C_COMP;
+}
+
+// camera orbit
+let camTheta=0.8,camPhi=1.05,camRadius=30;const camCenter=new THREE.Vector3();
+let autoRotate=true,dragging=false,pX=0,pY=0;
+function updateCam(){camera.position.set(camCenter.x+camRadius*Math.sin(camPhi)*Math.cos(camTheta),camCenter.y+camRadius*Math.cos(camPhi),camCenter.z+camRadius*Math.sin(camPhi)*Math.sin(camTheta));camera.lookAt(camCenter);}
+let lastDist=0,tsX=0,tsY=0,tsT=0,moved=false;
+canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){dragging=true;moved=false;pX=e.touches[0].clientX;pY=e.touches[0].clientY;tsX=pX;tsY=pY;tsT=Date.now();}else if(e.touches.length===2){dragging=false;const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastDist=Math.hypot(dx,dy);tsT=Date.now();}},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&dragging){const dx=e.touches[0].clientX-pX,dy=e.touches[0].clientY-pY;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;camTheta-=dx*0.012;camPhi=Math.max(0.1,Math.min(Math.PI-0.1,camPhi-dy*0.012));pX=e.touches[0].clientX;pY=e.touches[0].clientY;autoRotate=false;updateCam();}else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.hypot(dx,dy);if(lastDist>0){camRadius=Math.max(8,Math.min(200,camRadius*(lastDist/d)));updateCam();}lastDist=d;}},{passive:false});
+canvas.addEventListener('touchend',e=>{if(e.touches.length===0&&Date.now()-tsT<300&&lastDist>0){autoRotate=true;camTheta=0.8;camPhi=1.05;fit();lastDist=0;return;}if(dragging&&e.changedTouches.length===1){const dx=e.changedTouches[0].clientX-tsX,dy=e.changedTouches[0].clientY-tsY,dt=Date.now()-tsT;if(dt<350&&Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.3){changeSpec(curIdx+(dx<0?1:-1));dragging=false;lastDist=0;return;}if(!moved&&dt<300)togglePlay();}dragging=false;lastDist=0;},{passive:false});
+canvas.addEventListener('touchcancel',()=>{dragging=false;lastDist=0;},{passive:false});
+canvas.addEventListener('mousedown',e=>{dragging=true;moved=false;pX=e.clientX;pY=e.clientY;tsX=e.clientX;tsY=e.clientY;tsT=Date.now();});
+window.addEventListener('mouseup',()=>{if(dragging&&!moved&&Date.now()-tsT<300)togglePlay();dragging=false;});
+window.addEventListener('mousemove',e=>{if(!dragging)return;const dx=e.clientX-pX,dy=e.clientY-pY;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;camTheta-=dx*0.01;camPhi=Math.max(0.1,Math.min(Math.PI-0.1,camPhi-dy*0.01));pX=e.clientX;pY=e.clientY;autoRotate=false;updateCam();});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camRadius=Math.max(8,Math.min(200,camRadius+e.deltaY*0.04));updateCam();},{passive:false});
+
+function disp(p){return [p[0],p[1],p[2]];} // identity: RD faces then aim at the true neighbours
+
+let frames=[],curIdx=0,step_i=0,playing=true,timer=null,interval=420,trailOn=true,speedMul=1,signalMode=true,activeSpec=null;
+let trailSet=new Set();
+
+function fit(){
+  let mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
+  for(const f of frames)for(const p of f){for(let i=0;i<3;i++){if(p[i]<mn[i])mn[i]=p[i];if(p[i]>mx[i])mx[i]=p[i];}}
+  if(mn[0]>mx[0]){mn=[0,0,0];mx=[0,0,0];}
+  const c=[(mn[0]+mx[0])/2,(mn[1]+mx[1])/2,(mn[2]+mx[2])/2];
+  const d=disp(c);camCenter.set(d[0],d[1],d[2]);
+  const span=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2],6);
+  camRadius=span*1.4+9;updateCam();
+}
+function buildLine(){
+  if(pathLine){scene.remove(pathLine);pathLine.geometry.dispose();pathLine=null;}
+  const pts=[];
+  for(const f of frames){if(!f.length)continue;let cx=0,cy=0,cz=0;for(const p of f){cx+=p[0];cy+=p[1];cz+=p[2];}cx/=f.length;cy/=f.length;cz/=f.length;const d=disp([cx,cy,cz]);pts.push(new THREE.Vector3(d[0],d[1],d[2]));}
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  pathLine=new THREE.Line(g,new THREE.LineBasicMaterial({color:0xe3c264,transparent:true,opacity:0.22}));
+  scene.add(pathLine);
+}
+function clearGroup(g){while(g.children.length){const c=g.children[0];g.remove(c);
+  c.traverse(o=>{ if(o.geometry&&!SHARED.has(o.geometry))o.geometry.dispose();
+    if(o.material&&!SHARED.has(o.material)){const ms=Array.isArray(o.material)?o.material:[o.material];ms.forEach(m=>m.dispose());} });
+}}
+
+function makeArrow(origin,d,opacity,thin){
+  const matSh=arrowMat(ARROW_SHAFT_COLORS[d],opacity);
+  const matHd=arrowMat(ARROW_HEAD_COLORS [d],opacity);
+  const gs=thin?gArrowShaftT:gArrowShaft, gh=thin?gArrowHeadT:gArrowHead;
+  const sl=thin?BSHAFT:ASHAFT, hl=thin?BHEAD:AHEAD;
+  const g=new THREE.Group();
+  const sh=new THREE.Mesh(gs,matSh);sh.quaternion.copy(qDir[d]);sh.position.copy(origin).addScaledVector(faceDir[d],sl*0.5);g.add(sh);
+  const hd=new THREE.Mesh(gh,matHd);hd.quaternion.copy(qDir[d]);hd.position.copy(origin).addScaledVector(faceDir[d],sl+hl*0.5);g.add(hd);
+  return g;
+}
+function renderVoxels(live,s){
+  const inst=new THREE.InstancedMesh(rd,matLive,live.length);
+  inst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(live.length*3),3);
+  const o=new THREE.Object3D();const col=new THREE.Color();
+  for(let i=0;i<live.length;i++){const p=live[i];const d=disp(p);o.position.set(d[0],d[1],d[2]);o.updateMatrix();inst.setMatrixAt(i,o.matrix);
+    if(s.engine==='bs'){const phase=step_i%s.period;col.setHSL(0.02+0.10*(phase/s.period),0.75,0.62).lerp(C_WHITE,0.12);}
+    else{col.copy(colorForState(p[3]));}
+    inst.setColorAt(i,col);}
+  inst.instanceMatrix.needsUpdate=true;inst.instanceColor.needsUpdate=true;grpLive.add(inst);
+}
+function renderSignals(live,s){
+  const o=new THREE.Vector3();
+  for(const p of live){
+    const d=disp(p);o.set(d[0],d[1],d[2]);
+    if(s.engine==='r13'){
+      const st=p[3];
+      if(st&SELF){const m=new THREE.Mesh(rd,matSelfRD);m.position.copy(o);grpLive.add(m);}  // self-bit = translucent dodecahedron
+      const dir=st&0xFFF;
+      for(let i=0;i<12;i++) if(dir&(1<<i)) grpLive.add(makeArrow(o,i,0.95));        // each signal = arrow to its face
+    }else{ // broadcast (B/S): occupied cell radiates to all 12 faces
+      const m=new THREE.Mesh(rd,matBSRD);m.position.copy(o);grpLive.add(m);
+      for(let i=0;i<12;i++) grpLive.add(makeArrow(o,i,0.9,true));     // bright but thin broadcast arrows
+    }
+  }
+}
+function renderStep(){
+  clearGroup(grpLive);clearGroup(grpTrail);
+  const s=activeSpec||SPECS[curIdx];
+  const live=frames[step_i]||[];
+  if(live.length){ if(signalMode) renderSignals(live,s); else renderVoxels(live,s); }
+  if(trailOn&&trailSet.size){
+    const arr=[...trailSet];const inst=new THREE.InstancedMesh(rd,matTrail,arr.length);const o=new THREE.Object3D();
+    for(let i=0;i<arr.length;i++){const d=disp(parse(arr[i]));o.position.set(d[0],d[1],d[2]);o.updateMatrix();inst.setMatrixAt(i,o.matrix);}
+    inst.instanceMatrix.needsUpdate=true;grpTrail.add(inst);
+  }
+  updateGrid();
+  // HUD
+  let pop=0,maxr=0;for(const p of live){pop+=(s.engine==='r13'?popcount(p[3]):1);const r=gdist(p[0],p[1],p[2]);if(r>maxr)maxr=r;}
+  document.getElementById('mStep').textContent=step_i;
+  document.getElementById('mPop').textContent=pop;
+  if(s.engine==='bs'){
+    const cyc=Math.floor(step_i/s.period);const dd=[s.disp[0]*cyc,s.disp[1]*cyc,s.disp[2]*cyc];
+    document.getElementById('mThird').innerHTML=`<span class="k">moved</span> <b>(${dd.join(',')})</b>`;
+  }else{
+    const v=step_i>0?(maxr/step_i):0;
+    document.getElementById('mThird').innerHTML=`<span class="k">front</span> <b>r=${maxr} · v=${v.toFixed(2)}c</b>`;
+  }
+}
+
+function advance(){
+  const live=frames[step_i]||[];
+  for(const p of live)trailSet.add(kkey(p[0],p[1],p[2]));
+  step_i++;
+  if(step_i>=frames.length){step_i=0;trailSet=new Set();}
+  renderStep();
+}
+function back(){ step_i=Math.max(0,step_i-1); renderStep(); }
+
+function loadFrom(s,isCustom){
+  activeSpec=s;
+  document.querySelectorAll('.demo-pill').forEach(el=>el.classList.toggle('active',!isCustom&&el.dataset.id===s.id));
+  document.getElementById('title').textContent=isCustom?'your creation':s.name;
+  if(s.engine==='bs'){
+    document.getElementById('rule').innerHTML=`B<b>{${s.B.join(',')}}</b> · S<span class="s">{${s.S.join(',')}}</span>`;
+    document.getElementById('velVal').textContent=s.vel;
+    document.getElementById('velSub').textContent=`period ${s.period} · drift (${s.disp.join(',')})`;
+    frames=simulateBS(s.B,s.S,s.seed,s.period*s.loops);
+  }else{
+    frames=simulateR13(s.rule,s.seed,s.steps);
+    if(isCustom&&particleMeta){
+      const pm=particleMeta;
+      document.getElementById('title').textContent=pm.name;
+      document.getElementById('velVal').textContent=pm.v>=1?'c':pm.v.toFixed(3)+'c';
+      document.getElementById('velSub').textContent=`k=${pm.k} · N=${pm.N} · m=${pm.m}`;
+      document.getElementById('rule').innerHTML=`v = m/N = <b>${pm.m}/${pm.N}</b> · ${pm.k===0?'massless':'massive'} · ${s.rule.length}-step cycle`;
+    }else if(isCustom){
+      const a=analyze(frames);
+      document.getElementById('title').textContent=a.label;
+      document.getElementById('velVal').textContent=a.vel;
+      document.getElementById('velSub').textContent=a.note;
+      document.getElementById('rule').innerHTML=`R <b>${s.rule.length}</b> override${s.rule.length===1?'':'s'} · seed ${stateStr(s.seed[0][1])}${s.seed.length>1?' ×'+s.seed.length:''}`;
+      lastResult=`<b>${a.label}</b> — ${a.note}<br>slope ${a.slope.toFixed(2)}/tick · drift ${a.dv.toFixed(2)}c · front ${a.fv.toFixed(2)}c · pop ${a.fp} (peak ${a.peak})`;
+    }else{
+      document.getElementById('rule').innerHTML=s.ruleTxt;
+      document.getElementById('velVal').textContent=s.vel;
+      document.getElementById('velSub').textContent=s.note;
+    }
+  }
+  step_i=0;trailSet=new Set();
+  fit();buildLine();renderStep();
+}
+function loadSpec(){ loadFrom(SPECS[curIdx],false); }
+function changeSpec(i){const n=SPECS.length;curIdx=((i%n)+n)%n;pause();loadSpec();play();}
+
+function play(){playing=true;document.getElementById('playBtn').textContent='❚❚';sched();}
+function pause(){playing=false;if(timer){clearTimeout(timer);timer=null;}document.getElementById('playBtn').textContent='▶';}
+function togglePlay(){playing?pause():play();}
+function sched(){if(timer)clearTimeout(timer);timer=setTimeout(()=>{if(!playing)return;advance();sched();},interval/speedMul);}
+
+const row=document.getElementById('demoRow');
+SPECS.forEach((s,i)=>{const b=document.createElement('button');b.className='demo-pill'+(s.engine==='bs'?' bs':'');b.dataset.id=s.id;b.innerHTML=`<span class="glyph">${s.glyph}</span><span>${s.name} · ${s.vel}</span>`;b.addEventListener('click',()=>changeSpec(i));row.appendChild(b);});
+document.getElementById('playBtn').addEventListener('click',togglePlay);
+document.getElementById('stepFwdBtn').addEventListener('click',()=>{pause();advance();});
+document.getElementById('stepBackBtn').addEventListener('click',()=>{pause();back();});
+document.getElementById('prevDemoBtn').addEventListener('click',()=>changeSpec(curIdx-1));
+document.getElementById('nextDemoBtn').addEventListener('click',()=>changeSpec(curIdx+1));
+const trailToggle=document.getElementById('trailToggle');
+trailToggle.addEventListener('click',()=>{trailOn=!trailOn;trailToggle.classList.toggle('on',trailOn);if(!trailOn)trailSet=new Set();renderStep();});
+const gridToggle=document.getElementById('gridToggle');
+gridToggle.addEventListener('click',()=>{gridOn=!gridOn;gridToggle.classList.toggle('on',gridOn);updateGrid();});
+const sigToggle=document.getElementById('sigToggle');
+sigToggle.addEventListener('click',()=>{signalMode=!signalMode;sigToggle.classList.toggle('on',signalMode);renderStep();});
+const speeds=[0.5,1,2,4];let si=1;
+document.getElementById('speedBtn').addEventListener('click',()=>{si=(si+1)%speeds.length;speedMul=speeds[si];document.getElementById('speedBtn').textContent=speeds[si]+'×';});
+document.getElementById('infoBtn').addEventListener('click',()=>document.getElementById('modalInfo').classList.add('show'));
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'))));
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));else if(e.key===' '){e.preventDefault();togglePlay();}else if(e.key==='ArrowRight'){pause();advance();}else if(e.key==='ArrowLeft'){pause();back();}else if(e.key==='ArrowUp')changeSpec(curIdx-1);else if(e.key==='ArrowDown')changeSpec(curIdx+1);});
+
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(canvas.width!==w*window.devicePixelRatio||canvas.height!==h*window.devicePixelRatio){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
+function loop(){requestAnimationFrame(loop);resize();if(autoRotate&&!dragging){camTheta+=0.0016;updateCam();}renderer.render(scene,camera);}
+requestAnimationFrame(loop);
+
+// ═══════════ RULE STUDIO ═══════════
+const DIRLBL=['A','B','C','D','E','F','a','b','c','d','e','f'];
+function stateStr(s){const self=s&SELF,dir=s&0xFFF;const parts=[];if(self)parts.push('S');for(let i=0;i<12;i++)if(dir&(1<<i))parts.push(DIRLBL[i]);return parts.length?parts.join('·'):'∅';}
+function evenBlob(n){let R=1,pts=[];while(true){pts=[];for(let x=-R;x<=R;x++)for(let y=-R;y<=R;y++)for(let z=-R;z<=R;z++)if(((x+y+z)&1)===0)pts.push([x,y,z,x*x+y*y+z*z]);if(pts.length>=n||R>16)break;R++;}pts.sort((a,b)=>a[3]-b[3]);return pts.slice(0,n).map(p=>[p[0],p[1],p[2]]);}
+function linfit(p){const n=p.length;let sx=0,sy=0,sxx=0,sxy=0;for(let i=0;i<n;i++){sx+=i;sy+=p[i];sxx+=i*i;sxy+=i*p[i];}const d=(n*sxx-sx*sx);return d?(n*sxy-sx*sy)/d:0;}
+function analyze(frames){
+  const pops=frames.map(f=>f.reduce((a,p)=>a+popcount(p[3]),0));
+  const T=pops.length-1,fp=pops[T],peak=Math.max(...pops),p0=pops[0];
+  const slope=linfit(pops);
+  const cen=f=>{if(!f.length)return [0,0,0];let c=[0,0,0];for(const q of f)for(let i=0;i<3;i++)c[i]+=q[i];return c.map(v=>v/f.length);};
+  const c0=cen(frames[0]),cT=cen(frames[T]);
+  const dv=T>0?gdist(Math.round(cT[0]-c0[0]),Math.round(cT[1]-c0[1]),Math.round(cT[2]-c0[2]))/T:0;
+  let mr=0;for(const q of frames[T]){const r=gdist(q[0],q[1],q[2]);if(r>mr)mr=r;}
+  const fv=T>0?mr/T:0;
+  let label,vel,note;
+  if(fp===0){label='💀 died out';vel='—';note='no survivors';}
+  else if(slope>0.4){ if(fv>0.8){label='⚡ light-speed gun';vel='c';note=`grows ${slope.toFixed(1)}/tick · front c`;} else {label='🌱 growing gun';vel=fv.toFixed(2)+'c';note=`grows ${slope.toFixed(1)}/tick`;} }
+  else if(dv>0.05){ const glow=peak>p0+0.5; label=glow?'✨ glowing mover':'🚀 moving cluster'; vel=dv.toFixed(2)+'c'; note=glow?'drifts & emits light':'bound, drifting'; }
+  else if(peak>p0+0.5){ label='🔆 emitter fountain'; vel=fv.toFixed(2)+'c'; note='emits radiation, source fixed'; }
+  else { label='🧊 static / bound'; vel='0'; note='no net motion'; }
+  return {label,vel,note,slope,dv,fv,fp,peak};
+}
+
+let customSpec=null, lastResult='', particleMeta=null, draft={inState:SELF,outState:SELF|1,seedState:SELF,count:1,steps:18,entries:[[SELF,SELF|1]]};
+const bitOn=(s,b)=>(s&(1<<b))!==0;
+function buildBitGrid(elId,which){
+  const el=document.getElementById(elId);el.innerHTML='';
+  const sc=document.createElement('div');sc.className='bc self';sc.dataset.b='12';sc.textContent='self';el.appendChild(sc);
+  for(let i=0;i<12;i++){const c=document.createElement('div');c.className='bc';c.dataset.b=String(i);c.textContent=DIRLBL[i];el.appendChild(c);}
+  el.querySelectorAll('.bc').forEach(c=>c.addEventListener('click',()=>{draft[which]^=(1<<(+c.dataset.b));paintGrid(elId,which);refreshIO();}));
+}
+function paintGrid(elId,which){const st=draft[which];document.querySelectorAll('#'+elId+' .bc').forEach(c=>c.classList.toggle('on',bitOn(st,+c.dataset.b)));}
+function refreshIO(){
+  document.getElementById('inReadout').innerHTML='in <b>'+stateStr(draft.inState)+'</b> · '+draft.inState;
+  document.getElementById('outReadout').innerHTML='out <b>'+stateStr(draft.outState)+'</b> · '+draft.outState;
+  document.getElementById('seedReadout').innerHTML='seed <b>'+stateStr(draft.seedState)+'</b> · '+draft.seedState;
+  refreshCode();
+}
+function renderEntries(){
+  const el=document.getElementById('entryList');el.innerHTML='';
+  if(!draft.entries.length){el.innerHTML='<div class="libempty">No overrides — pure identity (signals just stream).</div>';refreshCode();return;}
+  draft.entries.forEach((e,idx)=>{const row=document.createElement('div');row.className='entry';
+    row.innerHTML=`<span class="ein">${stateStr(e[0])}</span><span class="ar">→</span><span class="eout">${stateStr(e[1])}</span>`;
+    const del=document.createElement('button');del.textContent='✕';del.addEventListener('click',()=>{draft.entries.splice(idx,1);renderEntries();});
+    row.appendChild(del);el.appendChild(row);});
+  refreshCode();
+}
+function paintAll(){paintGrid('inGrid','inState');paintGrid('outGrid','outState');paintGrid('seedGrid','seedState');document.getElementById('cntVal').textContent=draft.count;document.getElementById('stepVal').textContent=draft.steps;refreshIO();renderEntries();}
+function addEntry(){const i=draft.inState,o=draft.outState;draft.entries=draft.entries.filter(e=>e[0]!==i);draft.entries.push([i,o]);renderEntries();}
+const PRESETS={gun:{entries:[[1,3],[3,6],[6,1]],seed:1},emit:{entries:[[SELF,SELF|1]],seed:SELF},absorb:{entries:[[1,SELF]],seed:1},clear:{entries:[],seed:SELF}};
+function applyPreset(name){const p=PRESETS[name];if(!p)return;draft.entries=p.entries.map(e=>[e[0],e[1]]);draft.seedState=p.seed;draft.count=1;paintAll();}
+function rollEntry(){const n=1+Math.floor(Math.random()*2);for(let q=0;q<n;q++){const d=Math.floor(Math.random()*12),d2=Math.floor(Math.random()*12);const kind=Math.floor(Math.random()*4);let i,o;if(kind===0){i=SELF;o=SELF|(1<<d);}else if(kind===1){i=(1<<d);o=SELF;}else if(kind===2){i=SELF;o=(1<<d);}else{i=(1<<d);o=(1<<d)|(1<<d2);}draft.entries=draft.entries.filter(e=>e[0]!==i);draft.entries.push([i,o]);}draft.seedState=Math.random()<0.5?SELF:1;draft.count=1;paintAll();}
+function makeCode13(seed,count,steps,entries){const e=entries.length?entries.map(([i,o])=>i.toString(36)+'.'+o.toString(36)).join('_'):'~';return ('CG13-'+seed.toString(36)+'-'+count+'-'+steps+'-'+e).toUpperCase();}
+function parseCode13(str){if(!str)return null;const p=str.trim().toUpperCase().split('-');if(p.length<5||p[0]!=='CG13')return null;const seed=parseInt(p[1],36);let count=parseInt(p[2],10),steps=parseInt(p[3],10);if(isNaN(seed)||seed<0||seed>8191)return null;if(isNaN(count))count=1;count=Math.max(1,Math.min(200,count));if(isNaN(steps))steps=18;steps=Math.max(6,Math.min(30,steps));const entries=[];if(p[4]&&p[4]!=='~'){for(const seg of p[4].split('_')){const ab=seg.split('.');if(ab.length!==2)return null;const i=parseInt(ab[0],36),o=parseInt(ab[1],36);if(isNaN(i)||isNaN(o)||i<0||i>8191||o<0||o>8191)return null;entries.push([i,o]);}}return {seed,count,steps,entries};}
+function refreshCode(){document.getElementById('shareCode').textContent=makeCode13(draft.seedState,draft.count,draft.steps,draft.entries);}
+function runStudio(){
+  const ruleArr=draft.entries.map(e=>[e[0],e[1]]);
+  const seedCells=draft.count<=1?[[[0,0,0],draft.seedState]]:evenBlob(draft.count).map(pp=>[pp,draft.seedState]);
+  customSpec={engine:'r13',id:'custom',name:'your creation',rule:ruleArr,seed:seedCells,steps:draft.steps};
+  particleMeta=null;closeModals();pause();loadFrom(customSpec,true);play();
+}
+function setMsg(t,cls){const m=document.getElementById('loadMsg');m.textContent=t;m.className='loadmsg'+(cls?' '+cls:'');}
+function closeModals(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));}
+function openStudio(){closeModals();paintAll();document.getElementById('resultBox').innerHTML=lastResult||'— run a rule to see what it makes —';setMsg('');document.getElementById('nameInput').value='';loadLibrary();document.getElementById('modalStudio').classList.add('show');}
+function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText){return navigator.clipboard.writeText(t).then(()=>true).catch(()=>false);}try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');document.body.removeChild(ta);return Promise.resolve(ok);}catch(e){return Promise.resolve(false);}}
+const hasStore=(typeof window!=='undefined'&&window.storage&&typeof window.storage.set==='function');
+async function loadLibrary(){const list=document.getElementById('libList');list.innerHTML='';if(!hasStore){list.innerHTML='<div class="libempty">Saving needs the Claude app. Codes still work.</div>';return;}let keys=[];try{const r=await window.storage.list('cg13:');keys=(r&&r.keys)?r.keys:[];}catch(e){}if(!keys.length){list.innerHTML='<div class="libempty">No saved rules yet.</div>';return;}const items=[];for(const k of keys){try{const r=await window.storage.get(k);if(r&&r.value)items.push({key:k,...JSON.parse(r.value)});}catch(e){}}items.sort((a,b)=>(b.ts||0)-(a.ts||0));if(!items.length){list.innerHTML='<div class="libempty">No saved rules yet.</div>';return;}for(const it of items){const row=document.createElement('div');row.className='libitem';row.innerHTML=`<div class="ln">${it.name||'untitled'}<div class="lc">${it.code||''}</div></div>`;const load=document.createElement('button');load.className='lload';load.textContent='load';load.addEventListener('click',()=>{const pp=parseCode13(it.code);if(!pp){setMsg('saved code invalid','err');return;}draft.entries=pp.entries;draft.seedState=pp.seed;draft.count=pp.count;draft.steps=pp.steps;paintAll();runStudio();});const del=document.createElement('button');del.textContent='delete';del.addEventListener('click',async()=>{try{await window.storage.delete(it.key);}catch(e){}loadLibrary();});row.appendChild(load);row.appendChild(del);list.appendChild(row);}}
+
+buildBitGrid('inGrid','inState');buildBitGrid('outGrid','outState');buildBitGrid('seedGrid','seedState');
+document.getElementById('addEntry').addEventListener('click',addEntry);
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));
+document.getElementById('rollEntry').addEventListener('click',rollEntry);
+document.getElementById('cntMinus').addEventListener('click',()=>{draft.count=Math.max(1,draft.count-(draft.count>20?10:1));document.getElementById('cntVal').textContent=draft.count;refreshCode();});
+document.getElementById('cntPlus').addEventListener('click',()=>{draft.count=Math.min(200,draft.count+(draft.count>=20?10:1));document.getElementById('cntVal').textContent=draft.count;refreshCode();});
+document.getElementById('stepMinus').addEventListener('click',()=>{draft.steps=Math.max(6,draft.steps-2);document.getElementById('stepVal').textContent=draft.steps;refreshCode();});
+document.getElementById('stepPlus').addEventListener('click',()=>{draft.steps=Math.min(30,draft.steps+2);document.getElementById('stepVal').textContent=draft.steps;refreshCode();});
+document.getElementById('runBtn').addEventListener('click',runStudio);
+document.getElementById('studioBtn').addEventListener('click',openStudio);
+
+// ── auto-search ──
+let searchN=500, searching=false;
+const HUNT=new Set(['⚡ light-speed gun','🌱 growing gun','✨ glowing mover']);
+function scoreHit(a,nEnt){
+  if(a.label==='✨ glowing mover') return 1000+a.dv*100+a.peak;
+  if(a.label==='⚡ light-speed gun') return 500+a.slope*8+a.peak*0.2+nEnt*4;
+  if(a.label==='🌱 growing gun')    return 400+a.slope*8+a.fv*30+nEnt*4;
+  return 0;
+}
+const rDir=()=>Math.floor(Math.random()*12);
+function randomCandidate(){
+  const k=1+Math.floor(Math.random()*4),map=new Map();
+  for(let q=0;q<k;q++){const t=Math.floor(Math.random()*7),d=rDir(),d2=rDir(),d3=rDir();let i,o;
+    if(t===0){i=SELF;o=SELF|(1<<d);}                 // emit & stay
+    else if(t===1){i=SELF;o=(1<<d);}                 // mass → photon
+    else if(t===2){i=(1<<d);o=SELF;}                 // absorb
+    else if(t===3){i=(1<<d);o=(1<<d2)|(1<<d3);}      // split (gun-like)
+    else if(t===4){i=(1<<d);o=(1<<d2);}              // turn
+    else if(t===5){i=SELF;o=SELF|(1<<d)|(1<<d2);}    // double emit
+    else {i=(1<<d)|(1<<d2);o=SELF|(1<<d3);}          // bind
+    map.set(i,o);}
+  const entries=[...map.entries()];
+  const seed=entries[Math.floor(Math.random()*entries.length)][0];
+  return {entries,seed};
+}
+const sigOf=(entries,seed)=>entries.slice().sort((a,b)=>a[0]-b[0]).map(e=>e[0]+'>'+e[1]).join(',')+'|'+seed;
+function searchRules(){
+  if(searching)return; searching=true;
+  document.getElementById('searchBtn').textContent='… searching';
+  const total=searchN, steps=16, chunk=70;
+  let tried=0; const seen=new Set(), hits=[]; const msg=document.getElementById('searchMsg');
+  document.getElementById('hitList').innerHTML='';
+  const tick=()=>{
+    const end=Math.min(tried+chunk,total);
+    for(;tried<end;tried++){
+      const {entries,seed}=randomCandidate();
+      const sig=sigOf(entries,seed); if(seen.has(sig))continue; seen.add(sig);
+      const a=analyze(simulateR13(entries,[[[0,0,0],seed]],steps));
+      if(HUNT.has(a.label)) hits.push({entries,seed,a,score:scoreHit(a,entries.length)});
+    }
+    msg.textContent=`tried ${tried}/${total} · ${hits.length} hit${hits.length===1?'':'s'}…`; msg.className='loadmsg';
+    if(tried<total) setTimeout(tick,0);
+    else { searching=false; document.getElementById('searchBtn').textContent='🔭 search again'; renderHits(hits); }
+  };
+  setTimeout(tick,0);
+}
+function renderHits(hits){
+  const list=document.getElementById('hitList'), msg=document.getElementById('searchMsg');
+  hits.sort((x,y)=>y.score-x.score);
+  const top=hits.slice(0,14);
+  msg.textContent=`${hits.length} hit${hits.length===1?'':'s'} — showing ${top.length}, best first`; msg.className='loadmsg ok';
+  list.innerHTML='';
+  if(!top.length){list.innerHTML='<div class="libempty">No movers or guns this batch — search again or raise the count.</div>';return;}
+  for(const h of top){
+    const code=makeCode13(h.seed,1,18,h.entries);
+    const row=document.createElement('div');row.className='libitem';
+    row.innerHTML=`<div class="ln">${h.a.label}<div class="lc">seed ${stateStr(h.seed)} · ${h.entries.map(e=>stateStr(e[0])+'→'+stateStr(e[1])).join('  ')} · slope ${h.a.slope} · v ${h.a.dv}c</div></div>`;
+    const load=document.createElement('button');load.className='lload';load.textContent='load';
+    load.addEventListener('click',()=>{draft.entries=h.entries.map(e=>[e[0],e[1]]);draft.seedState=h.seed;draft.count=1;draft.steps=18;paintAll();runStudio();});
+    const cp=document.createElement('button');cp.textContent='copy';cp.addEventListener('click',()=>copyText(code).then(ok=>{cp.textContent=ok?'✓':'×';setTimeout(()=>cp.textContent='copy',900);}));
+    row.appendChild(load);row.appendChild(cp);list.appendChild(row);
+  }
+}
+document.getElementById('nMinus').addEventListener('click',()=>{searchN=Math.max(250,searchN-250);document.getElementById('nVal').textContent=searchN;});
+document.getElementById('nPlus').addEventListener('click',()=>{searchN=Math.min(3000,searchN+250);document.getElementById('nVal').textContent=searchN;});
+document.getElementById('searchBtn').addEventListener('click',searchRules);
+
+// ═══════════ PARTICLE SPECTRUM (from A New Kind of Physics, ch.24) ═══════════
+// row = [modeIdx, k, N, m, bits[], period, v, names].  Engine + 12-dir encoding identical to the book companion.
+const PARTICLE_DATA=[
+[0,0,1,1,[1],1,1,"B"],[0,0,2,1,[0,11],0,0.5,"Af"],[0,0,2,1,[2,3],0,0.5,"CD"],[0,0,3,2,[0,1,11],0,0.6667,"ABf"],[0,0,3,1,[2,11,10],0,0.3333,"Cfe"],[0,0,3,1,[0,1,6],0,0.3333,"ABa"],[0,0,3,1,[1,2,8],0,0.3333,"BCc"],[0,0,3,1,[1,11,5],0,0.3333,"BfF"],[0,0,3,2,[1,2,3],0,0.6667,"BCD"],[0,0,3,1,[1,9,3],0,0.3333,"BdD"],[0,0,3,1,[1,10,4],0,0.3333,"BeE"],[0,0,3,1,[0,3,4],0,0.3333,"ADE"],[0,0,4,2,[1,2,11,10],0,0.5,"BCfe"],[0,0,4,1,[1,11,9,10],0,0.25,"Bfde"],[0,0,4,1,[1,2,10,6],0,0.25,"BCea"],[0,0,4,1,[0,1,11,7],0,0.25,"ABfb"],[0,0,4,1,[0,2,11,8],0,0.25,"ACfc"],[0,0,4,2,[0,2,11,3],0,0.5,"ACfD"],[0,0,4,1,[0,11,9,3],0,0.25,"AfdD"],[0,0,4,1,[0,2,6,3],0,0.25,"ACaD"],[0,0,4,1,[1,2,7,3],0,0.25,"BCbD"],[0,0,4,1,[2,11,5,3],0,0.25,"CfFD"],[0,0,4,1,[0,11,10,4],0,0.25,"AfeE"],[0,0,4,1,[0,1,8,4],0,0.25,"ABcE"],[0,0,4,2,[0,1,3,4],0,0.5,"ABDE"],[0,0,4,1,[2,10,3,4],0,0.25,"CeDE"],[0,0,4,1,[1,5,3,4],0,0.25,"BFDE"],[0,0,5,1,[0,2,11,10,6],0,0.2,"ACfea"],[0,0,5,1,[1,2,11,10,7],0,0.2,"BCfeb"],[0,0,5,2,[0,1,2,11,8],0,0.4,"ABCfc"],[0,0,5,1,[0,1,11,9,8],0,0.2,"ABfdc"],[0,0,5,1,[0,1,2,6,8],0,0.2,"ABCac"],[0,0,5,1,[0,1,11,6,5],0,0.2,"ABfaF"],[0,0,5,1,[1,2,11,8,5],0,0.2,"BCfcF"],[0,0,5,3,[0,1,2,11,3],0,0.6,"ABCfD"],[0,0,5,2,[0,1,11,9,3],0,0.4,"ABfdD"],[0,0,5,1,[2,11,9,10,3],0,0.2,"CfdeD"],[0,0,5,2,[0,1,2,6,3],0,0.4,"ABCaD"],[0,0,5,1,[0,1,9,6,3],0,0.2,"ABdaD"],[0,0,5,1,[0,2,11,7,3],0,0.2,"ACfbD"],[0,0,5,1,[1,2,9,8,3],0,0.2,"BCdcD"],[0,0,5,2,[1,2,11,5,3],0,0.4,"BCfFD"],[0,0,5,1,[1,11,9,5,3],0,0.2,"BfdFD"],[0,0,5,1,[1,2,6,5,3],0,0.2,"BCaFD"],[0,0,5,2,[0,1,11,10,4],0,0.4,"ABfeE"],[0,0,5,1,[0,1,10,6,4],0,0.2,"ABeaE"],[0,0,5,1,[1,2,10,8,4],0,0.2,"BCecE"],[0,0,5,1,[1,11,10,5,4],0,0.2,"BfeFE"],[0,0,5,2,[1,2,10,3,4],0,0.4,"BCeDE"],[0,0,5,1,[1,9,10,3,4],0,0.2,"BdeDE"],[0,0,5,1,[0,1,7,3,4],0,0.2,"ABbDE"],[0,0,5,1,[0,2,8,3,4],0,0.2,"ACcDE"],[0,0,5,1,[0,11,5,3,4],0,0.2,"AfFDE"],[0,0,6,1,[0,1,11,9,10,6],0,0.1667,"ABfdea"],[0,0,6,1,[1,2,11,9,10,8],0,0.1667,"BCfdec"],[0,0,6,1,[0,1,2,11,7,8],0,0.1667,"ABCfbc"],[0,0,6,1,[1,2,11,10,6,5],0,0.1667,"BCfeaF"],[0,0,6,2,[1,2,11,9,10,3],0,0.3333,"BCfdeD"],[0,0,6,1,[1,2,9,10,6,3],0,0.1667,"BCdeaD"],[0,0,6,2,[0,1,2,11,7,3],0,0.3333,"ABCfbD"],[0,0,6,1,[0,1,11,9,7,3],0,0.1667,"ABfdbD"],[0,0,6,1,[0,1,2,6,7,3],0,0.1667,"ABCabD"],[0,0,6,1,[0,2,11,9,8,3],0,0.1667,"ACfdcD"],[0,0,6,1,[0,2,11,6,5,3],0,0.1667,"ACfaFD"],[0,0,6,1,[1,2,11,7,5,3],0,0.1667,"BCfbFD"],[0,0,6,1,[0,1,11,10,7,4],0,0.1667,"ABfebE"],[0,0,6,1,[0,2,11,10,8,4],0,0.1667,"ACfecE"],[0,0,6,1,[0,1,11,8,5,4],0,0.1667,"ABfcFE"],[0,0,6,1,[0,11,9,10,3,4],0,0.1667,"AfdeDE"],[0,0,6,1,[0,2,10,6,3,4],0,0.1667,"ACeaDE"],[0,0,6,1,[1,2,10,7,3,4],0,0.1667,"BCebDE"],[0,0,6,1,[2,11,10,5,3,4],0,0.1667,"CfeFDE"],[0,0,6,1,[1,2,8,5,3,4],0,0.1667,"BCcFDE"],[0,0,7,1,[0,1,2,11,10,6,7],0,0.1429,"ABCfeab"],[0,0,7,1,[0,1,2,11,6,8,5],0,0.1429,"ABCfacF"],[0,0,7,1,[0,2,11,9,10,6,3],0,0.1429,"ACfdeaD"],[0,0,7,1,[1,2,11,9,10,7,3],0,0.1429,"BCfdebD"],[0,0,7,2,[0,1,2,11,9,8,3],0,0.2857,"ABCfdcD"],[0,0,7,1,[0,1,2,9,6,8,3],0,0.1429,"ABCdacD"],[0,0,7,2,[0,1,2,11,6,5,3],0,0.2857,"ABCfaFD"],[0,0,7,1,[0,1,11,9,6,5,3],0,0.1429,"ABfdaFD"],[0,0,7,1,[1,2,11,9,8,5,3],0,0.1429,"BCfdcFD"],[0,0,7,2,[0,1,2,11,10,8,4],0,0.2857,"ABCfecE"],[0,0,7,1,[0,1,11,10,6,5,4],0,0.1429,"ABfeaFE"],[0,0,7,2,[0,1,11,9,10,3,4],0,0.2857,"ABfdeDE"],[0,0,7,2,[0,1,2,10,6,3,4],0,0.2857,"ABCeaDE"],[0,0,7,1,[1,2,9,10,8,3,4],0,0.1429,"BCdecDE"],[0,0,7,1,[0,1,2,7,8,3,4],0,0.1429,"ABCbcDE"],[0,0,7,1,[0,1,11,7,5,3,4],0,0.1429,"ABfbFDE"],[0,0,7,1,[0,2,11,8,5,3,4],0,0.1429,"ACfcFDE"],[0,0,8,1,[0,1,2,11,9,10,6,8],0,0.125,"ABCfdeac"],[0,0,8,2,[0,1,2,11,9,10,6,3],0,0.25,"ABCfdeaD"],[0,0,8,1,[0,1,2,11,9,7,8,3],0,0.125,"ABCfdbcD"],[0,0,8,1,[1,2,11,9,10,6,5,3],0,0.125,"BCfdeaFD"],[0,0,8,1,[0,1,2,11,6,7,5,3],0,0.125,"ABCfabFD"],[0,0,8,1,[0,1,2,11,10,7,8,4],0,0.125,"ABCfebcE"],[0,0,8,1,[0,1,11,9,10,7,3,4],0,0.125,"ABfdebDE"],[0,0,8,1,[0,2,11,9,10,8,3,4],0,0.125,"ACfdecDE"],[0,0,8,2,[0,1,2,11,8,5,3,4],0,0.25,"ABCfcFDE"],[0,0,8,1,[0,1,11,9,8,5,3,4],0,0.125,"ABfdcFDE"],[0,0,8,1,[0,1,2,6,8,5,3,4],0,0.125,"ABCacFDE"],[0,0,9,1,[0,1,2,11,9,6,8,5,3],0,0.1111,"ABCfdacFD"],[0,0,9,1,[0,1,2,11,10,6,8,5,4],0,0.1111,"ABCfeacFE"],[0,0,9,2,[0,1,2,11,9,10,8,3,4],0,0.2222,"ABCfdecDE"],[0,0,9,1,[0,1,2,9,10,6,8,3,4],0,0.1111,"ABCdeacDE"],[0,0,9,1,[0,1,2,11,7,8,5,3,4],0,0.1111,"ABCfbcFDE"],[0,0,10,1,[0,1,2,11,9,10,7,8,3,4],0,0.1,"ABCfdebcDE"],
+[1,1,2,1,[1],2,0.5,"B"],[1,1,3,1,[0,11],3,0.3333,"Af"],[1,1,3,1,[2,3],3,0.3333,"CD"],[1,1,4,2,[0,1,11],4,0.5,"ABf"],[1,1,4,1,[2,11,10],4,0.25,"Cfe"],[1,1,4,1,[0,1,6],4,0.25,"ABa"],[1,1,4,1,[1,2,8],4,0.25,"BCc"],[1,1,4,1,[1,11,5],4,0.25,"BfF"],[1,1,4,2,[1,2,3],12,0.5,"BCD"],[1,1,4,1,[1,9,3],4,0.25,"BdD"],[1,1,4,1,[1,10,4],4,0.25,"BeE"],[1,1,4,1,[0,3,4],4,0.25,"ADE"],[1,1,5,2,[1,2,11,10],5,0.4,"BCfe"],[1,1,5,1,[1,11,9,10],5,0.2,"Bfde"],[1,1,5,1,[1,2,10,6],5,0.2,"BCea"],[1,1,5,1,[0,1,11,7],5,0.2,"ABfb"],[1,1,5,1,[0,2,11,8],5,0.2,"ACfc"],[1,1,5,2,[0,2,11,3],5,0.4,"ACfD"],[1,1,5,1,[0,11,9,3],5,0.2,"AfdD"],[1,1,5,1,[0,2,6,3],5,0.2,"ACaD"],[1,1,5,1,[1,2,7,3],5,0.2,"BCbD"],[1,1,5,1,[2,11,5,3],5,0.2,"CfFD"],[1,1,5,1,[0,11,10,4],5,0.2,"AfeE"],[1,1,5,1,[0,1,8,4],5,0.2,"ABcE"],[1,1,5,2,[0,1,3,4],5,0.4,"ABDE"],[1,1,5,1,[2,10,3,4],5,0.2,"CeDE"],[1,1,5,1,[1,5,3,4],5,0.2,"BFDE"],[1,1,6,1,[0,2,11,10,6],6,0.1667,"ACfea"],[1,1,6,1,[1,2,11,10,7],6,0.1667,"BCfeb"],[1,1,6,2,[0,1,2,11,8],6,0.3333,"ABCfc"],[1,1,6,1,[0,1,11,9,8],6,0.1667,"ABfdc"],[1,1,6,1,[0,1,2,6,8],6,0.1667,"ABCac"],[1,1,6,1,[0,1,11,6,5],6,0.1667,"ABfaF"],[1,1,6,1,[1,2,11,8,5],6,0.1667,"BCfcF"],[1,1,6,3,[0,1,2,11,3],6,0.5,"ABCfD"],[1,1,6,2,[0,1,11,9,3],6,0.3333,"ABfdD"],[1,1,6,1,[2,11,9,10,3],6,0.1667,"CfdeD"],[1,1,6,2,[0,1,2,6,3],6,0.3333,"ABCaD"],[1,1,6,1,[0,1,9,6,3],6,0.1667,"ABdaD"],[1,1,6,1,[0,2,11,7,3],6,0.1667,"ACfbD"],[1,1,6,1,[1,2,9,8,3],6,0.1667,"BCdcD"],[1,1,6,2,[1,2,11,5,3],6,0.3333,"BCfFD"],[1,1,6,1,[1,11,9,5,3],6,0.1667,"BfdFD"],[1,1,6,1,[1,2,6,5,3],6,0.1667,"BCaFD"],[1,1,6,2,[0,1,11,10,4],6,0.3333,"ABfeE"],[1,1,6,1,[0,1,10,6,4],6,0.1667,"ABeaE"],[1,1,6,1,[1,2,10,8,4],6,0.1667,"BCecE"],[1,1,6,1,[1,11,10,5,4],6,0.1667,"BfeFE"],[1,1,6,2,[1,2,10,3,4],6,0.3333,"BCeDE"],[1,1,6,1,[1,9,10,3,4],6,0.1667,"BdeDE"],[1,1,6,1,[0,1,7,3,4],6,0.1667,"ABbDE"],[1,1,6,1,[0,2,8,3,4],6,0.1667,"ACcDE"],[1,1,6,1,[0,11,5,3,4],6,0.1667,"AfFDE"],[1,1,7,2,[0,1,2,11,10,6],7,0.2857,"ABCfea"],[1,1,7,1,[1,2,11,9,10,8],7,0.1429,"BCfdec"],[1,1,7,1,[0,1,2,11,7,8],7,0.1429,"ABCfbc"],[1,1,7,1,[1,2,11,10,6,5],7,0.1429,"BCfeaF"],[1,1,7,2,[1,2,11,9,10,3],7,0.2857,"BCfdeD"],[1,1,7,1,[1,2,9,10,6,3],7,0.1429,"BCdeaD"],[1,1,7,2,[0,1,2,11,7,3],7,0.2857,"ABCfbD"],[1,1,7,1,[0,1,11,9,7,3],7,0.1429,"ABfdbD"],[1,1,7,1,[0,1,2,6,7,3],7,0.1429,"ABCabD"],[1,1,7,1,[0,2,11,9,8,3],7,0.1429,"ACfdcD"],[1,1,7,1,[0,2,11,6,5,3],7,0.1429,"ACfaFD"],[1,1,7,1,[1,2,11,7,5,3],7,0.1429,"BCfbFD"],[1,1,7,1,[0,1,11,10,7,4],7,0.1429,"ABfebE"],[1,1,7,1,[0,2,11,10,8,4],7,0.1429,"ACfecE"],[1,1,7,1,[0,1,11,8,5,4],7,0.1429,"ABfcFE"],[1,1,7,2,[0,2,11,10,3,4],7,0.2857,"ACfeDE"],[1,1,7,1,[1,2,10,7,3,4],7,0.1429,"BCebDE"],[1,1,7,2,[0,1,2,8,3,4],7,0.2857,"ABCcDE"],[1,1,7,1,[0,1,9,8,3,4],7,0.1429,"ABdcDE"],[1,1,7,2,[0,1,11,5,3,4],7,0.2857,"ABfFDE"],[1,1,7,1,[2,11,10,5,3,4],7,0.1429,"CfeFDE"],[1,1,7,1,[1,2,8,5,3,4],7,0.1429,"BCcFDE"],[1,1,8,1,[0,1,2,11,10,6,7],8,0.125,"ABCfeab"],[1,1,8,1,[0,1,2,11,6,8,5],8,0.125,"ABCfacF"],[1,1,8,1,[0,2,11,9,10,6,3],8,0.125,"ACfdeaD"],[1,1,8,1,[1,2,11,9,10,7,3],8,0.125,"BCfdebD"],[1,1,8,2,[0,1,2,11,9,8,3],8,0.25,"ABCfdcD"],[1,1,8,1,[0,1,2,9,6,8,3],8,0.125,"ABCdacD"],[1,1,8,2,[0,1,2,11,6,5,3],8,0.25,"ABCfaFD"],[1,1,8,1,[0,1,11,9,6,5,3],8,0.125,"ABfdaFD"],[1,1,8,1,[1,2,11,9,8,5,3],8,0.125,"BCfdcFD"],[1,1,8,2,[0,1,2,11,10,8,4],8,0.25,"ABCfecE"],[1,1,8,1,[0,1,11,10,6,5,4],8,0.125,"ABfeaFE"],[1,1,8,1,[1,2,11,10,8,5,4],8,0.125,"BCfecFE"],[1,1,8,3,[0,1,2,11,10,3,4],8,0.375,"ABCfeDE"],[1,1,8,1,[0,1,9,10,6,3,4],8,0.125,"ABdeaDE"],[1,1,8,1,[0,2,11,10,7,3,4],8,0.125,"ACfebDE"],[1,1,8,1,[1,2,9,10,8,3,4],8,0.125,"BCdecDE"],[1,1,8,2,[1,2,11,10,5,3,4],8,0.25,"BCfeFDE"],[1,1,9,2,[0,1,2,11,9,10,6,3],9,0.2222,"ABCfdeaD"],[1,1,9,1,[0,1,2,11,9,7,8,3],9,0.1111,"ABCfdbcD"],[1,1,9,1,[1,2,11,9,10,6,5,3],9,0.1111,"BCfdeaFD"],[1,1,9,1,[0,1,2,11,6,7,5,3],9,0.1111,"ABCfabFD"],[1,1,9,2,[0,1,2,11,10,7,3,4],9,0.2222,"ABCfebDE"],[1,1,9,1,[0,2,11,10,6,5,3,4],9,0.1111,"ACfeaFDE"],[1,1,10,1,[0,1,2,11,9,6,8,5,3],10,0.1,"ABCfdacFD"],[1,1,10,1,[0,1,2,11,10,6,8,5,4],10,0.1,"ABCfeacFE"],[1,1,10,1,[0,1,2,9,10,6,8,3,4],10,0.1,"ABCdeacDE"],[1,1,10,2,[0,1,2,11,10,6,5,3,4],10,0.2,"ABCfeaFDE"],[1,1,10,1,[0,1,2,11,7,8,5,3,4],10,0.1,"ABCfbcFDE"],[1,1,11,1,[0,1,2,11,10,6,7,5,3,4],11,0.0909,"ABCfeabFDE"]
+];
+function buildParticleSpec(mode,bits){const entries=[];const n=bits.length;if(mode===0){for(let i=0;i<n;i++)entries.push([1<<bits[i],1<<bits[(i+1)%n]]);}else{for(let i=0;i<n-1;i++)entries.push([1<<bits[i],1<<bits[i+1]]);entries.push([1<<bits[n-1],SELF]);entries.push([SELF,1<<bits[0]]);}let seed=0;for(const b of bits)seed|=(1<<b);if(mode===1)seed|=SELF;return {entries,seed};}
+function loadParticle(p){
+  const {entries,seed}=buildParticleSpec(p[0],p[4]);
+  const v=p[6],N=p[2],m=p[3],k=p[1],name=p[7];
+  const steps=Math.min(30,Math.max(12,Math.round(7/Math.max(v,0.2))));
+  particleMeta={name,v,N,m,k};
+  customSpec={engine:'r13',id:'particle',name,rule:entries,seed:[[[0,0,0],seed]],steps};
+  closeModals();pause();loadFrom(customSpec,true);play();
+}
+function particleToStudio(p){
+  const {entries,seed}=buildParticleSpec(p[0],p[4]);
+  draft.entries=entries.map(e=>[e[0],e[1]]);
+  draft.seedState=seed; draft.count=1;
+  draft.steps=Math.min(30,Math.max(16,p[2]*3));
+  particleMeta=null;
+  closeModals(); openStudio();
+}
+let spMode='all', spN='all', spSort='v';
+function renderSpectrum(){
+  let arr=PARTICLE_DATA.slice();
+  if(spMode==='0')arr=arr.filter(p=>p[0]===0); else if(spMode==='1')arr=arr.filter(p=>p[0]===1);
+  if(spN!=='all')arr=arr.filter(p=>p[2]===spN);
+  if(spSort==='v')arr.sort((a,b)=>b[6]-a[6]||a[2]-b[2]);
+  else if(spSort==='N')arr.sort((a,b)=>a[2]-b[2]||b[6]-a[6]);
+  else arr.sort((a,b)=>a[7].localeCompare(b[7]));
+  document.getElementById('spCount').textContent=`${arr.length} / 211 particles`;
+  const list=document.getElementById('spList');list.innerHTML='';
+  if(!arr.length){list.innerHTML='<div class="libempty">none match this filter</div>';return;}
+  for(const p of arr){const row=document.createElement('div');row.className='sp-row'+(p[0]===1?' k1':'');
+    row.innerHTML=`<span class="nm">${p[7]}</span><span class="meta">k${p[1]} · N${p[2]} · m${p[3]}</span><span class="vv">${p[6]>=1?'c':p[6].toFixed(3)}</span>`;
+    row.addEventListener('click',()=>loadParticle(p));
+    const edit=document.createElement('button');edit.className='sp-edit';edit.textContent='✎';edit.title='edit in studio';
+    edit.addEventListener('click',e=>{e.stopPropagation();particleToStudio(p);});
+    row.appendChild(edit);list.appendChild(row);}
+}
+function buildFilters(){
+  const mk=(host,opts,getter,setter)=>{const el=document.getElementById(host);el.innerHTML='';opts.forEach(([val,lab])=>{const b=document.createElement('button');b.textContent=lab;b.classList.toggle('sel',getter()===val);b.addEventListener('click',()=>{setter(val);buildFilters();renderSpectrum();});el.appendChild(b);});};
+  mk('spMode',[['all','all'],['0','k=0 massless'],['1','k=1 massive']],()=>spMode,v=>spMode=v);
+  mk('spN',[['all','all'],[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6'],[7,'7'],[8,'8'],[9,'9'],[10,'10'],[11,'11']],()=>spN,v=>spN=v);
+  mk('spSort',[['v','v ↓'],['N','N ↑'],['name','name']],()=>spSort,v=>spSort=v);
+}
+function openSpectrum(){closeModals();buildFilters();renderSpectrum();document.getElementById('modalSpectrum').classList.add('show');}
+document.getElementById('spectrumBtn').addEventListener('click',openSpectrum);
+document.getElementById('copyCode').addEventListener('click',()=>copyText(document.getElementById('shareCode').textContent).then(ok=>setMsg(ok?'copied ✓':'copy failed — long-press to select',ok?'ok':'err')));
+document.getElementById('loadCode').addEventListener('click',()=>{const pp=parseCode13(document.getElementById('codeInput').value);if(!pp){setMsg('not a valid CG13 code','err');return;}draft.entries=pp.entries;draft.seedState=pp.seed;draft.count=pp.count;draft.steps=pp.steps;paintAll();setMsg('loaded ✓ — running…','ok');runStudio();});
+document.getElementById('saveCre').addEventListener('click',async()=>{if(!hasStore){setMsg('saving needs the Claude app — copy the code','err');return;}const name=(document.getElementById('nameInput').value||'').trim()||'untitled';const code=makeCode13(draft.seedState,draft.count,draft.steps,draft.entries);const safe=name.replace(/[^\w\u4e00-\u9fff -]/g,'').slice(0,40)||'untitled';const key='cg13:'+Date.now().toString(36)+':'+safe;try{await window.storage.set(key,JSON.stringify({name,code,ts:Date.now()}));setMsg('saved ✓','ok');document.getElementById('nameInput').value='';loadLibrary();}catch(e){setMsg('save failed','err');}});
+
+loadSpec();play();
+setTimeout(()=>{const h=document.getElementById('swipeHint');h.classList.add('show');setTimeout(()=>h.classList.remove('show'),2600);},700);
+window.addEventListener('orientationchange',()=>setTimeout(fit,200));
+</script>
+</body>
+</html>

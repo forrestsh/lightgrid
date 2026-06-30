@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#04050a">
+<title>Lightgrid · 光格</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#04050a;--bg-0:#07090f;--bg-1:#0c1019;--bg-2:#131826;--bg-3:#1c2335;
+  --line:#1e2638;--line-2:#2f3a52;--fg-0:#ebeef5;--fg-1:#b9bfcc;--fg-2:#6e7588;--fg-3:#3b4254;
+  --green:#6df0c8;--green-d:#2d8470;--red:#ee6868;--amber:#f3a953;--indigo:#6cb8ff;--magenta:#db7ae0;--gold:#e3c264;
+  --serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;height:100dvh;overflow:hidden;}
+body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-size:12px;line-height:1.45;user-select:none;-webkit-user-select:none;
+ background-image:radial-gradient(ellipse 600px 400px at 25% 0%,rgba(227,194,100,.03),transparent 65%),radial-gradient(ellipse 500px 300px at 90% 100%,rgba(109,240,200,.02),transparent 60%);}
+.app{display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+
+/* ── header + scene tabs ── */
+.head{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;background:var(--bg-0);flex-shrink:0;}
+.brand{display:flex;align-items:baseline;gap:9px;flex:1;min-width:0;}
+.brand .logo{font-family:var(--serif);font-size:17px;font-weight:500;letter-spacing:-.012em;color:var(--fg-0);white-space:nowrap;}
+.brand .logo .roman{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.04em;color:var(--gold);margin-left:3px;vertical-align:.5px;}
+.brand .ver{font-family:var(--mono);font-size:8px;color:var(--fg-2);letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--line-2);padding:2px 6px;border-radius:1px;white-space:nowrap;}
+.info-btn{background:transparent;border:1px solid var(--line-2);color:var(--fg-2);font-family:var(--serif);font-size:14px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:1px;font-style:italic;flex-shrink:0;}
+.info-btn:active{background:var(--bg-2);color:var(--fg-0);}
+.tabs{display:flex;gap:0;background:var(--bg-0);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{background:transparent;border:none;border-right:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:10.5px;padding:9px 14px;cursor:pointer;white-space:nowrap;letter-spacing:.04em;transition:all .12s ease;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.tab .g{font-size:12px;color:var(--fg-3);}
+.tab:active{background:var(--bg-2);}
+.tab.active{color:var(--fg-0);background:rgba(227,194,100,.06);box-shadow:inset 0 -2px 0 var(--gold);}
+.tab.active .g{color:var(--gold);}
+
+/* ── viewer ── */
+.viewer{flex:1;position:relative;background:radial-gradient(ellipse at 50% 55%,#0d121d 0%,#04050a 100%);overflow:hidden;min-height:160px;touch-action:none;}
+.viewer canvas{display:block;width:100%;height:100%;}
+.viewer-overlay{position:absolute;inset:0;pointer-events:none;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;}
+.ov-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.stage-card{background:rgba(7,9,15,.78);backdrop-filter:blur(10px);border:1px solid var(--line-2);padding:8px 11px;align-self:flex-start;pointer-events:none;max-width:62%;}
+.stage-card .label{color:var(--fg-3);font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;}
+.stage-card .title{font-family:var(--serif);font-weight:500;font-size:15px;color:var(--fg-0);margin-top:1px;line-height:1.15;}
+.stage-card .rule{font-size:9px;color:var(--fg-2);margin-top:4px;font-variant-numeric:tabular-nums;}
+.stage-card .rule b{color:var(--gold);font-weight:500;}.stage-card .rule .s{color:var(--indigo);}
+.vel-badge{background:rgba(7,9,15,.78);backdrop-filter:blur(10px);border:1px solid var(--line-2);padding:7px 12px;text-align:right;pointer-events:none;}
+.vel-badge .lbl{color:var(--fg-3);font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;}
+.vel-badge .val{font-family:var(--serif);font-size:22px;color:var(--gold);font-weight:500;line-height:1;margin-top:2px;}
+.vel-badge .small{font-size:9px;color:var(--fg-2);margin-top:3px;font-variant-numeric:tabular-nums;}
+.hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:8.5px;color:var(--fg-3);letter-spacing:.2em;text-transform:uppercase;opacity:0;transition:opacity .6s;pointer-events:none;text-align:center;}
+.hint.show{opacity:1;}
+.toast{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(7,9,15,.92);border:1px solid var(--line-2);padding:8px 14px;font-size:11px;color:var(--fg-1);border-radius:2px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:80%;text-align:center;}
+.toast.show{opacity:1;}
+.toast b{color:var(--gold);}.toast .bad{color:var(--red);}
+
+/* joystick */
+.joystick{position:absolute;left:18px;bottom:18px;width:104px;height:104px;border-radius:50%;border:1px solid var(--line-2);background:rgba(7,9,15,.5);pointer-events:auto;touch-action:none;display:none;}
+.joystick .nub{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:rgba(227,194,100,.18);border:1px solid var(--gold);transition:transform .03s linear;}
+
+/* ── transport + meta ── */
+.player{display:grid;grid-template-columns:1fr 1fr 1.4fr 1fr 1fr;border-top:1px solid var(--line);background:var(--bg-0);flex-shrink:0;}
+.player button{background:transparent;border:none;border-right:1px solid var(--line);color:var(--fg-1);font-family:var(--mono);font-size:13px;padding:12px 0;cursor:pointer;transition:all .1s ease;}
+.player button:last-child{border-right:none;}
+.player button:active{background:var(--bg-2);color:var(--gold);}
+.player button.primary{color:var(--gold);font-size:14px;}
+.meta-row{background:var(--bg-0);border-top:1px solid var(--line);padding:8px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;font-variant-numeric:tabular-nums;font-size:9.5px;color:var(--fg-2);overflow-x:auto;scrollbar-width:none;white-space:nowrap;}
+.meta-row::-webkit-scrollbar{display:none;}
+.meta-row .k{color:var(--fg-3);font-size:8px;letter-spacing:.14em;text-transform:uppercase;}
+.meta-row b{color:var(--fg-1);font-weight:500;}
+
+/* ── control strips ── */
+.strip{background:var(--bg-0);border-top:1px solid var(--line);padding:9px 12px;flex-shrink:0;overflow-x:auto;scrollbar-width:none;display:none;}
+.strip::-webkit-scrollbar{display:none;}
+.strip.show{display:block;}
+.strip-row{display:flex;gap:6px;white-space:nowrap;align-items:center;}
+.chip{background:transparent;border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:10.5px;padding:7px 11px;cursor:pointer;border-radius:1px;display:inline-flex;align-items:center;gap:6px;transition:all .12s ease;flex-shrink:0;}
+.chip .glyph{font-size:12px;color:var(--gold);line-height:1;}
+.chip.active{background:rgba(227,194,100,.08);border-color:#6e5e2e;color:var(--fg-0);}
+.chip.active .glyph{color:var(--gold);}
+.chip:active{background:var(--bg-2);}
+.chip.tool.active{border-color:var(--indigo);color:var(--indigo);background:rgba(108,184,255,.07);}
+.chip.rule.active{border-color:var(--amber);color:var(--amber);background:rgba(243,169,83,.07);}
+.chip.view.active{border-color:var(--indigo);color:var(--indigo);background:rgba(108,184,255,.07);}
+.chip.danger.active{border-color:var(--red);color:var(--red);background:rgba(238,104,104,.07);}
+.lbl-mini{font-size:7.5px;color:var(--fg-3);letter-spacing:.16em;text-transform:uppercase;margin-right:4px;flex-shrink:0;}
+.sep{width:1px;height:20px;background:var(--line);margin:0 4px;flex-shrink:0;}
+.spacer{flex:1;}
+.runbtn{background:rgba(227,194,100,.1);border:1px solid #6e5e2e;color:var(--gold);font-family:var(--mono);font-size:11px;padding:7px 14px;cursor:pointer;border-radius:1px;letter-spacing:.04em;flex-shrink:0;}
+.runbtn:active{background:rgba(227,194,100,.2);}
+
+/* ── modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(4,5,10,.92);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-bg.show{opacity:1;pointer-events:auto;}
+.modal{background:var(--bg-0);border-top:1px solid var(--line-2);width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:26px 22px 70px;transform:translateY(20px);transition:transform .28s cubic-bezier(.2,.9,.3,1);position:relative;}
+.modal-bg.show .modal{transform:translateY(0);}
+.modal h2{font-family:var(--serif);font-weight:500;font-size:24px;margin:0 0 10px;}
+.modal h2 em{font-style:italic;color:var(--gold);}
+.modal h3{font-family:var(--serif);font-weight:500;font-size:15px;margin:18px 0 6px;color:var(--fg-1);}
+.modal p{font-size:12px;color:var(--fg-1);margin:0 0 10px;line-height:1.6;}
+.modal p em{font-family:var(--serif);font-style:italic;color:var(--gold);}
+.modal code{background:var(--bg-2);padding:1px 5px;border-radius:1px;color:var(--green);font-size:11px;}
+.modal .close{position:absolute;top:14px;right:16px;background:transparent;border:1px solid var(--line-2);color:var(--fg-1);font-size:16px;cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:1px;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 12px;}
+.legend .lg{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-2);}
+.legend .sw{width:11px;height:11px;border-radius:2px;}
+.tt{width:100%;border-collapse:collapse;margin:8px 0;font-variant-numeric:tabular-nums;font-size:11px;}
+.tt th,.tt td{border:1px solid var(--line);padding:6px 8px;text-align:center;}
+.tt th{color:var(--fg-3);font-weight:400;font-size:9px;letter-spacing:.1em;text-transform:uppercase;}
+.tt td b{color:var(--gold);}
+.testline{font-size:10.5px;font-variant-numeric:tabular-nums;padding:3px 0;color:var(--fg-2);}
+.testline .ok{color:var(--green);}.testline .fail{color:var(--red);}
+/* garden chip accent + design studio controls (ported from Crystal Garden III) */
+.chip.garden.active{border-color:var(--green-d);color:var(--green);background:rgba(109,240,200,.08);}
+.chip.garden.active .glyph{color:var(--green);}
+.chip.design{border-style:dashed;border-color:var(--line-2);color:var(--amber);}
+.chip.design .glyph{color:var(--amber);}
+.scRule .s{color:var(--indigo);}
+.kgrid{display:flex;flex-wrap:wrap;gap:5px;}
+.kc{flex:1 1 auto;min-width:32px;text-align:center;background:var(--bg-1);border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:12px;padding:9px 0;cursor:pointer;border-radius:1px;font-variant-numeric:tabular-nums;transition:all .1s;}
+.kc:active{transform:scale(.95);}
+.kc.on{background:rgba(109,240,200,.12);border-color:var(--green-d);color:var(--green);font-weight:600;}
+#gsGrid .kc.on{background:rgba(108,184,255,.12);border-color:#2f5d86;color:var(--indigo);}
+.kc.one{box-shadow:inset 0 0 0 1px var(--green-d);}
+.seedrow{display:flex;flex-wrap:wrap;gap:6px;}
+.seedchip{background:var(--bg-1);border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:11px;padding:8px 11px;cursor:pointer;border-radius:1px;display:inline-flex;align-items:center;gap:7px;transition:all .1s;}
+.seedchip .sg{font-size:13px;color:var(--amber);line-height:1;}
+.seedchip.on{background:rgba(243,169,83,.1);border-color:var(--amber);color:var(--fg-0);}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:1px;overflow:hidden;}
+.stepper button{background:var(--bg-1);border:none;color:var(--fg-1);font-size:16px;width:42px;height:36px;cursor:pointer;}
+.stepper button:active{background:var(--bg-2);color:var(--green);}
+.stepper span{min-width:46px;text-align:center;font-variant-numeric:tabular-nums;font-size:13px;color:var(--fg-0);}
+.grow-btn{width:100%;margin-top:18px;background:rgba(109,240,200,.1);border:1px solid var(--green-d);color:var(--green);font-family:var(--mono);font-size:13px;padding:14px 0;cursor:pointer;border-radius:1px;letter-spacing:.06em;}
+.grow-btn:active{background:rgba(109,240,200,.18);}
+.codebox{display:flex;gap:8px;align-items:stretch;}
+.codebox code{flex:1;background:var(--bg-2);border:1px solid var(--line);padding:11px 12px;border-radius:1px;color:var(--green);font-size:12px;overflow-x:auto;white-space:nowrap;display:flex;align-items:center;letter-spacing:.04em;}
+.codebox button,.loadrow button,.saverow button{background:var(--bg-1);border:1px solid var(--line-2);color:var(--fg-1);font-family:var(--mono);font-size:11px;padding:0 15px;cursor:pointer;border-radius:1px;flex-shrink:0;}
+.codebox button:active,.loadrow button:active,.saverow button:active{background:var(--bg-2);color:var(--green);}
+.loadrow,.saverow{display:flex;gap:8px;margin-top:9px;}
+.loadrow input,.saverow input{flex:1;min-width:0;background:var(--bg-2);border:1px solid var(--line);color:var(--fg-0);font-family:var(--mono);font-size:12px;padding:11px 12px;border-radius:1px;outline:none;}
+.loadmsg{font-size:10px;margin-top:7px;min-height:13px;color:var(--fg-2);}
+.loadmsg.ok{color:var(--green);}.loadmsg.err{color:var(--red);}
+.liblist{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.libitem{display:flex;align-items:center;gap:8px;background:var(--bg-1);border:1px solid var(--line);padding:9px 11px;border-radius:1px;}
+.libitem .ln{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg-0);font-size:12px;}
+.libitem .lc{font-size:9px;color:var(--fg-3);letter-spacing:.04em;}
+.libitem button{background:transparent;border:1px solid var(--line-2);color:var(--fg-2);font-family:var(--mono);font-size:10px;padding:5px 9px;cursor:pointer;border-radius:1px;flex-shrink:0;}
+.libitem button.lload{color:var(--green);border-color:var(--green-d);}
+.libempty{font-size:10.5px;color:var(--fg-3);padding:4px 0;}
+.dice-btn{margin-top:11px;background:var(--bg-1);border:1px solid var(--line-2);color:var(--fg-1);font-family:var(--mono);font-size:11.5px;padding:9px 14px;cursor:pointer;border-radius:1px;display:inline-flex;align-items:center;gap:8px;}
+.dice-btn:active{background:var(--bg-2);color:var(--amber);}
+.seednote{font-size:10px;color:var(--amber);margin-top:7px;min-height:12px;letter-spacing:.04em;}
+.modal h2 em.gr{color:var(--green);}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <div class="brand">
+      <span class="logo">Lightgrid <span class="roman">光格</span></span>
+      <span class="ver">one rule · twelve directions</span>
+    </div>
+    <button class="info-btn" id="testBtn" style="margin-right:8px;font-style:normal;">✓</button>
+    <button class="info-btn" id="infoBtn">i</button>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <section class="viewer">
+    <canvas id="canvas"></canvas>
+    <div class="viewer-overlay">
+      <div class="ov-top">
+        <div class="stage-card">
+          <div class="label" id="scLabel">mode</div>
+          <div class="title" id="scTitle">Lightgrid</div>
+          <div class="rule" id="scRule">—</div>
+        </div>
+        <div class="vel-badge">
+          <div class="lbl" id="vbLbl">tick</div>
+          <div class="val" id="vbVal">0</div>
+          <div class="small" id="vbSub">—</div>
+        </div>
+      </div>
+      <div class="joystick" id="joystick"><div class="nub" id="joyNub"></div></div>
+    </div>
+    <div class="hint" id="hint"></div>
+    <div class="toast" id="toast"></div>
+  </section>
+
+  <div class="player">
+    <button id="prevBtn">⏮</button>
+    <button id="stepBackBtn">⏪</button>
+    <button id="playBtn" class="primary">❚❚</button>
+    <button id="stepFwdBtn">⏩</button>
+    <button id="nextBtn">⏭</button>
+  </div>
+
+  <div class="meta-row" id="metaRow"></div>
+
+  <!-- mode-specific control strips -->
+  <div class="strip" id="stripA"><div class="strip-row" id="rowA"></div></div>
+  <div class="strip" id="stripB"><div class="strip-row" id="rowB"></div></div>
+</div>
+
+<!-- INFO -->
+<div class="modal-bg" id="modalInfo"><div class="modal">
+  <button class="close" data-close>×</button>
+  <h2><em>Lightgrid</em> — one rule, twelve directions</h2>
+  <p>A 3D voxel sandbox on a face-centred-cubic lattice where <em>everything is a rule sequence acting on a shape</em>. The cell is <code>13 bits</code>: one self-bit (rest matter) plus twelve direction bits (signals at <code>c</code>). Evolution is <em>R∘T</em> — transport every signal one hop, then route by a single lookup table.</p>
+  <h3>The single rule <code>rt_FCC</code></h3>
+  <p><code>1→3 · 3→6 · 6→1</code> — i.e. <code>A→A·B→B·C→A</code>. Everything else is a fixed point. From a lone <em>A</em> seed this is a light-speed gun (signal count grows at slope 1.0000). It is proven Turing-complete on FCC (Shen 2026).</p>
+  <h3>Reading the colours</h3>
+  <div class="legend">
+    <span class="lg"><span class="sw" style="background:#e3c264"></span>self · rest matter (v=0)</span>
+    <span class="lg"><span class="sw" style="background:#6df0c8"></span>one direction · photon (v=c)</span>
+    <span class="lg"><span class="sw" style="background:#f3a953"></span>composite radiation</span>
+    <span class="lg"><span class="sw" style="background:#ff9d5c"></span>mass + radiation</span>
+  </div>
+  <h3>The six modes</h3>
+  <p>
+    <em>Deck</em> — specimen viewer: gun, photon, rest matter, gliders.<br>
+    <em>Workshop</em> — the centrepiece: place a <em>noun</em> (seed), apply a <em>verb</em> (rule sequence) to grow / move / compute / carve it into a product. Verbs fit their noun-class only — wrong pairings give a degenerate product (separability is partial, and discovery is the loop).<br>
+    <em>Garden</em> — forward growth: drop one seed, run one Birth/Survival rule, and watch which of six 3D forms grows (solid crystal · hollow shell · skeletal · coral · dendritic · pulsing fractal). A morphology classifier names what you made; the design studio (✎) authors any rule + seed with shareable codes.<br>
+    <em>World</em> — build terrain, fire beams; signals reflect off matter, guns ignite, beams deposit blocks.<br>
+    <em>Logic</em> — verified gates (Gun · AND · NOT · NAND) with live truth readout.<br>
+    <em>Chunks</em> — big terrain, per-chunk dirty re-mesh, draw-call HUD.<br>
+    <em>Roam</em> — joystick flight over deterministic streamed terrain; edits persist.
+  </p>
+  <h3>Gestures</h3>
+  <p>• <em>drag</em> orbit · <em>pinch</em>/wheel zoom · <em>two-finger tap</em> reset<br>• <em>tap a block face</em> → run the current tool (place / dig / spark)<br>• <em>Roam</em>: on-screen joystick to fly</p>
+  <p style="font-size:10px;color:var(--fg-2);margin-top:18px;">Forrest Shen, with Claude · 2026 · 13-bit model per Cosmic Grid ch.5 &amp; Shen (2026), <em>FCC single-rule Turing completeness</em></p>
+</div></div>
+
+<!-- TESTS -->
+<div class="modal-bg" id="modalTest"><div class="modal">
+  <button class="close" data-close>×</button>
+  <h2><em>Acceptance</em> invariants</h2>
+  <p>Headless checks on the pure engine (no Three.js). (1)–(4) reproduce Shen (2026) exactly; (5)–(12) are the prototype + crafting contracts. Honesty rule: a failing check is shown red, never papered over.</p>
+  <div id="testOut"><div class="testline">running…</div></div>
+</div></div>
+
+<!-- GARDEN STUDIO (forward growth designer · from Crystal Garden III) -->
+<div class="modal-bg" id="modalGarden"><div class="modal">
+  <button class="close" data-close>×</button>
+  <h2><em class="gr">Design</em> a growth</h2>
+  <p>Set the <em>Birth</em> / <em>Survival</em> rule and a seed, grow it, and the lattice tells you which of the six forms you made. Every creation has a share code.</p>
+  <h3>Birth — empty cell is born when <span style="font-family:var(--mono);color:var(--green)">k ∈ B</span></h3>
+  <div class="kgrid" id="gbGrid"></div>
+  <p style="font-size:10px;color:var(--fg-2);margin-top:6px;">A lone seed sees k = 1 occupied neighbour, so a point can only grow if <span style="color:var(--green)">1 ∈ B</span>.</p>
+  <h3>Survival — live cell stays when <span style="font-family:var(--mono);color:var(--indigo)">k ∈ S</span></h3>
+  <div class="kgrid" id="gsGrid"></div>
+  <button class="dice-btn" id="gRollRule">🎲 random rule</button>
+  <h3>Seed — the initial value</h3>
+  <div class="seedrow" id="gSeedRow"></div>
+  <button class="dice-btn" id="gRollSeed">🎲 random seed</button>
+  <div class="seednote" id="gSeedNote"></div>
+  <h3>Generations to grow</h3>
+  <div class="stepper"><button id="gStepMinus">−</button><span id="gStepVal">14</span><button id="gStepPlus">+</button></div>
+  <button class="grow-btn" id="gGrowBtn">▶  grow this creation</button>
+  <h3>Share code</h3>
+  <div class="codebox"><code id="gShareCode">—</code><button id="gCopyCode">copy</button></div>
+  <div class="loadrow"><input id="gCodeInput" placeholder="paste a CG3 code…" autocapitalize="characters" autocomplete="off" spellcheck="false"><button id="gLoadCode">load</button></div>
+  <div class="loadmsg" id="gLoadMsg"></div>
+  <h3>Library</h3>
+  <div class="saverow"><input id="gNameInput" placeholder="name this creation…" autocomplete="off" spellcheck="false" maxlength="40"><button id="gSaveCre">save</button></div>
+  <div class="liblist" id="gLibList"></div>
+</div></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ═══════════════════════════════ fcc.js ═══════════════════════════════ */
+// FCC nearest neighbours = 12 permutations of (±1,±1,0). Index = bit index.
+const DIRS=[
+  [0,1,1],[1,0,1],[1,1,0],   // 0 A   1 B   2 C
+  [0,-1,1],[1,0,-1],[-1,1,0],// 3 D   4 E   5 F   (⟂ to A,B,C)
+  [0,-1,-1],[-1,0,-1],[-1,-1,0],// 6 a  7 b   8 c  (= -A,-B,-C)
+  [0,1,-1],[-1,0,1],[1,-1,0],// 9 d  10 e  11 f  (= -D,-E,-F)
+];
+const opp=i=>(i<6?i+6:i-6);
+const SELF=1<<12;
+const key=(x,y,z)=>x+','+y+','+z;
+const parse=k=>k.split(',').map(Number);
+const popcount=m=>{let c=0;while(m){c+=m&1;m>>=1;}return c;};
+const gdist=(x,y,z)=>Math.max(Math.abs(x),Math.abs(y),Math.abs(z),Math.ceil((Math.abs(x)+Math.abs(y)+Math.abs(z))/2));
+function reflectBits(dir){let r=0;for(let i=0;i<12;i++)if(dir&(1<<i))r|=(1<<opp(i));return r;}
+// the single rule, in the signal domain (used by gun opt): 1→3→6→1
+const GUN_NEXT={1:3,3:6,6:1};
+
+/* ═══════════════════════════════ engine.js ════════════════════════════ */
+// Separated stores: vast static matter never enters the per-tick loop; only sparse signals are stepped.
+const matter=new Set();                  // cellKey
+const chunkCells=new Map();              // chunkKey -> Set<cellKey>  (for meshing)
+const dirty=new Set();                   // chunkKey needing re-mesh
+let signals=new Map();                   // cellKey -> dir12   (the ONLY thing stepped)
+let trailSet=new Set();
+let tick=0;
+const opts={reflect:false,gun:false,deposit:false};
+
+const CS=8;
+const chunkKey=(x,y,z)=>`${x>>3},${y>>3},${z>>3}`;
+function addMatter(k){ if(matter.has(k))return; matter.add(k); const ck=chunkKey(...parse(k)); let s=chunkCells.get(ck); if(!s){s=new Set();chunkCells.set(ck,s);} s.add(k); dirty.add(ck); }
+function delMatter(k){ if(!matter.has(k))return; matter.delete(k); const ck=chunkKey(...parse(k)); const s=chunkCells.get(ck); if(s){s.delete(k); if(!s.size)chunkCells.delete(ck);} dirty.add(ck); }
+
+// canonical separated step (spec §2.2) — opts {reflect,gun,deposit} are independent toggles.
+function stepSignals(){
+  const agg=new Map();                                   // T: transport dir bits
+  for(const [k,dir] of signals){
+    const [x,y,z]=parse(k);
+    for(let i=0;i<12;i++) if(dir&(1<<i)){
+      const d=DIRS[i];const nk=key(x+d[0],y+d[1],z+d[2]);
+      agg.set(nk,(agg.get(nk)||0)|(1<<i));
+    }
+  }
+  const next=new Map();                                  // R: route, with matter interaction
+  for(const [k,dir] of agg){
+    if(matter.has(k)){                                   // matter = mirror / target
+      next.set(k, opts.reflect?reflectBits(dir):dir);
+    }else if(opts.gun && (dir===1||dir===3||dir===6)){
+      next.set(k, GUN_NEXT[dir]);                        // gun rule 1→3→6→1
+    }else if(opts.deposit){
+      addMatter(k);                                      // freeze signal → matter (build by beam)
+    }else{
+      next.set(k,dir);                                   // free flight (identity transport)
+    }
+  }
+  signals=next; tick++;
+  for(const [k,d] of signals) if(d) trailSet.add(k);
+  if(trailSet.size>5000) trailSet.clear();
+}
+function clearSignals(){signals=new Map();trailSet=new Set();tick=0;}
+function clearMatter(){matter.clear();chunkCells.clear();dirty.clear();}
+
+/* ═══════════════════════════════ gates.js ═════════════════════════════ */
+// Verified gate presets (spec §2.4). Pure initial conditions in the signal domain; B=2,C=4,A=1.
+// A gate is a set of {cell, bits}; running needs opts.gun ON, reflect/deposit OFF.
+const GATES={
+  gun:{ name:'Gun (source)', glyph:'⟶',
+    desc:'A at origin → A·B head sheds one B wire per tick.',
+    seeds:()=>[[key(0,0,0),1]], t:24, inputs:null,
+    verdict:(pop,t)=>`source · pop ≈ t+1 = ${pop}` },
+  and:{ name:'AND(B,C)', glyph:'∧',
+    desc:'B@(-5,0,-5) + C@(-5,-5,0) meet at origin t=5 → B·C→A ignites a gun.',
+    t:30, inputs:['B','C'],
+    seeds:(inB,inC)=>{const s=[];if(inB)s.push([key(-5,0,-5),2]);if(inC)s.push([key(-5,-5,0),4]);return s;},
+    verdict:(pop)=>pop>=20?`ignited · pop ${pop} ≈ 26`:(pop>=1?`one input · pop ${pop}`:`no output · pop ${pop}`) },
+  not:{ name:'NOT (kill)', glyph:'¬',
+    desc:'gun A@origin; kill wire B@(-8,8,0) reaches the head (0,8,8) at t=8 → A·B→B·C, gun dies.',
+    t:24, inputs:['kill'],
+    seeds:(kill)=>{const s=[[key(0,0,0),1]];if(kill)s.push([key(-8,8,0),2]);return s;},
+    verdict:(pop)=>pop<=12?`killed · frozen ~${pop}`:`unkilled · grows ${pop}` },
+  nand:{ name:'NAND (composition demo)', glyph:'⊼',
+    desc:'AND seeds + downstream kill B@(-15,10,-5). (1,1)+kill → ignite-then-kill ≈11. Composition demo only (§10).',
+    t:30, inputs:['B','C'],
+    seeds:(inB,inC)=>{const s=[];if(inB)s.push([key(-5,0,-5),2]);if(inC)s.push([key(-5,-5,0),4]);s.push([key(-15,10,-5),2]);return s;},
+    verdict:(pop)=>pop<=14?`(killed) frozen ~${pop}`:`grows ${pop}` },
+};
+// pure headless run of a gate seed-set for `t` ticks → final signal popcount.
+// Gates are pure signal-domain in empty space, so matter is snapshotted, emptied, and restored.
+function runGateHeadless(seeds,t){
+  const saveSig=signals,saveTick=tick,saveTrail=trailSet,saveOpts={...opts};
+  const saveMatter=[...matter];matter.clear();
+  signals=new Map(seeds); tick=0; trailSet=new Set();
+  opts.reflect=false;opts.deposit=false;opts.gun=true;
+  for(let i=0;i<t;i++) stepSignals();
+  let pop=0;for(const [,d] of signals)pop+=popcount(d);
+  signals=saveSig;tick=saveTick;trailSet=saveTrail;Object.assign(opts,saveOpts);
+  matter.clear();for(const k of saveMatter)matter.add(k);
+  return pop;
+}
+
+/* ═══════════════════════════════ craft.js ═════════════════════════════ */
+// Verb × noun crafting (spec §3). Curated recipes only — a verb fits its noun-class, not arbitrary nouns.
+// Nouns = seeds (matter and/or signal). Verbs = named transforms over a duration. φ tweaks the decode.
+const SELFc=SELF;
+function blob(n){ // smallest FCC even-parity ball of n cells
+  let R=1,pts=[];while(true){pts=[];for(let x=-R;x<=R;x++)for(let y=-R;y<=R;y++)for(let z=-R;z<=R;z++)if(((x+y+z)&1)===0)pts.push([x,y,z,x*x+y*y+z*z]);if(pts.length>=n||R>16)break;R++;}pts.sort((a,b)=>a[3]-b[3]);return pts.slice(0,n).map(p=>[p[0],p[1],p[2]]);}
+const NOUNS={
+  a:    {name:'A-seed',      glyph:'·', cls:'spark',   note:'a lone A signal — the gun seed',
+         cells:()=>[{p:[0,0,0],st:1,kind:'sig'}]},
+  crystal:{name:'crystal seed',glyph:'◆',cls:'solid', note:'a single rest-matter cell',
+         cells:()=>[{p:[0,0,0],st:SELFc,kind:'mat'}]},
+  cluster:{name:'mass cluster',glyph:'⬡',cls:'solid', note:'13-cell solid blob',
+         cells:()=>blob(13).map(p=>({p,st:SELFc,kind:'mat'}))},
+  glider:{name:'glider seed', glyph:'➤', cls:'mover', note:'asymmetric 4-cell mover seed',
+         cells:()=>[[0,0,0],[1,1,0],[2,2,0],[2,0,0]].map(p=>({p,st:SELFc,kind:'mat'}))},
+};
+// Verbs as explicit programs. Each returns frames[] of {p,st,kind} given a noun's start cells + phi.
+const VERBS={
+  grow:{name:'grow', glyph:'⇗', cls:'solid', zh:'长什么', steps:14,
+        note:'accretes matter outward from a solid seed'},
+  move:{name:'move', glyph:'➤', cls:'mover', zh:'会动', steps:18,
+        note:'propels a structure as a glider'},
+  compute:{name:'compute', glyph:'⚡', cls:'spark', zh:'会算', steps:16,
+        note:'the seed becomes a light-speed gun (rt_FCC)'},
+  carve:{name:'carve', glyph:'⇘', cls:'solid', zh:'分左右', steps:14,
+        note:'sculpts a solid blob down to a blueprint'},
+};
+// recipe matrix: verb fits noun.cls === verb.cls. Otherwise → degenerate product (honest §3.4/§10).
+function recipeFits(nounId,verbId){ return NOUNS[nounId].cls===VERBS[verbId].cls; }
+
+// --- the four verb engines (explicit rule sequences / programs, no neural net at runtime) ---
+function runCompute(start,phi){ // rt_FCC gun in signal domain; phi shifts the start direction bit
+  let sig=new Map();
+  for(const c of start){ if(c.kind==='sig') sig.set(key(...c.p), c.st); }
+  if(!sig.size) sig.set(key(0,0,0),1<<(phi%3)); // degrade gracefully
+  const frames=[];
+  for(let t=0;t<=VERBS.compute.steps;t++){
+    const arr=[];for(const [k,d] of sig){const [x,y,z]=parse(k);arr.push({p:[x,y,z],st:d,kind:'sig'});}
+    frames.push(arr);
+    // step with gun rule
+    const agg=new Map();
+    for(const [k,dir] of sig){const [x,y,z]=parse(k);for(let i=0;i<12;i++)if(dir&(1<<i)){const d=DIRS[i];const nk=key(x+d[0],y+d[1],z+d[2]);agg.set(nk,(agg.get(nk)||0)|(1<<i));}}
+    const nx=new Map();
+    for(const [k,dir] of agg){ nx.set(k,(dir===1||dir===3||dir===6)?GUN_NEXT[dir]:dir); }
+    sig=nx;
+  }
+  return frames;
+}
+function runGrow(start,phi){ // grow verb = solid-crystal morphogenesis (the Crystal Garden III growth engine)
+  const seedCells=start.filter(c=>c.kind==='mat').map(c=>c.p.slice());
+  if(!seedCells.length)seedCells.push([0,0,0]);
+  const steps=Math.max(8,VERBS.grow.steps-(phi%3));   // φ tweaks duration; same engine the Garden mode uses
+  return growFormFrames([1,2,3],[0,1,2,3,4,5,6,7,8,9,10,11,12],steps,seedCells,1600,16);
+}
+function runCarve(start,phi){ // grow rough then carve to a blueprint sphere (grow→carve duality)
+  const grown=runGrow(start,phi);
+  const full=grown[grown.length-1].map(c=>key(...c.p));
+  const R=3+ (phi%2); // blueprint: keep cells within graph-radius R of centre → a clean ball
+  const frames=[grown[Math.min(6,grown.length-1)]]; // begin from a rough mass
+  // progressively remove cells outside the blueprint (apoptosis)
+  let cur=new Set(full);
+  const outside=[...cur].filter(k=>{const [x,y,z]=parse(k);return gdist(x,y,z)>R;});
+  outside.sort((a,b)=>{const A=parse(a),B=parse(b);return gdist(...B)-gdist(...A);});
+  const per=Math.max(1,Math.ceil(outside.length/VERBS.carve.steps));
+  let idx=0;
+  for(let t=0;t<VERBS.carve.steps;t++){
+    for(let q=0;q<per&&idx<outside.length;q++,idx++) cur.delete(outside[idx]);
+    frames.push([...cur].map(k=>{const [x,y,z]=parse(k);return {p:[x,y,z],st:SELFc,kind:'mat'};}));
+  }
+  return frames;
+}
+function runMove(start,phi){ // verified B/S Glider I — propels the structure
+  const B=[3,6,11,12],S=[0,1,3];
+  const Bm=Array(13).fill(false);B.forEach(b=>Bm[b]=true);
+  const Sm=Array(13).fill(false);S.forEach(s=>Sm[s]=true);
+  let occ=new Set(start.filter(c=>c.kind==='mat').map(c=>key(...c.p)));
+  if(occ.size<3) occ=new Set([[0,0,0],[1,1,0],[2,2,0],[2,0,0]].map(p=>key(...p)));
+  const frames=[];
+  for(let t=0;t<=VERBS.move.steps;t++){
+    frames.push([...occ].map(k=>{const [x,y,z]=parse(k);return {p:[x,y,z],st:SELFc,kind:'mat'};}));
+    const cnt=new Map();
+    for(const k of occ){const [x,y,z]=parse(k);for(const d of DIRS){const nk=key(x+d[0],y+d[1],z+d[2]);cnt.set(nk,(cnt.get(nk)||0)+1);}}
+    const nx=new Set();
+    for(const k of occ){if(Sm[cnt.get(k)||0])nx.add(k);}
+    for(const [k,c] of cnt){if(!occ.has(k)&&Bm[c])nx.add(k);}
+    occ=nx; if(!occ.size)break;
+  }
+  return frames;
+}
+function craft(nounId,verbId,phi){
+  const start=NOUNS[nounId].cells();
+  const fits=recipeFits(nounId,verbId);
+  let frames;
+  if(verbId==='compute') frames=runCompute(start,phi);
+  else if(verbId==='grow') frames=runGrow(start,phi);
+  else if(verbId==='carve') frames=runCarve(start,phi);
+  else frames=runMove(start,phi);
+  return {frames,fits};
+}
+
+/* ─── garden.js : forward totalistic FCC growth (Crystal Garden III) ─── */
+// each occupied cell radiates to its 12 neighbours; fate depends only on k = occupied-neighbour count,
+// via a Life-like Birth/Survival rule. Frames carry per-cell birth-gen `g` for growth-ring colouring.
+function growFormFrames(B,S,maxSteps,seedCells,popCap=20000,rCap=26){
+  const Bmask=new Uint8Array(13),Smask=new Uint8Array(13);
+  for(const b of B)Bmask[b]=1;for(const s of S)Smask[s]=1;
+  let occ=new Map();for(const [x,y,z] of (seedCells||[[0,0,0]]))occ.set(key(x,y,z),0);
+  const frames=[];let peak=occ.size;
+  const cheb=(x,y,z)=>Math.max(Math.abs(x),Math.abs(y),Math.abs(z));
+  const snap=(o,g)=>{const arr=[];let r=0;for(const [k,bg] of o){const [x,y,z]=parse(k);arr.push({p:[x,y,z],st:SELF,kind:'mat',g:bg});const cr=cheb(x,y,z);if(cr>r)r=cr;}arr.gen=g;arr.radius=r;arr.pop=o.size;return arr;};
+  frames.push(snap(occ,0));
+  for(let g=1;g<=maxSteps;g++){
+    const cnt=new Map();
+    for(const k of occ.keys()){const [x,y,z]=parse(k);for(const d of DIRS){const nk=key(x+d[0],y+d[1],z+d[2]);cnt.set(nk,(cnt.get(nk)||0)+1);}}
+    const next=new Map();
+    for(const [k,bg] of occ){if(Smask[cnt.get(k)||0])next.set(k,bg);}
+    for(const [k,c] of cnt){if(!occ.has(k)&&Bmask[c])next.set(k,g);}
+    occ=next;
+    if(occ.size>peak)peak=occ.size;
+    frames.push(snap(occ,g));
+    if(occ.size===0)break;
+    if(occ.size>popCap)break;
+    if(frames[frames.length-1].radius>=rCap)break;
+  }
+  frames.peak=peak;frames.maxGen=Math.max(1,frames.length-1);
+  return frames;
+}
+// morphology classifier: time-averaged coordination over the tail (a single frame lies on FCC)
+const MORPH={
+  solid:{name:'solid crystal',color:'#e3c264'}, coral:{name:'coral',color:'#6cb8ff'},
+  hollow:{name:'hollow shell',color:'#6df0c8'}, skel:{name:'skeletal',color:'#f3a953'},
+  spiky:{name:'dendritic',color:'#ee6868'}, fractal:{name:'pulsing fractal',color:'#db7ae0'},
+  dead:{name:'dead / frozen',color:'#76808d'},
+};
+function frameCoord(frame){
+  if(!frame.pop)return 0;
+  const set=new Set(frame.map(c=>key(...c.p)));let tot=0;
+  for(const c of frame){const [x,y,z]=c.p;let cc=0;for(const d of DIRS)if(set.has(key(x+d[0],y+d[1],z+d[2])))cc++;tot+=cc;}
+  return tot/frame.pop;
+}
+function classifyForm(frames){
+  const final=frames[frames.length-1].pop,peak=frames.peak;
+  if(peak<=16&&final<=6)return 'dead';
+  const tailN=Math.min(4,frames.length);let sum=0,cnt=0;
+  for(let i=frames.length-tailN;i<frames.length;i++)if(frames[i].pop>0){sum+=frameCoord(frames[i]);cnt++;}
+  const coord=cnt?sum/cnt:0;
+  if(coord<2.2&&peak>120)return 'fractal';
+  if(coord>=8.3)return 'solid';
+  if(coord>=6.3)return 'coral';
+  if(coord>=4.0)return 'hollow';
+  if(coord>=2.9)return 'skel';
+  return 'spiky';
+}
+// deterministic, shareable seeds
+const SEEDS={
+  pt:{label:'point',glyph:'•',cells:[[0,0,0]]},
+  di:{label:'dipole',glyph:'••',cells:[[0,0,0],[1,1,0]]},
+  tr:{label:'triple',glyph:'∴',cells:[[0,0,0],[1,1,0],[2,0,0]]},
+  ax:{label:'axial',glyph:'✛',cells:[[0,0,0],[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]]},
+  rg:{label:'ring',glyph:'◯',cells:[[1,1,0],[1,-1,0],[-1,-1,0],[-1,1,0],[2,0,0],[-2,0,0]]},
+  pl:{label:'plate',glyph:'◇',cells:[[0,0,0],[1,1,0],[1,-1,0],[-1,1,0],[-1,-1,0]]},
+};
+const SEED_ORDER=['pt','di','tr','ax','rg','pl'];
+function lcg(seed){let s=(seed>>>0)||1;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
+function genRandomSeedCells(n){
+  const rng=lcg(Math.imul(n>>>0,2654435761)>>>0);const set=new Map();const add=(a,b,c)=>set.set(a+','+b+','+c,[a,b,c]);
+  let x=0,y=0,z=0;add(0,0,0);const steps=3+Math.floor(rng()*5);
+  for(let i=0;i<steps;i++){const d=DIRS[Math.floor(rng()*12)];x+=d[0];y+=d[1];z+=d[2];add(x,y,z);}
+  return [...set.values()];
+}
+function seedCellsOf(code){if(SEEDS[code])return SEEDS[code].cells;if(code&&code[0]==='r'){const n=parseInt(code.slice(1),36);if(!isNaN(n))return genRandomSeedCells(n);}return SEEDS.pt.cells;}
+function seedLabelOf(code){if(SEEDS[code])return SEEDS[code].label;if(code&&code[0]==='r')return 'random';return 'point';}
+// the six canonical forms
+const FORM_RULES=[
+  {id:'solid',glyph:'◆',name:'solid crystal',cls:'IV · solid fill (∼t³)',B:[1,2,3],S:[0,1,2,3,4,5,6,7,8,9,10,11,12],seedCode:'pt',steps:14},
+  {id:'shell',glyph:'O',name:'hollow shell',cls:'III · surface (∼t²)',B:[1],S:[2,3,4,5,6,7,8,9,10,11,12],seedCode:'pt',steps:13},
+  {id:'skeletal',glyph:'⌗',name:'skeletal / hopper',cls:'III · faceted hollow',B:[1,2],S:[1,2],seedCode:'pt',steps:16},
+  {id:'coral',glyph:'✿',name:'coral',cls:'III–IV · textured solid',B:[1,2],S:[2,3,4],seedCode:'pt',steps:14},
+  {id:'spiky',glyph:'✳',name:'spiky shell',cls:'III · dendritic',B:[1],S:[3,4,5,6,7,8,9,10,11,12],seedCode:'pt',steps:13},
+  {id:'fractal',glyph:'✺',name:'pulsing fractal',cls:'V · XOR self-replication',B:[1,3,5,7,9,11],S:[1,3,5,7,9,11],seedCode:'pt',steps:16},
+];
+const setStr=a=>{if(!a.length)return '∅';const s=[...a].sort((x,y)=>x-y);let out=[],i=0;while(i<s.length){let j=i;while(j+1<s.length&&s[j+1]===s[j]+1)j++;out.push(j>i?`${s[i]}–${s[j]}`:`${s[i]}`);i=j+1;}return out.join(',');};
+// CG3 share codes
+const maskOf=arr=>{let m=0;for(const v of arr)if(v>=0&&v<=12)m|=(1<<v);return m;};
+const arrOfMask=m=>{const a=[];for(let i=0;i<=12;i++)if(m&(1<<i))a.push(i);return a;};
+const b36=n=>n.toString(36).toUpperCase();
+function makeCG3(B,S,seedCode,steps){return `CG3-${b36(maskOf(B))}-${b36(maskOf(S))}-${(seedCode||'pt').toUpperCase()}-${steps}`;}
+function parseCG3(str){
+  if(!str)return null;const p=str.trim().toUpperCase().split('-').filter(x=>x.length);
+  if(p.length<4||p[0]!=='CG3')return null;
+  const bm=parseInt(p[1],36),sm=parseInt(p[2],36);
+  if(isNaN(bm)||isNaN(sm)||bm<0||bm>8191||sm<0||sm>8191)return null;
+  const seedCode=p[3].toLowerCase();if(!SEEDS[seedCode]&&!(seedCode[0]==='r'&&!isNaN(parseInt(seedCode.slice(1),36))))return null;
+  let steps=p[4]!==undefined?parseInt(p[4],10):14;if(isNaN(steps))steps=14;steps=Math.max(6,Math.min(20,steps));
+  return {B:arrOfMask(bm),S:arrOfMask(sm),seedCode,steps};
+}
+
+/* ═══════════════════════════════ render.js ════════════════════════════ */
+const canvas=document.getElementById('canvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x04050a,0.010);
+const camera=new THREE.PerspectiveCamera(46,1,0.1,800);
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const k1=new THREE.DirectionalLight(0xffd9c0,0.6);k1.position.set(14,22,16);scene.add(k1);
+const k2=new THREE.DirectionalLight(0x9cc4ff,0.3);k2.position.set(-14,-6,-10);scene.add(k2);
+const k3=new THREE.DirectionalLight(0x6df0c8,0.18);k3.position.set(0,-18,6);scene.add(k3);
+
+// rhombic dodecahedron — the Voronoi cell of FCC; 12 faces point at the 12 neighbours.
+const RD_POSITIONS=new Float32Array([0,0,1,0.5,0.5,0.5,0,1,0,-0.5,0.5,0.5,0.5,0.5,0.5,1,0,0,0.5,0.5,-0.5,0,1,0,0.5,-0.5,0.5,1,0,0,0.5,0.5,0.5,0,0,1,0,0,-1,0.5,0.5,-0.5,1,0,0,0.5,-0.5,-0.5,0,-1,0,0.5,-0.5,0.5,0,0,1,-0.5,-0.5,0.5,-1,0,0,-0.5,0.5,0.5,0,1,0,-0.5,0.5,-0.5,0,0,-1,0.5,-0.5,-0.5,0,-1,0,-0.5,-0.5,-0.5,-0.5,-0.5,-0.5,0,-1,0,-0.5,-0.5,0.5,-1,0,0,-1,0,0,-0.5,0.5,-0.5,0,0,-1,-0.5,-0.5,-0.5,-0.5,-0.5,0.5,0,0,1,-0.5,0.5,0.5,-1,0,0,-0.5,0.5,-0.5,0,1,0,0.5,0.5,-0.5,0,0,-1,0.5,-0.5,-0.5,1,0,0,0.5,-0.5,0.5,0,-1,0]);
+const RD_INDICES=new Uint16Array([0,1,2,0,2,3,4,5,6,4,6,7,8,9,10,8,10,11,12,13,14,12,14,15,16,17,18,16,18,19,20,21,22,20,22,23,24,25,26,24,26,27,28,29,30,28,30,31,32,33,34,32,34,35,36,37,38,36,38,39,40,41,42,40,42,43,44,45,46,44,46,47]);
+function makeRD(scale){const g=new THREE.BufferGeometry();const p=new Float32Array(RD_POSITIONS.length);for(let i=0;i<p.length;i++)p[i]=RD_POSITIONS[i]*scale;g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setIndex(new THREE.BufferAttribute(RD_INDICES,1));g.computeVertexNormals();return g;}
+const VOX=0.9;
+const rd=makeRD(VOX);
+rd.computeBoundingSphere();
+
+const matMatter=new THREE.MeshLambertMaterial({color:0xffffff});         // terrain (instanceColor gold)
+const matSelfRD=new THREE.MeshLambertMaterial({color:0xe3c264,transparent:true,opacity:0.30,depthWrite:false});
+const matTrail =new THREE.MeshLambertMaterial({color:0x9a8048,transparent:true,opacity:0.12,depthWrite:false});
+
+// signal arrows
+const faceDir=DIRS.map(d=>new THREE.Vector3(d[0],d[1],d[2]).normalize());
+const faceLen=DIRS.map(d=>0.5*VOX*Math.hypot(d[0],d[1],d[2]));
+const ALEN=faceLen[0]*0.97, AHEAD=ALEN*0.42, ASHAFT=ALEN-AHEAD;
+const gShaft=new THREE.CylinderGeometry(0.058,0.058,ASHAFT,10);
+const gHead =new THREE.ConeGeometry(0.14,AHEAD,14);
+const _AY=new THREE.Vector3(0,1,0);
+const qDir=faceDir.map(fd=>new THREE.Quaternion().setFromUnitVectors(_AY,fd));
+const _R=0xe8443a,_Y=0xe8c23a,_B=0x3a82e8,_W=0xffffff,_r=0xf2a39d,_y=0xf2e3a0,_b=0xa8c4f2;
+const SHAFT_COL=[_R,_Y,_B,_W,_W,_W,_R,_Y,_B,_r,_y,_b];
+const HEAD_COL =[_R,_Y,_B,_R,_Y,_B,_W,_W,_W,_r,_y,_b];
+const _amCache=new Map();
+function arrowMat(hex){let m=_amCache.get(hex);if(!m){m=new THREE.MeshBasicMaterial({color:hex});_amCache.set(hex,m);}return m;}
+function makeArrow(origin,d){
+  const g=new THREE.Group();
+  const sh=new THREE.Mesh(gShaft,arrowMat(SHAFT_COL[d]));sh.quaternion.copy(qDir[d]);sh.position.copy(origin).addScaledVector(faceDir[d],ASHAFT*0.5);g.add(sh);
+  const hd=new THREE.Mesh(gHead,arrowMat(HEAD_COL[d]));hd.quaternion.copy(qDir[d]);hd.position.copy(origin).addScaledVector(faceDir[d],ASHAFT+AHEAD*0.5);g.add(hd);
+  return g;
+}
+const C_MASS=new THREE.Color(0xe3c264),C_PHOTON=new THREE.Color(0x6df0c8),C_COMP=new THREE.Color(0xf3a953),C_MIX=new THREE.Color(0xff9d5c);
+function colorForState(st){const self=st&SELF,dir=st&0xFFF,pc=popcount(dir);if(self&&!dir)return C_MASS;if(self&&dir)return C_MIX;if(pc===1)return C_PHOTON;return C_COMP;}
+// garden growth-form rendering: per-instance ring colour, translucent body when signals are shown
+const WHITE=new THREE.Color(0xffffff);
+const RING_STOPS=[0x2d8470,0x6df0c8,0x6cb8ff,0xdb7ae0,0xe3c264].map(h=>new THREE.Color(h));
+function ringColor(t){const n=RING_STOPS.length-1;const f=Math.max(0,Math.min(1,t))*n;const i=Math.min(n-1,Math.floor(f)),a=f-i;return RING_STOPS[i].clone().lerp(RING_STOPS[i+1],a);}
+const cTP=new THREE.Color(0x6df0c8),cEdge=new THREE.Color(0xee6868);
+const matGarden=new THREE.MeshLambertMaterial({color:0xffffff});
+let gardenColorMode='rings',gardenSignals=true;
+function applyGardenBody(){if(gardenSignals){matGarden.transparent=true;matGarden.opacity=0.36;matGarden.depthWrite=false;}else{matGarden.transparent=false;matGarden.opacity=1;matGarden.depthWrite=true;}matGarden.needsUpdate=true;}
+function gardenArrows(front){
+  const M=front.length;if(!M)return;const dummy=new THREE.Object3D();
+  for(let d=0;d<12;d++){
+    const sh=new THREE.InstancedMesh(gShaft,arrowMat(SHAFT_COL[d]),M);
+    const hd=new THREE.InstancedMesh(gHead,arrowMat(HEAD_COL[d]),M);
+    const fd=faceDir[d];
+    for(let j=0;j<M;j++){const p=front[j];dummy.quaternion.copy(qDir[d]);dummy.scale.set(1,1,1);
+      dummy.position.set(p[0]+fd.x*ASHAFT*0.5,p[1]+fd.y*ASHAFT*0.5,p[2]+fd.z*ASHAFT*0.5);dummy.updateMatrix();sh.setMatrixAt(j,dummy.matrix);
+      dummy.position.set(p[0]+fd.x*(ASHAFT+AHEAD*0.5),p[1]+fd.y*(ASHAFT+AHEAD*0.5),p[2]+fd.z*(ASHAFT+AHEAD*0.5));dummy.updateMatrix();hd.setMatrixAt(j,dummy.matrix);}
+    sh.instanceMatrix.needsUpdate=true;hd.instanceMatrix.needsUpdate=true;grpSignal.add(sh);grpSignal.add(hd);
+  }
+}
+function renderGardenFrame(frame){
+  clearGroup(grpGhost);clearGroup(grpSignal);
+  applyGardenBody();
+  const N=frame.length||0;if(!N)return;
+  const inst=new THREE.InstancedMesh(rd,matGarden,N);
+  inst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(N*3),3);
+  const o=new THREE.Object3D(),col=new THREE.Color(),mg=Math.max(1,frames.maxGen||1);
+  for(let i=0;i<N;i++){const c=frame[i];const [x,y,z]=c.p;o.position.set(x,y,z);o.updateMatrix();inst.setMatrixAt(i,o.matrix);
+    if(gardenColorMode==='rings'){col.copy(ringColor(c.g/mg));if(c.g>=frame.gen-0.5)col.lerp(WHITE,0.35);}
+    else{const cr=Math.max(Math.abs(x),Math.abs(y),Math.abs(z)),t=cr/Math.max(1,frame.radius);col.copy(cTP).lerp(cEdge,t*t);}
+    inst.setColorAt(i,col);}
+  inst.instanceMatrix.needsUpdate=true;inst.instanceColor.needsUpdate=true;grpGhost.add(inst);
+  if(gardenSignals){
+    let front=frame.filter(c=>c.g===frame.gen).map(c=>c.p);
+    if(!front.length)front=frame.map(c=>c.p);
+    if(front.length>200){const st=front.length/200,s=[];for(let i=0;i<200;i++)s.push(front[Math.floor(i*st)]);front=s;}
+    gardenArrows(front);
+  }
+}
+
+// groups
+const grpSignal=new THREE.Group();scene.add(grpSignal);   // rebuilt each tick (sparse)
+const grpTrail=new THREE.Group();scene.add(grpTrail);
+const grpGhost=new THREE.Group();scene.add(grpGhost);     // craft / specimen matter (rebuilt per frame)
+const matterMeshes=new Map();                             // chunkKey -> InstancedMesh (persistent)
+const SHARED=new Set([rd,matMatter,matSelfRD,matTrail,matGarden,gShaft,gHead]);
+function clearGroup(g){while(g.children.length){const c=g.children[0];g.remove(c);c.traverse(o=>{if(o.geometry&&!SHARED.has(o.geometry))o.geometry.dispose();if(o.material&&!SHARED.has(o.material)){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(!_isCachedMat(m))m.dispose();});}});}}
+function _isCachedMat(m){for(const v of _amCache.values())if(v===m)return true;return false;}
+
+/* ─── chunks.js : per-chunk InstancedMesh, dirty re-mesh, frustum sphere ─── */
+const meshInfo=new Map();  // chunkKey -> array of cellKey per instanceId (for raycast pick)
+function chunkCenter(ck){const [cx,cy,cz]=ck.split(',').map(Number);return [cx*8+3.5,cy*8+3.5,cz*8+3.5];}
+function remeshChunk(ck){
+  const old=matterMeshes.get(ck);
+  if(old){scene.remove(old);old.geometry===rd||old.geometry.dispose?0:0;matterMeshes.delete(ck);meshInfo.delete(ck);}
+  const cells=chunkCells.get(ck);
+  if(!cells||!cells.size)return;
+  const arr=[...cells];
+  const cap=Math.max(arr.length,16);
+  const inst=new THREE.InstancedMesh(rd,matMatter,cap);
+  inst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(cap*3),3);
+  inst.count=arr.length;
+  const [bx,by,bz]=chunkCenter(ck);
+  inst.position.set(bx,by,bz);
+  const o=new THREE.Object3D();const col=new THREE.Color();
+  for(let i=0;i<arr.length;i++){const [x,y,z]=parse(arr[i]);o.position.set(x-bx,y-by,z-bz);o.updateMatrix();inst.setMatrixAt(i,o.matrix);
+    const l=0.5+0.12*Math.sin(x*1.7+z*0.9)+0.04*y;col.copy(C_MASS).offsetHSL(0,0,(l-0.6)*0.25);inst.setColorAt(i,col);}
+  inst.instanceMatrix.needsUpdate=true;inst.instanceColor.needsUpdate=true;
+  inst.geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,0,0),CS*0.95+1);
+  inst.frustumCulled=true;
+  scene.add(inst);matterMeshes.set(ck,inst);meshInfo.set(ck,arr);
+}
+function flushDirty(){for(const ck of dirty)remeshChunk(ck);dirty.clear();}
+function clearAllChunkMeshes(){for(const [,m] of matterMeshes)scene.remove(m);matterMeshes.clear();meshInfo.clear();}
+
+// signal pass (sparse, rebuilt each tick)
+function renderSignals(){
+  clearGroup(grpSignal);clearGroup(grpTrail);
+  const o=new THREE.Vector3();
+  for(const [k,st] of signals){
+    const [x,y,z]=parse(k);o.set(x,y,z);
+    if(st&SELF){const m=new THREE.Mesh(rd,matSelfRD);m.position.copy(o);grpSignal.add(m);}
+    const dir=st&0xFFF;
+    for(let i=0;i<12;i++) if(dir&(1<<i)) grpSignal.add(makeArrow(o,i));
+  }
+  if(trailSet.size){
+    const arr=[...trailSet];const inst=new THREE.InstancedMesh(rd,matTrail,arr.length);const o2=new THREE.Object3D();
+    for(let i=0;i<arr.length;i++){const [x,y,z]=parse(arr[i]);o2.position.set(x,y,z);o2.updateMatrix();inst.setMatrixAt(i,o2.matrix);}
+    inst.instanceMatrix.needsUpdate=true;grpTrail.add(inst);
+  }
+}
+// ghost pass (craft / deck matter+signal frames, transient)
+function renderGhost(cells,mode){
+  clearGroup(grpGhost);
+  const mats=cells.filter(c=>c.kind==='mat');
+  if(mats.length){
+    const inst=new THREE.InstancedMesh(rd,matMatter,mats.length);
+    inst.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(mats.length*3),3);
+    const o=new THREE.Object3D();const col=new THREE.Color();
+    for(let i=0;i<mats.length;i++){const p=mats[i].p;o.position.set(p[0],p[1],p[2]);o.updateMatrix();inst.setMatrixAt(i,o.matrix);
+      col.copy(C_MASS).offsetHSL(0,0,0.04*Math.sin(p[0]*1.3+p[1]));inst.setColorAt(i,col);}
+    inst.instanceMatrix.needsUpdate=true;inst.instanceColor.needsUpdate=true;grpGhost.add(inst);
+  }
+  const o=new THREE.Vector3();
+  for(const c of cells){ if(c.kind!=='sig')continue; o.set(c.p[0],c.p[1],c.p[2]);
+    if(c.st&SELF){const m=new THREE.Mesh(rd,matSelfRD);m.position.copy(o);grpGhost.add(m);}
+    const dir=c.st&0xFFF;for(let i=0;i<12;i++)if(dir&(1<<i))grpGhost.add(makeArrow(o,i));
+  }
+}
+
+/* ═══════════════════════════════ stream.js ════════════════════════════ */
+const FLOOR=-8, RD_C=3;
+function height(x,z){return Math.min(6,Math.round(2.6*Math.sin(x*0.17)*Math.cos(z*0.15)+1.4*Math.sin((x+z)*0.09)+1.0));}
+const editRemoved=new Set();
+const editPlacedByChunk=new Map();
+const loadedChunks=new Set();   // chunkKey of generated terrain columns
+function genChunkColumn(cx,cz){
+  for(let cy of [-1,0]){
+    const ck=`${cx},${cy},${cz}`;
+    if(loadedChunks.has(ck))continue;
+    for(let x=cx*8;x<cx*8+8;x++)for(let z=cz*8;z<cz*8+8;z++){
+      const h=height(x,z);
+      for(let y=FLOOR;y<=h;y++){
+        if(((x+y+z)&1)!==0)continue;
+        if(y<cy*8||y>=cy*8+8)continue;
+        const k=key(x,y,z);
+        if(editRemoved.has(k))continue;
+        addMatter(k);
+      }
+    }
+    const pl=editPlacedByChunk.get(ck);if(pl)for(const k of pl)addMatter(k);
+    loadedChunks.add(ck);
+  }
+}
+function unloadChunkColumn(cx,cz){
+  for(let cy of [-1,0]){
+    const ck=`${cx},${cy},${cz}`;
+    if(!loadedChunks.has(ck))continue;
+    const cells=chunkCells.get(ck);
+    if(cells)for(const k of [...cells])delMatter(k);
+    loadedChunks.delete(ck);
+  }
+}
+function streamAround(fx,fz){
+  const cx=fx>>3, cz=fz>>3;
+  const want=new Set();
+  for(let dx=-RD_C;dx<=RD_C;dx++)for(let dz=-RD_C;dz<=RD_C;dz++){want.add((cx+dx)+','+(cz+dz));genChunkColumn(cx+dx,cz+dz);}
+  for(const ck of [...loadedChunks]){const [a,,c]=ck.split(',').map(Number);if(!want.has(a+','+c))unloadChunkColumn(a,c);}
+}
+function placeAt(k){addMatter(k);editRemoved.delete(k);const ck=chunkKey(...parse(k));let s=editPlacedByChunk.get(ck);if(!s){s=new Set();editPlacedByChunk.set(ck,s);}s.add(k);}
+function digAt(k){delMatter(k);editRemoved.add(k);const ck=chunkKey(...parse(k));const s=editPlacedByChunk.get(ck);if(s)s.delete(k);}
+
+/* ═══════════════════════════════ camera.js ════════════════════════════ */
+let camTheta=0.8,camPhi=1.05,camRadius=34;const camC=new THREE.Vector3();
+let autoRotate=true,dragging=false,pX=0,pY=0,lastDist=0,tsX=0,tsY=0,tsT=0,moved=false;
+let camYawTarget=null;
+function updateCam(){camera.position.set(camC.x+camRadius*Math.sin(camPhi)*Math.cos(camTheta),camC.y+camRadius*Math.cos(camPhi),camC.z+camRadius*Math.sin(camPhi)*Math.sin(camTheta));camera.lookAt(camC);}
+function fitTo(cells){ // cells = [{p:[x,y,z]}] or [[x,y,z,...]]
+  let mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];const get=c=>c.p?c.p:c;
+  for(const c of cells){const p=get(c);for(let i=0;i<3;i++){if(p[i]<mn[i])mn[i]=p[i];if(p[i]>mx[i])mx[i]=p[i];}}
+  if(mn[0]>mx[0]){mn=[0,0,0];mx=[0,0,0];}
+  camC.set((mn[0]+mx[0])/2,(mn[1]+mx[1])/2,(mn[2]+mx[2])/2);
+  const span=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2],6);camRadius=span*1.4+9;updateCam();
+}
+const raycaster=new THREE.Raycaster();const ndc=new THREE.Vector2();
+function pickFace(clientX,clientY){
+  const rect=canvas.getBoundingClientRect();
+  ndc.x=((clientX-rect.left)/rect.width)*2-1;ndc.y=-((clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(ndc,camera);
+  const meshes=[...matterMeshes.values()];
+  const hits=raycaster.intersectObjects(meshes,false);
+  if(!hits.length)return null;
+  const h=hits[0];
+  const ck=[...matterMeshes.entries()].find(([,m])=>m===h.object)?.[0];
+  const info=meshInfo.get(ck);
+  const cellK=info?info[h.instanceId]:null;
+  if(!cellK)return null;
+  const n=h.face.normal.clone();   // local == world (no rotation)
+  let best=-1,bd=-2;for(let i=0;i<12;i++){const d=faceDir[i].dot(n);if(d>bd){bd=d;best=i;}}
+  const [x,y,z]=parse(cellK);const dd=DIRS[best];
+  return {cell:cellK,cellPos:[x,y,z],normalDir:best,neighbor:key(x+dd[0],y+dd[1],z+dd[2]),nbrPos:[x+dd[0],y+dd[1],z+dd[2]]};
+}
+
+// input
+let mode='deck'; // current scene
+let onTap=null;  // per-mode tap handler (pick)=>{}
+let joyVec={x:0,y:0};
+canvas.addEventListener('touchstart',e=>{if(e.touches.length===1){dragging=true;moved=false;pX=e.touches[0].clientX;pY=e.touches[0].clientY;tsX=pX;tsY=pY;tsT=Date.now();}else if(e.touches.length===2){dragging=false;const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;lastDist=Math.hypot(dx,dy);tsT=Date.now();}},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&dragging){const dx=e.touches[0].clientX-pX,dy=e.touches[0].clientY-pY;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;camTheta-=dx*0.012;camPhi=Math.max(0.1,Math.min(Math.PI-0.1,camPhi-dy*0.012));pX=e.touches[0].clientX;pY=e.touches[0].clientY;autoRotate=false;updateCam();}else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,d=Math.hypot(dx,dy);if(lastDist>0){camRadius=Math.max(6,Math.min(260,camRadius*(lastDist/d)));updateCam();}lastDist=d;}},{passive:false});
+canvas.addEventListener('touchend',e=>{if(e.touches.length===0&&Date.now()-tsT<300&&lastDist>0){if(mode!=='roam'){autoRotate=true;}fitMode();lastDist=0;return;}if(dragging&&e.changedTouches.length===1){const dx=e.changedTouches[0].clientX-tsX,dy=e.changedTouches[0].clientY-tsY,dt=Date.now()-tsT;if(!moved&&dt<300)handleTap(tsX,tsY);}dragging=false;lastDist=0;},{passive:false});
+canvas.addEventListener('touchcancel',()=>{dragging=false;lastDist=0;},{passive:false});
+canvas.addEventListener('mousedown',e=>{dragging=true;moved=false;pX=e.clientX;pY=e.clientY;tsX=e.clientX;tsY=e.clientY;tsT=Date.now();});
+window.addEventListener('mouseup',e=>{if(dragging&&!moved&&Date.now()-tsT<300)handleTap(tsX,tsY);dragging=false;});
+window.addEventListener('mousemove',e=>{if(!dragging)return;const dx=e.clientX-pX,dy=e.clientY-pY;if(Math.abs(dx)+Math.abs(dy)>4)moved=true;camTheta-=dx*0.01;camPhi=Math.max(0.1,Math.min(Math.PI-0.1,camPhi-dy*0.01));pX=e.clientX;pY=e.clientY;autoRotate=false;updateCam();});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camRadius=Math.max(6,Math.min(260,camRadius+e.deltaY*0.04));updateCam();},{passive:false});
+function handleTap(x,y){
+  if(onTap){const pk=pickFace(x,y);onTap(pk);}
+  else togglePlay();
+}
+
+/* ═══════════════════════════════ ui.js / scenes.js ════════════════════ */
+const $=id=>document.getElementById(id);
+const stripA=$('stripA'),rowA=$('rowA'),stripB=$('stripB'),rowB=$('rowB');
+function clearStrips(){rowA.innerHTML='';rowB.innerHTML='';stripA.classList.remove('show');stripB.classList.remove('show');}
+function showStripA(){stripA.classList.add('show');}function showStripB(){stripB.classList.add('show');}
+function mkChip(label,glyph,cls){const b=document.createElement('button');b.className='chip'+(cls?' '+cls:'');b.innerHTML=(glyph?`<span class="glyph">${glyph}</span>`:'')+`<span>${label}</span>`;return b;}
+function mkLabel(t){const s=document.createElement('span');s.className='lbl-mini';s.textContent=t;return s;}
+function mkSep(){const s=document.createElement('span');s.className='sep';return s;}
+let toastTimer=null;
+function toast(html,bad){const t=$('toast');t.innerHTML=html;t.classList.toggle('bad',!!bad);t.classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400);}
+function hint(t){const h=$('hint');h.textContent=t;h.classList.add('show');setTimeout(()=>h.classList.remove('show'),2800);}
+function setCard(label,title,rule){$('scLabel').textContent=label;$('scTitle').innerHTML=title;$('scRule').innerHTML=rule;}
+function setBadge(lbl,val,sub){$('vbLbl').textContent=lbl;$('vbVal').textContent=val;$('vbSub').textContent=sub;}
+function setMeta(html){$('metaRow').innerHTML=html;}
+
+// transport / playback
+let playing=false,timer=null,interval=380,speedMul=1;
+let frameMode=null;   // 'frames' (deck/workshop precomputed) or 'live' (world/logic stepping)
+let frames=[],fi=0;   // for frame playback
+let liveStep=null;    // function() for live stepping
+function play(){playing=true;$('playBtn').textContent='❚❚';sched();}
+function pause(){playing=false;if(timer){clearTimeout(timer);timer=null;}$('playBtn').textContent='▶';}
+function togglePlay(){playing?pause():play();}
+function sched(){if(timer)clearTimeout(timer);timer=setTimeout(()=>{if(!playing)return;advance();sched();},interval/speedMul);}
+function advance(){
+  if(frameMode==='frames'){ fi=(fi+1)%frames.length; if(fi===0)trailSet=new Set(); drawFrame(); }
+  else if(frameMode==='live'){ liveStep&&liveStep(); }
+}
+function back(){ if(frameMode==='frames'){fi=Math.max(0,fi-1);drawFrame();} }
+$('playBtn').addEventListener('click',togglePlay);
+$('stepFwdBtn').addEventListener('click',()=>{pause();advance();});
+$('stepBackBtn').addEventListener('click',()=>{pause();back();});
+
+// ── frame playback drawing (deck + workshop) ──
+let deckRefresh=null,frameDraw=null;
+function drawFrame(){
+  const f=frames[fi]||[];
+  // accumulate trail for sig cells
+  for(const c of f) if(c.kind==='sig') trailSet.add(key(...c.p));
+  if(frameDraw) frameDraw(f); else renderGhost(f);
+  if(deckRefresh)deckRefresh(f);
+}
+
+/* ─── scene lifecycle ─── */
+function teardown(){
+  pause();clearStrips();onTap=null;frameMode=null;liveStep=null;deckRefresh=null;frameDraw=null;
+  clearGroup(grpSignal);clearGroup(grpTrail);clearGroup(grpGhost);
+  clearAllChunkMeshes();clearMatter();clearSignals();
+  loadedChunks.clear();editRemoved.clear();editPlacedByChunk.clear();
+  opts.reflect=opts.gun=opts.deposit=false;
+  $('joystick').style.display='none';joyVec={x:0,y:0};
+  autoRotate=true;
+}
+
+/* ════════════ DECK ════════════ */
+const DECK_SPECS=[
+  {id:'gun',name:'light-speed gun',rule:'R <b>1→3→6→1</b> · seed A',vel:'c',sub:'single bijective rule · slope 1',seed:[{p:[0,0,0],st:1,kind:'sig'}],gun:true,steps:16},
+  {id:'photon',name:'photon',rule:'R <b>identity</b> · transport only',vel:'c',sub:'one direction bit · radiation',seed:[{p:[0,0,0],st:1,kind:'sig'}],gun:false,steps:14},
+  {id:'mass',name:'rest matter',rule:'R <b>identity</b> · self-bit holds',vel:'0',sub:'self-bit · static mass',seed:[{p:[0,0,0],st:SELF,kind:'sig'}],gun:false,steps:10},
+  {id:'massrad',name:'mass + radiation',rule:'R <b>identity</b> · self ⊕ A',vel:'c',sub:'photon flies, mass stays',seed:[{p:[0,0,0],st:SELF|1,kind:'sig'}],gun:false,steps:14},
+  {id:'gI',name:'Glider I',rule:'B<b>{3,6,11,12}</b> · S<span class="s">{0,1,3}</span>',vel:'c/4',sub:'period 4 mover',bs:'gI',steps:28},
+  {id:'gII',name:'Glider II',rule:'B<b>{3,8,11}</b> · S<span class="s">{0,2,6,8,9,11}</span>',vel:'c/3',sub:'period 3 mover',bs:'gII',steps:24},
+];
+let deckIdx=0;
+function computeDeckFrames(s){
+  if(s.bs){ // B/S glider frames as matter
+    const cfg=s.bs==='gI'?{B:[3,6,11,12],S:[0,1,3],seed:[[0,0,0],[1,1,0],[2,2,0],[2,0,0]]}:{B:[3,8,11],S:[0,2,6,8,9,11],seed:[[0,0,0],[0,0,2],[2,0,2],[2,2,2]]};
+    const Bm=Array(13).fill(false);cfg.B.forEach(b=>Bm[b]=true);const Sm=Array(13).fill(false);cfg.S.forEach(b=>Sm[b]=true);
+    let occ=new Set(cfg.seed.map(p=>key(...p)));const fr=[];
+    for(let t=0;t<=s.steps;t++){fr.push([...occ].map(k=>{const [x,y,z]=parse(k);return {p:[x,y,z],st:SELF,kind:'mat'};}));
+      const cnt=new Map();for(const k of occ){const [x,y,z]=parse(k);for(const d of DIRS){const nk=key(x+d[0],y+d[1],z+d[2]);cnt.set(nk,(cnt.get(nk)||0)+1);}}
+      const nx=new Set();for(const k of occ)if(Sm[cnt.get(k)||0])nx.add(k);for(const [k,c] of cnt)if(!occ.has(k)&&Bm[c])nx.add(k);occ=nx;}
+    return fr;
+  }
+  // r13 signal frames
+  let sig=new Map(s.seed.map(c=>[key(...c.p),c.st]));const fr=[];
+  for(let t=0;t<=s.steps;t++){
+    const arr=[];for(const [k,d] of sig){const [x,y,z]=parse(k);arr.push({p:[x,y,z],st:d,kind:'sig'});}fr.push(arr);
+    const agg=new Map();for(const [k,d] of sig){const [x,y,z]=parse(k);if(d&SELF)agg.set(k,(agg.get(k)||0)|SELF);const dir=d&0xFFF;for(let i=0;i<12;i++)if(dir&(1<<i)){const dd=DIRS[i];const nk=key(x+dd[0],y+dd[1],z+dd[2]);agg.set(nk,(agg.get(nk)||0)|(1<<i));}}
+    const nx=new Map();for(const [k,m] of agg){let ns=m;if(s.gun){const dir=m&0xFFF;if(dir===1||dir===3||dir===6)ns=(m&SELF)|GUN_NEXT[dir];}if(ns)nx.set(k,ns);}sig=nx;
+  }
+  return fr;
+}
+function loadDeck(i){
+  const n=DECK_SPECS.length;deckIdx=((i%n)+n)%n;const s=DECK_SPECS[deckIdx];
+  frames=computeDeckFrames(s);fi=0;trailSet=new Set();
+  setCard('specimen',s.name,s.rule);setBadge('velocity',s.vel,s.sub);
+  fitTo(frames.flat());
+  document.querySelectorAll('#rowA .chip').forEach((c,idx)=>c.classList.toggle('active',idx===deckIdx));
+  deckRefresh=(f)=>{let pop=0,mr=0;for(const c of f){pop+=(c.kind==='sig'?popcount(c.st):1);const r=gdist(...c.p);if(r>mr)mr=r;}const v=fi>0?(mr/fi).toFixed(2):'0';setMeta(`<span><span class="k">tick</span> <b>${fi}</b></span><span><span class="k">${s.bs?'cells':'signals'}</span> <b>${pop}</b></span><span><span class="k">front</span> <b>r=${mr} · v=${v}c</b></span>`);};
+  drawFrame();
+}
+function setupDeck(){
+  teardown();frameMode='frames';autoRotate=true;
+  DECK_SPECS.forEach((s,i)=>{const c=mkChip(s.name+' · '+s.vel,'◈');c.addEventListener('click',()=>{pause();loadDeck(i);play();});rowA.appendChild(c);});
+  showStripA();
+  $('prevBtn').onclick=()=>{pause();loadDeck(deckIdx-1);play();};
+  $('nextBtn').onclick=()=>{pause();loadDeck(deckIdx+1);play();};
+  loadDeck(0);play();hint('drag orbit · tap play/pause · ⏮⏭ specimens');
+}
+
+/* ════════════ WORKSHOP ════════════ */
+let wkNoun='a',wkVerb='compute',wkPhi=0;
+function loadWorkshop(){
+  const {frames:fr,fits}=craft(wkNoun,wkVerb,wkPhi);
+  frames=fr;fi=0;trailSet=new Set();
+  const noun=NOUNS[wkNoun],verb=VERBS[wkVerb];
+  const productName=fits?productLabel(wkVerb):'degenerate product';
+  setCard('craft · noun → verb',`${noun.name} <span style="color:var(--fg-3)">×</span> ${verb.name}`,`<b>${verb.zh}</b> · φ=${wkPhi} · ${fits?'<span style="color:var(--green)">recipe fits ✓</span>':'<span style="color:var(--red)">wrong noun-class ✗</span>'}`);
+  setBadge('product',fits?verb.glyph:'⨯',productName);
+  fitTo(frames.flat());drawFrame();
+  // sync chip active states
+  document.querySelectorAll('#rowA .chip[data-noun]').forEach(c=>c.classList.toggle('active',c.dataset.noun===wkNoun));
+  document.querySelectorAll('#rowB .chip[data-verb]').forEach(c=>c.classList.toggle('active',c.dataset.verb===wkVerb));
+  deckRefresh=(f)=>{let mat=0,sig=0;for(const c of f){if(c.kind==='mat')mat++;else sig+=popcount(c.st);}
+    setMeta(`<span><span class="k">tick</span> <b>${fi}</b></span><span><span class="k">matter</span> <b>${mat}</b></span><span><span class="k">signal</span> <b>${sig}</b></span><span><span class="k">recipe</span> <b>${fits?'fit':'degenerate'}</b></span>`);};
+  if(!fits) toast(`<span class="bad">degenerate</span> — <b>${verb.name}</b> doesn't fit <b>${noun.name}</b>. Verbs fit their noun-class only (separability is partial).`,true);
+  else toast(`crafted <b>${productName}</b>`);
+}
+function productLabel(v){return v==='compute'?'light-speed gun':v==='grow'?'grown crystal':v==='carve'?'carved blueprint':'glider';}
+function setupWorkshop(){
+  teardown();frameMode='frames';autoRotate=true;
+  rowA.appendChild(mkLabel('noun'));
+  Object.entries(NOUNS).forEach(([id,n])=>{const c=mkChip(n.name,n.glyph);c.dataset.noun=id;c.title=n.note;c.addEventListener('click',()=>{wkNoun=id;pause();loadWorkshop();play();});rowA.appendChild(c);});
+  showStripA();
+  rowB.appendChild(mkLabel('verb'));
+  Object.entries(VERBS).forEach(([id,v])=>{const c=mkChip(v.name+' · '+v.zh,v.glyph);c.dataset.verb=id;c.title=v.note;c.addEventListener('click',()=>{wkVerb=id;pause();loadWorkshop();play();});rowB.appendChild(c);});
+  rowB.appendChild(mkSep());
+  const phiC=mkChip('φ='+wkPhi,'⌗');phiC.addEventListener('click',()=>{wkPhi=(wkPhi+1)%3;phiC.querySelector('span:last-child').textContent='φ='+wkPhi;pause();loadWorkshop();play();});rowB.appendChild(phiC);
+  showStripB();
+  $('prevBtn').onclick=()=>{const ks=Object.keys(NOUNS);wkNoun=ks[(ks.indexOf(wkNoun)+ks.length-1)%ks.length];pause();loadWorkshop();play();};
+  $('nextBtn').onclick=()=>{const ks=Object.keys(NOUNS);wkNoun=ks[(ks.indexOf(wkNoun)+1)%ks.length];pause();loadWorkshop();play();};
+  loadWorkshop();play();
+  hint('pick a noun + verb · matching classes craft a product');
+}
+
+/* ════════════ WORLD ════════════ */
+let worldTool='spark';
+function buildFlatWorld(){
+  clearMatter();clearAllChunkMeshes();
+  for(let x=-10;x<=10;x++)for(let z=-10;z<=10;z++){const h=height(x,z);for(let y=-4;y<=h;y++){if(((x+y+z)&1)===0)addMatter(key(x,y,z));}}
+  flushDirty();
+}
+function worldLiveStep(){stepSignals();renderSignals();flushDirty();worldMeta();}
+function worldMeta(){let sig=0;for(const [,d] of signals)sig+=popcount(d);setMeta(`<span><span class="k">tick</span> <b>${tick}</b></span><span><span class="k">signals</span> <b>${sig}</b></span><span><span class="k">matter</span> <b>${matter.size}</b></span><span><span class="k">tool</span> <b>${worldTool}</b></span><span><span class="k">gun</span> <b>${opts.gun?'on':'off'}</b></span>`);}
+function setupWorld(){
+  teardown();frameMode='live';liveStep=worldLiveStep;autoRotate=false;
+  buildFlatWorld();fitTo([...matter].map(k=>parse(k)));camPhi=0.9;updateCam();
+  setCard('world layer','build · dig · spark','signals bounce off built terrain');setBadge('tick','0','tap a face to act');
+  // tools
+  rowA.appendChild(mkLabel('tool'));
+  [['place','⬛'],['dig','⌫'],['spark','✦']].forEach(([t,g])=>{const c=mkChip(t,g,'tool');c.dataset.tool=t;if(t===worldTool)c.classList.add('active');c.addEventListener('click',()=>{worldTool=t;document.querySelectorAll('#rowA .chip[data-tool]').forEach(x=>x.classList.toggle('active',x.dataset.tool===t));worldMeta();});rowA.appendChild(c);});
+  showStripA();
+  rowB.appendChild(mkLabel('rule'));
+  [['gun','⚡'],['reflect','◢'],['deposit','▦']].forEach(([o,g])=>{const c=mkChip(o,g,'rule');c.dataset.opt=o;c.addEventListener('click',()=>{opts[o]=!opts[o];c.classList.toggle('active',opts[o]);worldMeta();});rowB.appendChild(c);});
+  rowB.appendChild(mkSep());
+  const clr=mkChip('clear signals','✕');clr.addEventListener('click',()=>{clearSignals();renderSignals();worldMeta();});rowB.appendChild(clr);
+  showStripB();
+  opts.gun=true;document.querySelector('#rowB .chip[data-opt="gun"]').classList.add('active');
+  onTap=(pk)=>{ if(!pk)return;
+    if(worldTool==='place'){placeAt(pk.neighbor);flushDirty();}
+    else if(worldTool==='dig'){digAt(pk.cell);flushDirty();}
+    else if(worldTool==='spark'){signals.set(pk.nbrPos.join(','),1);renderSignals();}
+    worldMeta();
+  };
+  worldMeta();renderSignals();play();
+  hint('tap a face: place/dig/spark · toggle gun·reflect·deposit');
+}
+
+/* ════════════ LOGIC ════════════ */
+let gateId='and';const gateInputs={B:true,C:true,kill:true};
+function loadGate(){
+  const G=GATES[gateId];
+  // seeds
+  let seeds;
+  if(gateId==='gun')seeds=G.seeds();
+  else if(gateId==='not')seeds=G.seeds(gateInputs.kill);
+  else seeds=G.seeds(gateInputs.B,gateInputs.C);
+  clearSignals();for(const [k,st] of seeds)signals.set(k,st);
+  opts.gun=true;opts.reflect=false;opts.deposit=false;
+  renderSignals();
+  // frame so the whole evolution stays in view as the gun grows along +A=(0,1,1) toward r≈t
+  camC.set(-1,G.t*0.32,G.t*0.32);camRadius=Math.max(32,G.t*1.5);camPhi=1.05;camTheta=0.95;updateCam();
+  setCard('logic bench',G.name,G.desc);
+  gateMeta();drawGateChips();
+}
+function gatePop(){let p=0;for(const [,d] of signals)p+=popcount(d);return p;}
+function gateMeta(){
+  const G=GATES[gateId];
+  setMeta(`<span><span class="k">tick</span> <b>${tick}</b> / ${G.t}</span><span><span class="k">signals</span> <b>${gatePop()}</b></span><span><span class="k">verdict</span> <b>${G.verdict(gatePop(),tick)}</b></span>`);
+  setBadge('output',gatePop(),tick>=G.t?'settled':'running…');
+}
+function gateLiveStep(){const G=GATES[gateId];if(tick>=G.t){pause();return;}stepSignals();renderSignals();gateMeta();}
+function drawGateChips(){
+  // input toggles strip B
+  rowB.innerHTML='';
+  const G=GATES[gateId];
+  if(G.inputs){rowB.appendChild(mkLabel('inputs'));
+    G.inputs.forEach(inp=>{const on=gateInputs[inp];const c=mkChip(inp+'='+(on?1:0),'◉','tool');if(on)c.classList.add('active');c.addEventListener('click',()=>{gateInputs[inp]=!gateInputs[inp];pause();loadGate();});rowB.appendChild(c);});
+    rowB.appendChild(mkSep());
+  }
+  const tt=mkChip('truth table','▦');tt.addEventListener('click',showTruth);rowB.appendChild(tt);
+  showStripB();
+}
+function showTruth(){
+  const G=GATES[gateId];
+  if(!G.inputs){toast('this preset is a single source — no truth table');return;}
+  let rows='';
+  const combos=G.inputs.length===2?[[0,0],[1,0],[0,1],[1,1]]:[[0],[1]];
+  for(const cmb of combos){
+    const seeds=G.inputs.length===2?G.seeds(cmb[0],cmb[1]):G.seeds(cmb[0]);
+    const pop=runGateHeadless(seeds,G.t);
+    rows+=`<tr>${cmb.map(v=>`<td>${v}</td>`).join('')}<td><b>${pop}</b></td></tr>`;
+  }
+  const hdr=G.inputs.map(i=>`<th>${i}</th>`).join('')+`<th>pop@t=${G.t}</th>`;
+  toast(`<b>${G.name}</b> truth — see panel`);
+  $('testOut').innerHTML=`<table class="tt"><tr>${hdr}</tr>${rows}</table><p style="font-size:10px;color:var(--fg-2)">Live headless run of the pure engine at t=${G.t}.</p>`;
+  $('modalTest').classList.add('show');
+}
+function setupLogic(){
+  teardown();frameMode='live';liveStep=gateLiveStep;autoRotate=false;
+  rowA.appendChild(mkLabel('gate'));
+  Object.entries(GATES).forEach(([id,G])=>{const c=mkChip(G.name.split(' ')[0],G.glyph);c.dataset.gate=id;if(id===gateId)c.classList.add('active');c.addEventListener('click',()=>{gateId=id;pause();document.querySelectorAll('#rowA .chip[data-gate]').forEach(x=>x.classList.toggle('active',x.dataset.gate===id));loadGate();});rowA.appendChild(c);});
+  showStripA();
+  $('prevBtn').onclick=()=>{const ks=Object.keys(GATES);gateId=ks[(ks.indexOf(gateId)+ks.length-1)%ks.length];pause();loadGate();document.querySelectorAll('#rowA .chip[data-gate]').forEach(x=>x.classList.toggle('active',x.dataset.gate===gateId));};
+  $('nextBtn').onclick=()=>{const ks=Object.keys(GATES);gateId=ks[(ks.indexOf(gateId)+1)%ks.length];pause();loadGate();document.querySelectorAll('#rowA .chip[data-gate]').forEach(x=>x.classList.toggle('active',x.dataset.gate===gateId));};
+  loadGate();play();
+  hint('pick a gate · toggle inputs · watch the pop settle');
+}
+
+/* ════════════ CHUNKS ════════════ */
+function setupChunks(){
+  teardown();frameMode='live';liveStep=worldLiveStep;autoRotate=true;
+  // big bounded terrain via streaming gen over a fixed area
+  for(let cx=-3;cx<=3;cx++)for(let cz=-3;cz<=3;cz++)genChunkColumn(cx,cz);
+  flushDirty();
+  camC.set(0,0,0);camRadius=70;camPhi=0.85;updateCam();
+  setCard('chunked world','separated stores · dirty re-mesh','one InstancedMesh per chunk · frustum culled');
+  setBadge('draws','—','tap a face to edit');
+  worldTool='spark';opts.gun=true;
+  rowA.appendChild(mkLabel('tool'));
+  [['place','⬛'],['dig','⌫'],['spark','✦']].forEach(([t,g])=>{const c=mkChip(t,g,'tool');c.dataset.tool=t;if(t===worldTool)c.classList.add('active');c.addEventListener('click',()=>{worldTool=t;document.querySelectorAll('#rowA .chip[data-tool]').forEach(x=>x.classList.toggle('active',x.dataset.tool===t));});rowA.appendChild(c);});
+  showStripA();
+  onTap=(pk)=>{if(!pk)return;if(worldTool==='place'){placeAt(pk.neighbor);flushDirty();}else if(worldTool==='dig'){digAt(pk.cell);flushDirty();}else{signals.set(pk.nbrPos.join(','),1);renderSignals();}chunkMeta();};
+  chunkMeta();renderSignals();play();
+  hint('big terrain · drag to orbit · tap faces to edit');
+}
+function chunkMeta(){
+  let visible=0;for(const [,m] of matterMeshes){m.geometry.computeBoundingSphere&&0;visible++;}
+  // count frustum-visible draws
+  let drawn=0;const fr=new THREE.Frustum();const mat=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);fr.setFromProjectionMatrix(mat);
+  for(const [ck,m] of matterMeshes){const c=chunkCenter(ck);const s=new THREE.Sphere(new THREE.Vector3(c[0],c[1],c[2]),CS*0.95+1);if(fr.intersectsSphere(s))drawn++;}
+  setBadge('draws',drawn,`${matterMeshes.size} chunks loaded`);
+  setMeta(`<span><span class="k">chunks</span> <b>${matterMeshes.size}</b></span><span><span class="k">draws (in view)</span> <b>${drawn}</b></span><span><span class="k">matter</span> <b>${matter.size}</b></span><span><span class="k">signals</span> <b>${[...signals.values()].reduce((a,d)=>a+popcount(d),0)}</b></span>`);
+}
+
+/* ════════════ ROAM ════════════ */
+let roamFocus={x:0,z:0};
+function setupRoam(){
+  teardown();frameMode='live';liveStep=()=>{stepSignals();renderSignals();};autoRotate=false;
+  $('joystick').style.display='block';
+  roamFocus={x:0,z:0};streamAround(0,0);flushDirty();
+  camC.set(0,height(0,0),0);camRadius=26;camPhi=0.95;camTheta=0.8;updateCam();
+  setCard('infinite roam','deterministic streaming','joystick to fly · edits persist');
+  setBadge('roam','∞','memory stays flat');
+  worldTool='spark';opts.gun=true;
+  rowA.appendChild(mkLabel('tool'));
+  [['place','⬛'],['dig','⌫'],['spark','✦']].forEach(([t,g])=>{const c=mkChip(t,g,'tool');c.dataset.tool=t;if(t===worldTool)c.classList.add('active');c.addEventListener('click',()=>{worldTool=t;document.querySelectorAll('#rowA .chip[data-tool]').forEach(x=>x.classList.toggle('active',x.dataset.tool===t));});rowA.appendChild(c);});
+  showStripA();
+  onTap=(pk)=>{if(!pk)return;if(worldTool==='place'){placeAt(pk.neighbor);flushDirty();}else if(worldTool==='dig'){digAt(pk.cell);flushDirty();}else{signals.set(pk.nbrPos.join(','),1);renderSignals();}roamMeta();};
+  roamMeta();renderSignals();play();
+  hint('drag joystick to fly · terrain streams in deterministically');
+}
+function roamMeta(){
+  setMeta(`<span><span class="k">focus</span> <b>${Math.round(roamFocus.x)},${Math.round(roamFocus.z)}</b></span><span><span class="k">loaded cols</span> <b>${loadedChunks.size/2|0}</b></span><span><span class="k">matter</span> <b>${matter.size}</b></span><span><span class="k">edits</span> <b>${editRemoved.size}+${[...editPlacedByChunk.values()].reduce((a,s)=>a+s.size,0)}</b></span>`);
+}
+// joystick input
+(function(){
+  const joy=$('joystick'),nub=$('joyNub');let active=false,cx0=0,cy0=0;
+  const start=(x,y)=>{active=true;const r=joy.getBoundingClientRect();cx0=r.left+r.width/2;cy0=r.top+r.height/2;move(x,y);};
+  const move=(x,y)=>{if(!active)return;let dx=x-cx0,dy=y-cy0;const mag=Math.hypot(dx,dy),max=38;if(mag>max){dx*=max/mag;dy*=max/mag;}nub.style.transform=`translate(${dx}px,${dy}px)`;joyVec={x:dx/max,y:dy/max};};
+  const end=()=>{active=false;nub.style.transform='translate(0,0)';joyVec={x:0,y:0};};
+  joy.addEventListener('touchstart',e=>{e.preventDefault();start(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+  joy.addEventListener('touchmove',e=>{e.preventDefault();move(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+  joy.addEventListener('touchend',e=>{e.preventDefault();end();},{passive:false});
+  joy.addEventListener('mousedown',e=>{start(e.clientX,e.clientY);});
+  window.addEventListener('mousemove',e=>{if(active)move(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',()=>{if(active)end();});
+})();
+
+/* ════════════ GARDEN (forward growth-form explorer · Crystal Garden III) ════════════ */
+let gardenIdx=0, gardenCustom=false, gardenMeta={B:FORM_RULES[0].B,S:FORM_RULES[0].S,seedCode:'pt',steps:FORM_RULES[0].steps};
+function loadGardenCfg(d,custom){
+  const seed=seedCellsOf(d.seedCode);
+  frames=growFormFrames(d.B,d.S,d.steps,seed);fi=0;trailSet=new Set();
+  gardenCustom=custom;gardenMeta={B:[...d.B],S:[...d.S],seedCode:d.seedCode||'pt',steps:d.steps};
+  let title=custom?'your creation':d.name, clsTxt=custom?'…':d.cls, clsCol='var(--green)';
+  if(custom){const m=MORPH[classifyForm(frames)];title=m.name;clsTxt=`your rule · ${seedLabelOf(d.seedCode)} seed`;clsCol=m.color;}
+  setCard('growing',title,`B<b>{${setStr(d.B)}}</b> · S<span class="s">{${setStr(d.S)}}</span> · <span style="color:${clsCol}">${clsTxt}</span>`);
+  // frame to the final (largest) generation so the whole form stays in view
+  fitTo(frames[frames.length-1].length?frames[frames.length-1]:frames.flat());camTheta=0.7;updateCam();
+  document.querySelectorAll('#rowA .chip[data-form]').forEach(c=>c.classList.toggle('active',!custom&&c.dataset.form===d.id));
+  deckRefresh=(f)=>{setBadge('population',(f.pop||0).toLocaleString(),fi===0?'seed':`gen ${fi} · r=${f.radius}`);
+    setMeta(`<span><span class="k">step</span> <b>${fi}</b></span><span><span class="k">cells</span> <b>${(f.pop||0).toLocaleString()}</b></span><span><span class="k">peak</span> <b>${frames.peak.toLocaleString()}</b></span>`);};
+  drawFrame();
+}
+function loadGarden(i){const n=FORM_RULES.length;gardenIdx=((i%n)+n)%n;loadGardenCfg(FORM_RULES[gardenIdx],false);}
+function setupGarden(){
+  teardown();frameMode='frames';frameDraw=renderGardenFrame;autoRotate=true;
+  const design=mkChip('design','✎','design');design.addEventListener('click',openGardenStudio);rowA.appendChild(design);
+  FORM_RULES.forEach((d,i)=>{const c=mkChip(d.name,d.glyph,'garden');c.dataset.form=d.id;c.addEventListener('click',()=>{pause();loadGarden(i);play();});rowA.appendChild(c);});
+  showStripA();
+  rowB.appendChild(mkLabel('view'));
+  const colC=mkChip('growth rings','◉','view');colC.classList.add('active');
+  colC.addEventListener('click',()=>{gardenColorMode=gardenColorMode==='rings'?'edge':'rings';colC.querySelector('span:last-child').textContent=gardenColorMode==='rings'?'growth rings':'leading edge';drawFrame();});
+  rowB.appendChild(colC);
+  const sigC=mkChip('signals','➤','view');sigC.classList.add('active');
+  sigC.addEventListener('click',()=>{gardenSignals=!gardenSignals;sigC.classList.toggle('active',gardenSignals);drawFrame();});
+  rowB.appendChild(sigC);
+  showStripB();
+  // prev returns a custom growth to its gallery form, then cycles the six forms
+  $('prevBtn').onclick=()=>{pause();gardenCustom?loadGarden(gardenIdx):loadGarden(gardenIdx-1);play();};
+  $('nextBtn').onclick=()=>{pause();loadGarden(gardenIdx+1);play();};
+  loadGarden(0);play();
+  hint('one seed · one rule · watch the form grow — ✎ to design');
+}
+
+/* ─── garden studio ─── */
+let gDraft={B:new Set([1,2,3]),S:new Set([0,1,2,3,4,5,6,7,8,9,10,11,12]),seedCode:'pt',steps:14};
+const gHasStore=(typeof window!=='undefined'&&window.storage&&typeof window.storage.set==='function');
+function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(()=>true).catch(()=>false);try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');document.body.removeChild(ta);return Promise.resolve(ok);}catch(e){return Promise.resolve(false);}}
+function gBuildKGrid(elId,which){const el=$(elId);el.innerHTML='';for(let k=0;k<=12;k++){const c=document.createElement('div');c.className='kc'+(k===1?' one':'');c.textContent=k;c.addEventListener('click',()=>{const set=gDraft[which];if(set.has(k))set.delete(k);else set.add(k);c.classList.toggle('on',set.has(k));gRefreshCode();});el.appendChild(c);}}
+function gBuildSeedRow(){const el=$('gSeedRow');el.innerHTML='';SEED_ORDER.forEach(code=>{const s=SEEDS[code];const b=document.createElement('button');b.className='seedchip';b.dataset.code=code;b.innerHTML=`<span class="sg">${s.glyph}</span><span>${s.label}</span>`;b.addEventListener('click',()=>{gDraft.seedCode=code;document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===code));gUpdateSeedNote();gRefreshCode();});el.appendChild(b);});}
+function gUpdateSeedNote(){const el=$('gSeedNote');if(gDraft.seedCode&&gDraft.seedCode[0]==='r'&&!SEEDS[gDraft.seedCode]){el.textContent=`🎲 random seed · ${seedCellsOf(gDraft.seedCode).length} cells · ${gDraft.seedCode.toUpperCase()}`;}else el.textContent='';}
+function gPaintDraft(){document.querySelectorAll('#gbGrid .kc').forEach((c,k)=>c.classList.toggle('on',gDraft.B.has(k)));document.querySelectorAll('#gsGrid .kc').forEach((c,k)=>c.classList.toggle('on',gDraft.S.has(k)));document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===gDraft.seedCode));$('gStepVal').textContent=gDraft.steps;gUpdateSeedNote();gRefreshCode();}
+function gRefreshCode(){$('gShareCode').textContent=makeCG3([...gDraft.B],[...gDraft.S],gDraft.seedCode,gDraft.steps);}
+function gSetMsg(t,cls){const m=$('gLoadMsg');m.textContent=t;m.className='loadmsg'+(cls?' '+cls:'');}
+function openGardenStudio(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));gDraft={B:new Set(gardenMeta.B),S:new Set(gardenMeta.S),seedCode:gardenMeta.seedCode,steps:gardenMeta.steps};gPaintDraft();gSetMsg('');$('gNameInput').value='';gLoadLibrary();$('modalGarden').classList.add('show');}
+function gGrowFromDraft(B,S,seedCode,steps){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));if(mode!=='garden')switchMode('garden');pause();loadGardenCfg({id:'custom',B,S,seedCode,steps},true);play();}
+gBuildKGrid('gbGrid','B');gBuildKGrid('gsGrid','S');gBuildSeedRow();
+$('gStepMinus').addEventListener('click',()=>{gDraft.steps=Math.max(6,gDraft.steps-1);$('gStepVal').textContent=gDraft.steps;gRefreshCode();});
+$('gStepPlus').addEventListener('click',()=>{gDraft.steps=Math.min(20,gDraft.steps+1);$('gStepVal').textContent=gDraft.steps;gRefreshCode();});
+$('gRollRule').addEventListener('click',()=>{const B=new Set([1]);for(let k=2;k<=12;k++)if(Math.random()<0.32)B.add(k);const S=new Set();for(let k=0;k<=12;k++)if(Math.random()<0.42)S.add(k);gDraft.B=B;gDraft.S=S;gPaintDraft();});
+$('gRollSeed').addEventListener('click',()=>{gDraft.seedCode='r'+Math.floor(Math.random()*46656).toString(36);gPaintDraft();});
+$('gGrowBtn').addEventListener('click',()=>{gGrowFromDraft([...gDraft.B].sort((a,b)=>a-b),[...gDraft.S].sort((a,b)=>a-b),gDraft.seedCode,gDraft.steps);});
+$('gCopyCode').addEventListener('click',()=>copyText($('gShareCode').textContent).then(ok=>gSetMsg(ok?'copied ✓ — send it to anyone':'copy failed — long-press to select',ok?'ok':'err')));
+$('gLoadCode').addEventListener('click',()=>{const p=parseCG3($('gCodeInput').value);if(!p){gSetMsg('not a valid code — expected CG3-…','err');return;}gDraft={B:new Set(p.B),S:new Set(p.S),seedCode:p.seedCode,steps:p.steps};gPaintDraft();gSetMsg('loaded ✓ — growing…','ok');gGrowFromDraft(p.B,p.S,p.seedCode,p.steps);});
+async function gLoadLibrary(){const list=$('gLibList');list.innerHTML='';if(!gHasStore){list.innerHTML='<div class="libempty">Saving needs the Claude app. Codes still work everywhere.</div>';return;}let keys=[];try{const r=await window.storage.list('cg3:');keys=(r&&r.keys)?r.keys:[];}catch(e){}if(!keys.length){list.innerHTML='<div class="libempty">No saved creations yet.</div>';return;}const items=[];for(const k of keys){try{const r=await window.storage.get(k);if(r&&r.value)items.push({key:k,...JSON.parse(r.value)});}catch(e){}}items.sort((a,b)=>(b.ts||0)-(a.ts||0));if(!items.length){list.innerHTML='<div class="libempty">No saved creations yet.</div>';return;}for(const it of items){const row=document.createElement('div');row.className='libitem';row.innerHTML=`<div class="ln">${it.name||'untitled'}<div class="lc">${it.code||''}</div></div>`;const load=document.createElement('button');load.className='lload';load.textContent='load';load.addEventListener('click',()=>{const p=parseCG3(it.code);if(!p){gSetMsg('saved code invalid','err');return;}gGrowFromDraft(p.B,p.S,p.seedCode,p.steps);});const del=document.createElement('button');del.textContent='delete';del.addEventListener('click',async()=>{try{await window.storage.delete(it.key);}catch(e){}gLoadLibrary();});row.appendChild(load);row.appendChild(del);list.appendChild(row);}}
+$('gSaveCre').addEventListener('click',async()=>{if(!gHasStore){gSetMsg('saving needs the Claude app — copy the code','err');return;}const name=($('gNameInput').value||'').trim()||'untitled';const code=makeCG3([...gDraft.B],[...gDraft.S],gDraft.seedCode,gDraft.steps);const safe=name.replace(/[^\w一-鿿 -]/g,'').slice(0,40)||'untitled';const key='cg3:'+Date.now().toString(36)+':'+safe;try{await window.storage.set(key,JSON.stringify({name,code,ts:Date.now()}));gSetMsg('saved ✓','ok');$('gNameInput').value='';gLoadLibrary();}catch(e){gSetMsg('save failed','err');}});
+
+/* ─── render loop ─── */
+function fitMode(){ camTheta=0.8; if(mode==='deck'||mode==='workshop'||mode==='garden')fitTo(frames.flat()); else if(mode==='world'||mode==='chunks')fitTo([...matter].map(k=>parse(k))); }
+let roamAcc=0;
+function loop(){
+  requestAnimationFrame(loop);
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  if(canvas.width!==Math.floor(w*renderer.getPixelRatio())||canvas.height!==Math.floor(h*renderer.getPixelRatio())){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  if(autoRotate&&!dragging&&mode!=='roam'){camTheta+=0.0016;updateCam();}
+  // roam locomotion
+  if(mode==='roam'&&(joyVec.x||joyVec.y)){
+    const fwd=new THREE.Vector3();camera.getWorldDirection(fwd);fwd.y=0;fwd.normalize();
+    const right=new THREE.Vector3(fwd.z,0,-fwd.x);
+    const sp=0.5;
+    roamFocus.x+=(fwd.x*-joyVec.y+right.x*joyVec.x)*sp;
+    roamFocus.z+=(fwd.z*-joyVec.y+right.z*joyVec.x)*sp;
+    const ty=height(Math.round(roamFocus.x),Math.round(roamFocus.z));
+    camC.x+=(roamFocus.x-camC.x)*0.2;camC.z+=(roamFocus.z-camC.z)*0.2;camC.y+=(ty-camC.y)*0.1;
+    updateCam();
+    roamAcc++;if(roamAcc>6){roamAcc=0;streamAround(Math.round(roamFocus.x),Math.round(roamFocus.z));flushDirty();roamMeta();}
+  }
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(loop);
+
+/* ─── tabs ─── */
+const MODES=[
+  {id:'deck',name:'Deck',glyph:'◈',setup:setupDeck},
+  {id:'garden',name:'Garden',glyph:'✿',setup:setupGarden},
+  {id:'workshop',name:'Workshop',glyph:'⚒',setup:setupWorkshop},
+  {id:'world',name:'World',glyph:'⛰',setup:setupWorld},
+  {id:'logic',name:'Logic',glyph:'⊻',setup:setupLogic},
+  {id:'chunks',name:'Chunks',glyph:'▦',setup:setupChunks},
+  {id:'roam',name:'Roam',glyph:'✈',setup:setupRoam},
+];
+const tabsEl=$('tabs');
+MODES.forEach(m=>{const b=document.createElement('button');b.className='tab';b.dataset.id=m.id;b.innerHTML=`<span class="g">${m.glyph}</span>${m.name}`;b.addEventListener('click',()=>switchMode(m.id));tabsEl.appendChild(b);});
+function switchMode(id){
+  if(id===mode&&document.querySelector('.tab.active'))return;
+  mode=id;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.id===id));
+  MODES.find(m=>m.id===id).setup();
+}
+
+/* ─── modals ─── */
+$('infoBtn').addEventListener('click',()=>$('modalInfo').classList.add('show'));
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'))));
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));else if(e.key===' '){e.preventDefault();togglePlay();}else if(e.key==='ArrowRight'){pause();advance();}else if(e.key==='ArrowLeft'){pause();back();}});
+
+/* ═══════════ acceptance invariants (headless) ═══════════ */
+function runTests(){
+  const out=[];const line=(name,ok,detail)=>out.push(`<div class="testline"><span class="${ok?'ok':'fail'}">${ok?'✓':'✗'}</span> ${name}${detail?` — ${detail}`:''}</div>`);
+  // save engine state
+  const sv={signals,tick,trailSet,opts:{...opts}};
+  // full snapshot so clicking the test button never wipes a live World/Chunks/Roam build
+  const svMatter=[...matter],svLoaded=[...loadedChunks],svRemoved=[...editRemoved];
+  const svPlaced=[...editPlacedByChunk].map(([k,s])=>[k,[...s]]);
+  const fresh=()=>{matter.clear();chunkCells.clear();dirty.clear();signals=new Map();tick=0;trailSet=new Set();opts.reflect=false;opts.gun=false;opts.deposit=false;};
+  fresh();loadedChunks.clear();editRemoved.clear();editPlacedByChunk.clear();
+  // 1 gun linearity
+  fresh();opts.gun=true;signals.set('0,0,0',1);const pops=[];for(let t=0;t<=60;t++){let p=0;for(const [,d] of signals)p+=popcount(d);if(t>=10)pops.push(p);stepSignals();}
+  let n=pops.length,sx=0,sy=0,sxx=0,sxy=0;for(let i=0;i<n;i++){sx+=i;sy+=pops[i];sxx+=i*i;sxy+=i*pops[i];}const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx);
+  line('(1) gun linearity',Math.abs(slope-1)<0.001,`slope ${slope.toFixed(4)} (≈1.0000)`);
+  // 2 AND truth
+  const andPop=(b,c)=>runGateHeadless(GATES.and.seeds(b,c),30);
+  const a00=andPop(0,0),a10=andPop(1,0),a01=andPop(0,1),a11=andPop(1,1);
+  line('(2) AND truth table',a00===0&&a10===1&&a01===1&&a11===26,`0,0→${a00} · 1,0→${a10} · 0,1→${a01} · 1,1→${a11}`);
+  // 3 NOT
+  const unk=runGateHeadless(GATES.not.seeds(0),20),kil=runGateHeadless(GATES.not.seeds(1),20);
+  line('(3) NOT (kill)',unk>kil&&kil<=12,`unkilled grows ${unk} · killed frozen ${kil}`);
+  // 4 NAND composition
+  const nandKill=runGateHeadless(GATES.nand.seeds(1,1),30);
+  line('(4) NAND composition',nandKill<=14,`(1,1)+kill → ${nandKill} (ignited then killed)`);
+  // 5 reflect
+  fresh();opts.reflect=true;matter.add('3,0,3');signals.set('0,0,0',2);let returned=false;for(let t=0;t<10;t++){stepSignals();if(signals.has('0,0,0')&&(signals.get('0,0,0')&(1<<opp(1))))returned=true;}matter.delete('3,0,3');
+  line('(5) reflect',returned,'signal returns along opp dir through origin');
+  // 6 deposit
+  fresh();opts.deposit=true;const before=matter.size;signals.set('0,0,0',1);stepSignals();const made=matter.size-before;const depCell='0,1,1';const dirtyOk=dirty.has(chunkKey(0,1,1))&&matter.has(depCell);delMatter(depCell);dirty.delete(chunkKey(0,1,1));
+  line('(6) deposit',made===1&&dirtyOk,`flying signal → ${made} matter cell · chunk marked dirty`);
+  // 7 chunk floor
+  line('(7) chunk floor',chunkKey(-9,0,0)==='-2,0,0',`-9>>3 = ${-9>>3}`);
+  // 8 streaming bounded
+  fresh();clearMatter();loadedChunks.clear();editRemoved.clear();editPlacedByChunk.clear();
+  streamAround(0,0);const c1=loadedChunks.size;streamAround(200,200);const c2=loadedChunks.size;streamAround(-500,300);const c3=loadedChunks.size;
+  line('(8) streaming bounded',c1===c2&&c2===c3,`loaded cols const: ${c1/2|0} (=${(2*RD_C+1)**2})`);
+  // 9 determinism
+  clearMatter();loadedChunks.clear();genChunkColumn(5,5);const setA=[...(chunkCells.get('5,0,5')||new Set())].sort().join('|');unloadChunkColumn(5,5);genChunkColumn(5,5);const setB=[...(chunkCells.get('5,0,5')||new Set())].sort().join('|');
+  line('(9) determinism',setA===setB&&setA.length>0,'chunk cell-set identical after reload');
+  // 10 edit persistence
+  clearMatter();loadedChunks.clear();editRemoved.clear();editPlacedByChunk.clear();genChunkColumn(0,0);
+  const pk='1,1,1';placeAt(pk);const dk=[...(chunkCells.get('0,0,0')||[])].find(k=>matter.has(k));digAt(dk);
+  unloadChunkColumn(0,0);genChunkColumn(0,0);
+  const placedSurvives=matter.has(pk),dugStaysGone=!matter.has(dk);
+  line('(10) edit persistence',placedSurvives&&dugStaysGone,`placed survives:${placedSurvives} · dug gone:${dugStaysGone}`);
+  // 11 craft reproducibility
+  const r1=JSON.stringify(craft('crystal','grow',1).frames.at(-1));const r2=JSON.stringify(craft('crystal','grow',1).frames.at(-1));
+  line('(11) craft reproducibility',r1===r2,'same (noun,verb,φ) → identical product');
+  // 12 separability honest
+  const fitOk=recipeFits('a','compute'),wrong=recipeFits('crystal','compute');
+  line('(12) separability honest',fitOk&&!wrong,'A·compute fits ✓ · crystal·compute degenerate ✗');
+  // restore full snapshot (so a live world survives a test run)
+  clearMatter();loadedChunks.clear();editRemoved.clear();editPlacedByChunk.clear();
+  for(const k of svMatter)addMatter(k);
+  for(const k of svLoaded)loadedChunks.add(k);
+  for(const k of svRemoved)editRemoved.add(k);
+  for(const [k,arr] of svPlaced)editPlacedByChunk.set(k,new Set(arr));
+  signals=sv.signals;tick=sv.tick;trailSet=sv.trailSet;Object.assign(opts,sv.opts);
+  return out.join('');
+}
+$('testBtn').addEventListener('click',()=>{$('testOut').innerHTML=runTests();$('modalTest').classList.add('show');
+  if(mode==='world'||mode==='chunks'||mode==='roam'){flushDirty();renderSignals();}});
+
+/* ─── boot ─── */
+switchMode('deck');
+// run tests once to console for honesty
+try{console.log('Lightgrid acceptance invariants:');const tmp=document.createElement('div');tmp.innerHTML=runTests();tmp.querySelectorAll('.testline').forEach(l=>console.log('  '+l.textContent));}catch(e){console.warn('test run failed',e);}
+window.addEventListener('orientationchange',()=>setTimeout(fitMode,200));
+</script>
+</body>
+</html>
