@@ -632,6 +632,8 @@ const SEEDS={
   pl:{label:'plate',glyph:'◇',cells:[[0,0,0],[1,1,0],[1,-1,0],[-1,1,0],[-1,-1,0]]},
 };
 const SEED_ORDER=['pt','di','tr','ax','rg','pl'];
+// LIG-1: player-authored seed (place/dig in the Garden). Persists for the session; never empty.
+let customSeedCells=[[0,0,0]];
 function lcg(seed){let s=(seed>>>0)||1;return ()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
 function genRandomSeedCells(n){
   const rng=lcg(Math.imul(n>>>0,2654435761)>>>0);const set=new Map();const add=(a,b,c)=>set.set(a+','+b+','+c,[a,b,c]);
@@ -639,8 +641,8 @@ function genRandomSeedCells(n){
   for(let i=0;i<steps;i++){const d=DIRS[Math.floor(rng()*12)];x+=d[0];y+=d[1];z+=d[2];add(x,y,z);}
   return [...set.values()];
 }
-function seedCellsOf(code){if(SEEDS[code])return SEEDS[code].cells;if(code&&code[0]==='r'){const n=parseInt(code.slice(1),36);if(!isNaN(n))return genRandomSeedCells(n);}return SEEDS.pt.cells;}
-function seedLabelOf(code){if(SEEDS[code])return SEEDS[code].label;if(code&&code[0]==='r')return 'random';return 'point';}
+function seedCellsOf(code){if(code==='custom')return customSeedCells.map(p=>p.slice());if(SEEDS[code])return SEEDS[code].cells;if(code&&code[0]==='r'){const n=parseInt(code.slice(1),36);if(!isNaN(n))return genRandomSeedCells(n);}return SEEDS.pt.cells;}
+function seedLabelOf(code){if(code==='custom')return 'custom';if(SEEDS[code])return SEEDS[code].label;if(code&&code[0]==='r')return 'random';return 'point';}
 // the six canonical forms
 const FORM_RULES=[
   {id:'solid',glyph:'◆',name:'solid crystal',cls:'IV · solid fill (∼t³)',B:[1,2,3],S:[0,1,2,3,4,5,6,7,8,9,10,11,12],seedCode:'pt',steps:14},
@@ -1418,24 +1420,69 @@ function loadGardenCfg(d,custom){
   drawFrame();
 }
 function loadGarden(i){const n=FORM_RULES.length;gardenIdx=((i%n)+n)%n;loadGardenCfg(FORM_RULES[gardenIdx],false);}
-function setupGarden(){
-  teardown();frameMode='frames';frameDraw=renderGardenFrame;autoRotate=true;
+// normal Garden strips (design + form gallery + view toggles); reused when leaving seed-edit mode
+function buildGardenStrips(){
+  clearStrips();
   const design=mkChip('design','✎','design');design.addEventListener('click',openGardenStudio);rowA.appendChild(design);
+  const seedC=mkChip('build seed','✛','tool');seedC.addEventListener('click',()=>{gDraft.seedCode='custom';enterSeedEdit();});rowA.appendChild(seedC);
   FORM_RULES.forEach((d,i)=>{const c=mkChip(d.name,d.glyph,'garden');c.dataset.form=d.id;c.addEventListener('click',()=>{pause();loadGarden(i);play();});rowA.appendChild(c);});
   showStripA();
   rowB.appendChild(mkLabel('view'));
-  const colC=mkChip('growth rings','◉','view');colC.classList.add('active');
+  const colC=mkChip(gardenColorMode==='rings'?'growth rings':'leading edge','◉','view');colC.classList.add('active');
   colC.addEventListener('click',()=>{gardenColorMode=gardenColorMode==='rings'?'edge':'rings';colC.querySelector('span:last-child').textContent=gardenColorMode==='rings'?'growth rings':'leading edge';drawFrame();});
   rowB.appendChild(colC);
-  const sigC=mkChip('signals','➤','view');sigC.classList.add('active');
+  const sigC=mkChip('signals','➤','view');sigC.classList.toggle('active',gardenSignals);
   sigC.addEventListener('click',()=>{gardenSignals=!gardenSignals;sigC.classList.toggle('active',gardenSignals);drawFrame();});
   rowB.appendChild(sigC);
   showStripB();
   // prev returns a custom growth to its gallery form, then cycles the six forms
   $('prevBtn').onclick=()=>{pause();gardenCustom?loadGarden(gardenIdx):loadGarden(gardenIdx-1);play();};
   $('nextBtn').onclick=()=>{pause();loadGarden(gardenIdx+1);play();};
+}
+function setupGarden(){
+  teardown();frameMode='frames';frameDraw=renderGardenFrame;autoRotate=true;gardenEditing=false;
+  buildGardenStrips();
   loadGarden(0);play();
-  hint('one seed · one rule · watch the form grow — ✎ to design');
+  hint('one seed · one rule · watch the form grow — ✎ design · ✛ build a seed');
+}
+
+/* ─── LIG-1: author a custom seed with place / dig, then grow it ─── */
+let gardenEditing=false, seedTool='place';
+function seedMatterSync(){clearMatter();clearAllChunkMeshes();for(const p of customSeedCells)addMatter(key(...p));flushDirty();}
+function seedMeta(){setBadge('seed',customSeedCells.length,'place / dig on faces');setMeta(`<span><span class="k">mode</span> <b>authoring</b></span><span><span class="k">seed cells</span> <b>${customSeedCells.length}</b></span><span><span class="k">tool</span> <b>${seedTool}</b></span>`);}
+function buildSeedEditStrips(){
+  clearStrips();
+  rowA.appendChild(mkLabel('seed'));
+  [['place','⬛'],['dig','⌫']].forEach(([t,g])=>{const c=mkChip(t,g,'tool');c.dataset.stool=t;if(t===seedTool)c.classList.add('active');c.addEventListener('click',()=>{seedTool=t;document.querySelectorAll('#rowA .chip[data-stool]').forEach(x=>x.classList.toggle('active',x.dataset.stool===t));seedMeta();});rowA.appendChild(c);});
+  const clr=mkChip('clear seed','✕');clr.addEventListener('click',clearCustomSeed);rowA.appendChild(clr);
+  showStripA();
+  rowB.appendChild(mkLabel('rule'));
+  const grow=mkChip('set rule & grow','▶','design');grow.addEventListener('click',openGardenStudio);rowB.appendChild(grow);
+  const cancel=mkChip('back to forms','↩');cancel.addEventListener('click',()=>{exitSeedEdit();loadGarden(gardenIdx);play();});rowB.appendChild(cancel);
+  showStripB();
+}
+function enterSeedEdit(){
+  pause();gardenEditing=true;frameMode=null;liveStep=null;frameDraw=null;deckRefresh=null;
+  clearGroup(grpSignal);clearGroup(grpTrail);clearGroup(grpGhost);
+  seedMatterSync();
+  fitTo(customSeedCells);camTheta=0.7;updateCam();
+  buildSeedEditStrips();
+  setCard('garden · authoring','custom seed','build a shape, then set a Birth / Survival rule to grow it');
+  seedMeta();autoRotate=true;
+  onTap=(pk)=>{
+    if(!pk)return;
+    if(seedTool==='place'){ if(!matter.has(pk.neighbor)){customSeedCells.push(pk.nbrPos.slice());addMatter(pk.neighbor);flushDirty();} }
+    else if(seedTool==='dig'){ if(customSeedCells.length>1&&matter.has(pk.cell)){customSeedCells=customSeedCells.filter(p=>key(...p)!==pk.cell);delMatter(pk.cell);flushDirty();} }
+    seedMeta();
+  };
+  hint('tap a face to place · dig to remove · ▶ set a rule & grow');
+}
+function clearCustomSeed(){customSeedCells=[[0,0,0]];seedMatterSync();fitTo(customSeedCells);camTheta=0.7;updateCam();seedMeta();}
+function exitSeedEdit(){
+  gardenEditing=false;onTap=null;
+  clearMatter();clearAllChunkMeshes();
+  frameMode='frames';frameDraw=renderGardenFrame;autoRotate=true;
+  buildGardenStrips();
 }
 
 /* ─── garden studio ─── */
@@ -1443,13 +1490,20 @@ let gDraft={B:new Set([1,2,3]),S:new Set([0,1,2,3,4,5,6,7,8,9,10,11,12]),seedCod
 const gHasStore=(typeof window!=='undefined'&&window.storage&&typeof window.storage.set==='function');
 function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(()=>true).catch(()=>false);try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');document.body.removeChild(ta);return Promise.resolve(ok);}catch(e){return Promise.resolve(false);}}
 function gBuildKGrid(elId,which){const el=$(elId);el.innerHTML='';for(let k=0;k<=12;k++){const c=document.createElement('div');c.className='kc'+(k===1?' one':'');c.textContent=k;c.addEventListener('click',()=>{const set=gDraft[which];if(set.has(k))set.delete(k);else set.add(k);c.classList.toggle('on',set.has(k));gRefreshCode();});el.appendChild(c);}}
-function gBuildSeedRow(){const el=$('gSeedRow');el.innerHTML='';SEED_ORDER.forEach(code=>{const s=SEEDS[code];const b=document.createElement('button');b.className='seedchip';b.dataset.code=code;b.innerHTML=`<span class="sg">${s.glyph}</span><span>${s.label}</span>`;b.addEventListener('click',()=>{gDraft.seedCode=code;document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===code));gUpdateSeedNote();gRefreshCode();});el.appendChild(b);});}
-function gUpdateSeedNote(){const el=$('gSeedNote');if(gDraft.seedCode&&gDraft.seedCode[0]==='r'&&!SEEDS[gDraft.seedCode]){el.textContent=`🎲 random seed · ${seedCellsOf(gDraft.seedCode).length} cells · ${gDraft.seedCode.toUpperCase()}`;}else el.textContent='';}
+function gBuildSeedRow(){const el=$('gSeedRow');el.innerHTML='';SEED_ORDER.forEach(code=>{const s=SEEDS[code];const b=document.createElement('button');b.className='seedchip';b.dataset.code=code;b.innerHTML=`<span class="sg">${s.glyph}</span><span>${s.label}</span>`;b.addEventListener('click',()=>{gDraft.seedCode=code;document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===code));gUpdateSeedNote();gRefreshCode();});el.appendChild(b);});
+  // LIG-1: custom seed chip — picking it drops into the place/dig seed editor
+  const cb=document.createElement('button');cb.className='seedchip';cb.dataset.code='custom';cb.innerHTML='<span class="sg">✎</span><span>custom</span>';
+  cb.addEventListener('click',()=>{gDraft.seedCode='custom';document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code==='custom'));gUpdateSeedNote();gRefreshCode();enterSeedEdit();});
+  el.appendChild(cb);}
+function gUpdateSeedNote(){const el=$('gSeedNote');if(gDraft.seedCode==='custom'){el.textContent=`✎ custom seed · ${customSeedCells.length} cells — tap ✎ custom to edit on the canvas`;}else if(gDraft.seedCode&&gDraft.seedCode[0]==='r'&&!SEEDS[gDraft.seedCode]){el.textContent=`🎲 random seed · ${seedCellsOf(gDraft.seedCode).length} cells · ${gDraft.seedCode.toUpperCase()}`;}else el.textContent='';}
 function gPaintDraft(){document.querySelectorAll('#gbGrid .kc').forEach((c,k)=>c.classList.toggle('on',gDraft.B.has(k)));document.querySelectorAll('#gsGrid .kc').forEach((c,k)=>c.classList.toggle('on',gDraft.S.has(k)));document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===gDraft.seedCode));$('gStepVal').textContent=gDraft.steps;gUpdateSeedNote();gRefreshCode();}
 function gRefreshCode(){$('gShareCode').textContent=makeCG3([...gDraft.B],[...gDraft.S],gDraft.seedCode,gDraft.steps);}
 function gSetMsg(t,cls){const m=$('gLoadMsg');m.textContent=t;m.className='loadmsg'+(cls?' '+cls:'');}
-function openGardenStudio(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));gDraft={B:new Set(gardenMeta.B),S:new Set(gardenMeta.S),seedCode:gardenMeta.seedCode,steps:gardenMeta.steps};gPaintDraft();gSetMsg('');$('gNameInput').value='';gLoadLibrary();$('modalGarden').classList.add('show');}
-function gGrowFromDraft(B,S,seedCode,steps){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));if(mode!=='garden')switchMode('garden');pause();loadGardenCfg({id:'custom',B,S,seedCode,steps},true);play();}
+function openGardenStudio(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));
+  // keep the authored custom seed selected when opening rules from the seed editor
+  const keepCustom=gardenEditing||gDraft.seedCode==='custom';
+  gDraft={B:new Set(gardenMeta.B),S:new Set(gardenMeta.S),seedCode:keepCustom?'custom':gardenMeta.seedCode,steps:gardenMeta.steps};gPaintDraft();gSetMsg('');$('gNameInput').value='';gLoadLibrary();$('modalGarden').classList.add('show');}
+function gGrowFromDraft(B,S,seedCode,steps){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));if(mode!=='garden')switchMode('garden');if(gardenEditing)exitSeedEdit();pause();loadGardenCfg({id:'custom',B,S,seedCode,steps},true);play();}
 gBuildKGrid('gbGrid','B');gBuildKGrid('gsGrid','S');gBuildSeedRow();
 $('gStepMinus').addEventListener('click',()=>{gDraft.steps=Math.max(6,gDraft.steps-1);$('gStepVal').textContent=gDraft.steps;gRefreshCode();});
 $('gStepPlus').addEventListener('click',()=>{gDraft.steps=Math.min(20,gDraft.steps+1);$('gStepVal').textContent=gDraft.steps;gRefreshCode();});
