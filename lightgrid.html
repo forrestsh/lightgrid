@@ -746,7 +746,11 @@ function renderGardenFrame(frame){
   if(gardenSignals){
     let front=frame.filter(c=>c.g===frame.gen).map(c=>c.p);
     if(!front.length)front=frame.map(c=>c.p);
-    if(front.length>200){const st=front.length/200,s=[];for(let i=0;i<200;i++)s.push(front[Math.floor(i*st)]);front=s;}
+    // show the whole growth-front shell so arrows stay octahedrally symmetric (a strided
+    // subset drops cells asymmetrically). Only cap pathological fronts, and stride a
+    // radius-sorted list so any drop is spread evenly across the symmetric shell.
+    const CAP=2400;
+    if(front.length>CAP){front.sort((a,b)=>gdist(...a)-gdist(...b)||a[0]-b[0]||a[1]-b[1]||a[2]-b[2]);const st=front.length/CAP,s=[];for(let i=0;i<CAP;i++)s.push(front[Math.floor(i*st)]);front=s;}
     gardenArrows(front);
   }
 }
