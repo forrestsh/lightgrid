@@ -155,6 +155,39 @@ body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-si
 .dice-btn:active{background:var(--bg-2);color:var(--amber);}
 .seednote{font-size:10px;color:var(--amber);margin-top:7px;min-height:12px;letter-spacing:.04em;}
 .modal h2 em.gr{color:var(--green);}
+/* observation-deck: particle spectrum + 13-bit rule studio (from crystal_garden_13bit) */
+.bitgrid{display:flex;flex-wrap:wrap;gap:4px;flex:1;}
+.bc{flex:0 0 auto;min-width:30px;text-align:center;background:var(--bg-1);border:1px solid var(--line);color:var(--fg-2);font-size:11px;padding:7px 2px;cursor:pointer;border-radius:1px;}
+.bc:active{transform:scale(.94);}
+.bc.on{background:rgba(109,240,200,.12);border-color:var(--green-d);color:var(--green);font-weight:600;}
+.bc.self{min-width:42px;}
+.bc.self.on{background:rgba(227,194,100,.16);border-color:#6e5e2e;color:var(--gold);}
+.io-row{display:flex;gap:8px;align-items:flex-start;margin-top:8px;}
+.io-row .lab{font-size:8px;color:var(--fg-3);letter-spacing:.14em;text-transform:uppercase;width:30px;padding-top:8px;flex-shrink:0;}
+.readout{font-size:9.5px;color:var(--fg-2);font-variant-numeric:tabular-nums;margin:5px 0 0 38px;}
+.readout b{color:var(--fg-0);}
+.qbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.qbtns button{background:var(--bg-1);border:1px solid var(--line-2);color:var(--fg-1);font-family:var(--mono);font-size:10.5px;padding:7px 10px;border-radius:1px;cursor:pointer;}
+.qbtns button:active{background:var(--bg-2);color:var(--amber);}
+.qbtns button.sel{background:rgba(227,194,100,.12);border-color:#6e5e2e;color:var(--gold);}
+.entries{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
+.entry{display:flex;align-items:center;gap:9px;background:var(--bg-1);border:1px solid var(--line);padding:8px 11px;border-radius:1px;font-size:12px;font-variant-numeric:tabular-nums;}
+.entry .ein{color:var(--indigo);}.entry .eout{color:var(--gold);}.entry .ar{color:var(--fg-3);}
+.entry button{margin-left:auto;background:transparent;border:1px solid var(--line-2);color:var(--fg-2);font-size:11px;width:24px;height:24px;border-radius:1px;cursor:pointer;}
+.row2{display:flex;gap:20px;flex-wrap:wrap;margin-top:6px;}
+.row2 .lab2{font-size:8px;color:var(--fg-3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px;}
+.run-btn{width:100%;margin-top:16px;background:rgba(227,194,100,.1);border:1px solid #6e5e2e;color:var(--gold);font-family:var(--mono);font-size:13px;padding:14px 0;cursor:pointer;border-radius:1px;letter-spacing:.05em;}
+.run-btn:active{background:rgba(227,194,100,.18);}
+.result{margin-top:12px;padding:11px 12px;border:1px solid var(--line-2);border-radius:1px;background:var(--bg-1);font-size:11.5px;color:var(--fg-1);line-height:1.5;}
+.result b{color:var(--gold);}
+.splist{margin-top:8px;display:flex;flex-direction:column;gap:5px;max-height:50vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.sp-row{display:flex;align-items:center;gap:10px;background:var(--bg-1);border:1px solid var(--line);padding:8px 11px;border-radius:1px;cursor:pointer;}
+.sp-row:active{background:var(--bg-2);}
+.sp-row .nm{font-size:12px;color:var(--fg-0);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.sp-row.k1 .nm{color:var(--gold);}
+.sp-row .meta{font-size:9px;color:var(--fg-3);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.sp-row .vv{font-size:11px;color:var(--green);font-variant-numeric:tabular-nums;min-width:50px;text-align:right;}
+.sp-row .sp-edit{flex-shrink:0;background:transparent;border:1px solid var(--line-2);color:var(--gold);font-size:12px;width:30px;height:28px;border-radius:1px;cursor:pointer;font-family:var(--mono);}
 </style>
 </head>
 <body>
@@ -222,7 +255,7 @@ body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-si
   </div>
   <h3>The six modes</h3>
   <p>
-    <em>Deck</em> — specimen viewer: gun, photon, rest matter, gliders.<br>
+    <em>Deck</em> — observation deck: specimen viewer (gun, photon, rest matter, gliders) plus the <em>211-particle spectrum</em> (v = m/N) and a <em>rule studio</em> — edit the 13-bit table, run &amp; classify, auto-search for movers/guns, share codes.<br>
     <em>Workshop</em> — the centrepiece: place a <em>noun</em> (seed), apply a <em>verb</em> (rule sequence) to grow / move / compute / carve it into a product. Verbs fit their noun-class only — wrong pairings give a degenerate product (separability is partial, and discovery is the loop).<br>
     <em>Garden</em> — forward growth: drop one seed, run one Birth/Survival rule, and watch which of six 3D forms grows (solid crystal · hollow shell · skeletal · coral · dendritic · pulsing fractal). A morphology classifier names what you made; the design studio (✎) authors any rule + seed with shareable codes.<br>
     <em>World</em> — build terrain, fire beams; signals reflect off matter, guns ignite, beams deposit blocks.<br>
@@ -268,6 +301,66 @@ body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-si
   <h3>Library</h3>
   <div class="saverow"><input id="gNameInput" placeholder="name this creation…" autocomplete="off" spellcheck="false" maxlength="40"><button id="gSaveCre">save</button></div>
   <div class="liblist" id="gLibList"></div>
+</div></div>
+
+<!-- PARTICLE SPECTRUM (211 stable single particles · v = m/N · from crystal_garden_13bit) -->
+<div class="modal-bg" id="modalSpectrum"><div class="modal">
+  <button class="close" data-close>×</button>
+  <h2><em class="gr">Particle</em> spectrum</h2>
+  <p>211 stable single particles enumerated along (1,0,1): 107 massless (<em>k=0</em>) + 104 massive (<em>k=1</em>, the cycle runs through the self-bit). Speed is exactly <em>v = m / N</em>. Tap a row to run it on the Deck, or <em>✎</em> to load its rule into the studio.</p>
+  <div class="row2" style="margin-top:4px;"><div><div class="lab2">family</div><div class="qbtns" id="spMode"></div></div></div>
+  <div class="lab2" style="margin-top:10px;">cycle length N</div>
+  <div class="qbtns" id="spN"></div>
+  <div class="lab2" style="margin-top:10px;">sort</div>
+  <div class="qbtns" id="spSort"></div>
+  <div class="loadmsg" id="spCount" style="margin-top:9px;"></div>
+  <div class="splist" id="spList"></div>
+</div></div>
+
+<!-- 13-BIT RULE STUDIO (edit the table · run & analyze · auto-search · from crystal_garden_13bit) -->
+<div class="modal-bg" id="modalStudio13"><div class="modal">
+  <button class="close" data-close>×</button>
+  <h2><em class="gr">Rule</em> studio</h2>
+  <p>Edit the 8192-entry table: map any 13-bit input state to an output. A <em>self → direction</em> map is <em>emission</em>; <em>direction → self</em> is <em>absorption</em>. Hunt for a glowing gun or a moving cluster.</p>
+  <h3>Add an entry — <span style="color:var(--indigo)">input</span> → <span style="color:var(--gold)">output</span></h3>
+  <div class="io-row"><span class="lab">in</span><div class="bitgrid" id="inGrid"></div></div>
+  <div class="readout" id="inReadout">—</div>
+  <div class="io-row"><span class="lab">out</span><div class="bitgrid" id="outGrid"></div></div>
+  <div class="readout" id="outReadout">—</div>
+  <button class="dice-btn" id="addEntry" style="width:100%;justify-content:center;">+ add this entry to the table</button>
+  <div class="qbtns">
+    <button data-preset="gun">gun 1→3→6→1</button>
+    <button data-preset="emit">emit S→S·A</button>
+    <button data-preset="absorb">absorb A→S</button>
+    <button data-preset="clear">clear</button>
+  </div>
+  <button class="dice-btn" id="rollEntry">🎲 random emit / absorb</button>
+  <h3>Rule table — overrides (else identity)</h3>
+  <div class="entries" id="entryList"></div>
+  <h3>Seed &amp; cluster</h3>
+  <div class="io-row"><span class="lab">seed</span><div class="bitgrid" id="seedGrid"></div></div>
+  <div class="readout" id="seedReadout">—</div>
+  <div class="row2">
+    <div><div class="lab2">copies</div><div class="stepper"><button id="cntMinus">−</button><span id="cntVal">1</span><button id="cntPlus">+</button></div></div>
+    <div><div class="lab2">ticks</div><div class="stepper"><button id="rStepMinus">−</button><span id="rStepVal">18</span><button id="rStepPlus">+</button></div></div>
+  </div>
+  <button class="run-btn" id="runBtn">▶  run &amp; analyze</button>
+  <div class="result" id="resultBox">—</div>
+  <h3>Auto-search</h3>
+  <p style="font-size:10.5px;color:var(--fg-3);margin:2px 0 9px;line-height:1.5;">Generate random self↔direction rule-sets, batch-run them, and keep the ones that turn into ✨ glowing movers or 🌱⚡ guns.</p>
+  <div class="row2" style="align-items:flex-end;gap:12px;">
+    <div><div class="lab2">candidates</div><div class="stepper"><button id="nMinus">−</button><span id="nVal">500</span><button id="nPlus">+</button></div></div>
+    <button class="dice-btn" id="searchBtn" style="flex:1;justify-content:center;margin-top:0;">🔭 search</button>
+  </div>
+  <div class="loadmsg" id="searchMsg"></div>
+  <div class="liblist" id="hitList"></div>
+  <h3>Share code</h3>
+  <div class="codebox"><code id="shareCode">—</code><button id="copyCode">copy</button></div>
+  <div class="loadrow"><input id="codeInput" placeholder="paste a CG13 code…" autocapitalize="characters" autocomplete="off" spellcheck="false"><button id="loadCode">load</button></div>
+  <div class="loadmsg" id="loadMsg"></div>
+  <h3>Library</h3>
+  <div class="saverow"><input id="nameInput" placeholder="name this rule…" autocomplete="off" spellcheck="false" maxlength="40"><button id="saveCre">save</button></div>
+  <div class="liblist" id="libList"></div>
 </div></div>
 
 <script type="importmap">
@@ -901,23 +994,219 @@ function computeDeckFrames(s){
   }
   return fr;
 }
-function loadDeck(i){
-  const n=DECK_SPECS.length;deckIdx=((i%n)+n)%n;const s=DECK_SPECS[deckIdx];
-  frames=computeDeckFrames(s);fi=0;trailSet=new Set();
-  setCard('specimen',s.name,s.rule);setBadge('velocity',s.vel,s.sub);
+// shared by gallery specimens, spectrum particles, and studio creations
+function showDeckFrames(fr,meta){
+  frames=fr;fi=0;trailSet=new Set();
+  setCard('specimen',meta.title,meta.rule);setBadge('velocity',meta.vel,meta.sub);
   fitTo(frames.flat());
-  document.querySelectorAll('#rowA .chip').forEach((c,idx)=>c.classList.toggle('active',idx===deckIdx));
-  deckRefresh=(f)=>{let pop=0,mr=0;for(const c of f){pop+=(c.kind==='sig'?popcount(c.st):1);const r=gdist(...c.p);if(r>mr)mr=r;}const v=fi>0?(mr/fi).toFixed(2):'0';setMeta(`<span><span class="k">tick</span> <b>${fi}</b></span><span><span class="k">${s.bs?'cells':'signals'}</span> <b>${pop}</b></span><span><span class="k">front</span> <b>r=${mr} · v=${v}c</b></span>`);};
+  document.querySelectorAll('#rowA .chip[data-deck]').forEach(c=>c.classList.toggle('active',!meta.isCustom&&+c.dataset.deck===deckIdx));
+  deckRefresh=(f)=>{let pop=0,mr=0;for(const c of f){pop+=(c.kind==='sig'?popcount(c.st):1);const r=gdist(...c.p);if(r>mr)mr=r;}const v=fi>0?(mr/fi).toFixed(2):'0';setMeta(`<span><span class="k">tick</span> <b>${fi}</b></span><span><span class="k">${meta.bs?'cells':'signals'}</span> <b>${pop}</b></span><span><span class="k">front</span> <b>r=${mr} · v=${v}c</b></span>`);};
   drawFrame();
 }
+function loadDeck(i){
+  const n=DECK_SPECS.length;deckIdx=((i%n)+n)%n;const s=DECK_SPECS[deckIdx];
+  showDeckFrames(computeDeckFrames(s),{title:s.name,rule:s.rule,vel:s.vel,sub:s.sub,bs:!!s.bs,isCustom:false});
+}
+// load a spectrum particle / studio creation onto the Deck (switching there if needed)
+function deckLoadCustom(fr,meta){if(mode!=='deck')switchMode('deck');pause();showDeckFrames(fr,Object.assign({isCustom:true,bs:false},meta));play();}
 function setupDeck(){
   teardown();frameMode='frames';autoRotate=true;
-  DECK_SPECS.forEach((s,i)=>{const c=mkChip(s.name+' · '+s.vel,'◈');c.addEventListener('click',()=>{pause();loadDeck(i);play();});rowA.appendChild(c);});
+  DECK_SPECS.forEach((s,i)=>{const c=mkChip(s.name+' · '+s.vel,'◈');c.dataset.deck=i;c.addEventListener('click',()=>{pause();loadDeck(i);play();});rowA.appendChild(c);});
   showStripA();
+  const spc=mkChip('particle spectrum','⊞','view');spc.addEventListener('click',openSpectrum);rowB.appendChild(spc);
+  const stc=mkChip('rule studio','✎','design');stc.addEventListener('click',openStudio13);rowB.appendChild(stc);
+  showStripB();
   $('prevBtn').onclick=()=>{pause();loadDeck(deckIdx-1);play();};
   $('nextBtn').onclick=()=>{pause();loadDeck(deckIdx+1);play();};
-  loadDeck(0);play();hint('drag orbit · tap play/pause · ⏮⏭ specimens');
+  loadDeck(0);play();hint('drag orbit · ⏮⏭ specimens · ⊞ spectrum · ✎ studio');
 }
+
+/* ════════ OBSERVATION DECK · 13-bit table engine, particle spectrum, rule studio ════════ */
+const DIRLBL=['A','B','C','D','E','F','a','b','c','d','e','f'];
+function closeAllModals(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));}
+// full 13-bit R∘T with arbitrary self↔direction overrides (emit / absorb / transmute)
+function stepR13Map(cells,RT){
+  const agg=new Map();const add=(k,bits)=>agg.set(k,(agg.get(k)||0)|bits);
+  for(const [k,st] of cells){const [x,y,z]=parse(k);if(st&SELF)add(k,SELF);const dir=st&0xFFF;for(let i=0;i<12;i++)if(dir&(1<<i))add(key(x+DIRS[i][0],y+DIRS[i][1],z+DIRS[i][2]),1<<i);}
+  const next=new Map();for(const [k,m] of agg){const ns=RT.has(m)?RT.get(m):m;if(ns)next.set(k,ns);}
+  return next;
+}
+function simR13(ruleArr,seed,steps){   // seed = [[ [x,y,z], st ], …]
+  const RT=new Map(ruleArr);let cells=new Map();for(const [pos,st] of seed)cells.set(key(...pos),st);
+  const fr=[];
+  for(let t=0;t<=steps;t++){
+    const arr=[];let pop=0,mr=0;for(const [k,st] of cells){const [x,y,z]=parse(k);arr.push({p:[x,y,z],st,kind:'sig'});pop+=popcount(st);const r=gdist(x,y,z);if(r>mr)mr=r;}
+    fr.push(arr);
+    if(cells.size===0)break;
+    if(pop>2500||mr>34)break;                       // safety caps for runaway custom rules
+    cells=stepR13Map(cells,RT);
+  }
+  return fr;
+}
+function linfit(p){const n=p.length;let sx=0,sy=0,sxx=0,sxy=0;for(let i=0;i<n;i++){sx+=i;sy+=p[i];sxx+=i*i;sxy+=i*p[i];}const d=(n*sxx-sx*sx);return d?(n*sxy-sx*sy)/d:0;}
+function analyzeR13(fr){
+  const pops=fr.map(f=>f.reduce((a,c)=>a+popcount(c.st),0));
+  const T=pops.length-1,fp=pops[T],peak=Math.max(...pops),p0=pops[0];
+  const slope=linfit(pops);
+  const cen=f=>{if(!f.length)return [0,0,0];let c=[0,0,0];for(const q of f)for(let i=0;i<3;i++)c[i]+=q.p[i];return c.map(v=>v/f.length);};
+  const c0=cen(fr[0]),cT=cen(fr[T]);
+  const dv=T>0?gdist(Math.round(cT[0]-c0[0]),Math.round(cT[1]-c0[1]),Math.round(cT[2]-c0[2]))/T:0;
+  let mr=0;for(const q of fr[T])if(q){const r=gdist(...q.p);if(r>mr)mr=r;}
+  const fv=T>0?mr/T:0;let label,vel,note;
+  if(fp===0){label='💀 died out';vel='—';note='no survivors';}
+  else if(slope>0.4){if(fv>0.8){label='⚡ light-speed gun';vel='c';note=`grows ${slope.toFixed(1)}/tick · front c`;}else{label='🌱 growing gun';vel=fv.toFixed(2)+'c';note=`grows ${slope.toFixed(1)}/tick`;}}
+  else if(dv>0.05){const glow=peak>p0+0.5;label=glow?'✨ glowing mover':'🚀 moving cluster';vel=dv.toFixed(2)+'c';note=glow?'drifts & emits light':'bound, drifting';}
+  else if(peak>p0+0.5){label='🔆 emitter fountain';vel=fv.toFixed(2)+'c';note='emits radiation, source fixed';}
+  else{label='🧊 static / bound';vel='0';note='no net motion';}
+  return {label,vel,note,slope,dv,fv,fp,peak};
+}
+function stateStr(s){const self=s&SELF,dir=s&0xFFF,parts=[];if(self)parts.push('S');for(let i=0;i<12;i++)if(dir&(1<<i))parts.push(DIRLBL[i]);return parts.length?parts.join('·'):'∅';}
+function evenBlob(n){let R=1,pts=[];while(true){pts=[];for(let x=-R;x<=R;x++)for(let y=-R;y<=R;y++)for(let z=-R;z<=R;z++)if(((x+y+z)&1)===0)pts.push([x,y,z,x*x+y*y+z*z]);if(pts.length>=n||R>16)break;R++;}pts.sort((a,b)=>a[3]-b[3]);return pts.slice(0,n).map(p=>[p[0],p[1],p[2]]);}
+function makeCode13(seed,count,steps,entries){const e=entries.length?entries.map(([i,o])=>i.toString(36)+'.'+o.toString(36)).join('_'):'~';return ('CG13-'+seed.toString(36)+'-'+count+'-'+steps+'-'+e).toUpperCase();}
+function parseCode13(str){if(!str)return null;const p=str.trim().toUpperCase().split('-');if(p.length<5||p[0]!=='CG13')return null;const seed=parseInt(p[1],36);let count=parseInt(p[2],10),steps=parseInt(p[3],10);if(isNaN(seed)||seed<0||seed>8191)return null;if(isNaN(count))count=1;count=Math.max(1,Math.min(200,count));if(isNaN(steps))steps=18;steps=Math.max(6,Math.min(30,steps));const entries=[];if(p[4]&&p[4]!=='~'){for(const seg of p[4].split('_')){const ab=seg.split('.');if(ab.length!==2)return null;const i=parseInt(ab[0],36),o=parseInt(ab[1],36);if(isNaN(i)||isNaN(o)||i<0||i>8191||o<0||o>8191)return null;entries.push([i,o]);}}return {seed,count,steps,entries};}
+
+// ── particle spectrum (211 stable particles · v = m/N, per A New Kind of Physics ch.24) ──
+const PARTICLE_DATA=[
+[0,0,1,1,[1],1,1,"B"],[0,0,2,1,[0,11],0,0.5,"Af"],[0,0,2,1,[2,3],0,0.5,"CD"],[0,0,3,2,[0,1,11],0,0.6667,"ABf"],[0,0,3,1,[2,11,10],0,0.3333,"Cfe"],[0,0,3,1,[0,1,6],0,0.3333,"ABa"],[0,0,3,1,[1,2,8],0,0.3333,"BCc"],[0,0,3,1,[1,11,5],0,0.3333,"BfF"],[0,0,3,2,[1,2,3],0,0.6667,"BCD"],[0,0,3,1,[1,9,3],0,0.3333,"BdD"],[0,0,3,1,[1,10,4],0,0.3333,"BeE"],[0,0,3,1,[0,3,4],0,0.3333,"ADE"],[0,0,4,2,[1,2,11,10],0,0.5,"BCfe"],[0,0,4,1,[1,11,9,10],0,0.25,"Bfde"],[0,0,4,1,[1,2,10,6],0,0.25,"BCea"],[0,0,4,1,[0,1,11,7],0,0.25,"ABfb"],[0,0,4,1,[0,2,11,8],0,0.25,"ACfc"],[0,0,4,2,[0,2,11,3],0,0.5,"ACfD"],[0,0,4,1,[0,11,9,3],0,0.25,"AfdD"],[0,0,4,1,[0,2,6,3],0,0.25,"ACaD"],[0,0,4,1,[1,2,7,3],0,0.25,"BCbD"],[0,0,4,1,[2,11,5,3],0,0.25,"CfFD"],[0,0,4,1,[0,11,10,4],0,0.25,"AfeE"],[0,0,4,1,[0,1,8,4],0,0.25,"ABcE"],[0,0,4,2,[0,1,3,4],0,0.5,"ABDE"],[0,0,4,1,[2,10,3,4],0,0.25,"CeDE"],[0,0,4,1,[1,5,3,4],0,0.25,"BFDE"],[0,0,5,1,[0,2,11,10,6],0,0.2,"ACfea"],[0,0,5,1,[1,2,11,10,7],0,0.2,"BCfeb"],[0,0,5,2,[0,1,2,11,8],0,0.4,"ABCfc"],[0,0,5,1,[0,1,11,9,8],0,0.2,"ABfdc"],[0,0,5,1,[0,1,2,6,8],0,0.2,"ABCac"],[0,0,5,1,[0,1,11,6,5],0,0.2,"ABfaF"],[0,0,5,1,[1,2,11,8,5],0,0.2,"BCfcF"],[0,0,5,3,[0,1,2,11,3],0,0.6,"ABCfD"],[0,0,5,2,[0,1,11,9,3],0,0.4,"ABfdD"],[0,0,5,1,[2,11,9,10,3],0,0.2,"CfdeD"],[0,0,5,2,[0,1,2,6,3],0,0.4,"ABCaD"],[0,0,5,1,[0,1,9,6,3],0,0.2,"ABdaD"],[0,0,5,1,[0,2,11,7,3],0,0.2,"ACfbD"],[0,0,5,1,[1,2,9,8,3],0,0.2,"BCdcD"],[0,0,5,2,[1,2,11,5,3],0,0.4,"BCfFD"],[0,0,5,1,[1,11,9,5,3],0,0.2,"BfdFD"],[0,0,5,1,[1,2,6,5,3],0,0.2,"BCaFD"],[0,0,5,2,[0,1,11,10,4],0,0.4,"ABfeE"],[0,0,5,1,[0,1,10,6,4],0,0.2,"ABeaE"],[0,0,5,1,[1,2,10,8,4],0,0.2,"BCecE"],[0,0,5,1,[1,11,10,5,4],0,0.2,"BfeFE"],[0,0,5,2,[1,2,10,3,4],0,0.4,"BCeDE"],[0,0,5,1,[1,9,10,3,4],0,0.2,"BdeDE"],[0,0,5,1,[0,1,7,3,4],0,0.2,"ABbDE"],[0,0,5,1,[0,2,8,3,4],0,0.2,"ACcDE"],[0,0,5,1,[0,11,5,3,4],0,0.2,"AfFDE"],[0,0,6,1,[0,1,11,9,10,6],0,0.1667,"ABfdea"],[0,0,6,1,[1,2,11,9,10,8],0,0.1667,"BCfdec"],[0,0,6,1,[0,1,2,11,7,8],0,0.1667,"ABCfbc"],[0,0,6,1,[1,2,11,10,6,5],0,0.1667,"BCfeaF"],[0,0,6,2,[1,2,11,9,10,3],0,0.3333,"BCfdeD"],[0,0,6,1,[1,2,9,10,6,3],0,0.1667,"BCdeaD"],[0,0,6,2,[0,1,2,11,7,3],0,0.3333,"ABCfbD"],[0,0,6,1,[0,1,11,9,7,3],0,0.1667,"ABfdbD"],[0,0,6,1,[0,1,2,6,7,3],0,0.1667,"ABCabD"],[0,0,6,1,[0,2,11,9,8,3],0,0.1667,"ACfdcD"],[0,0,6,1,[0,2,11,6,5,3],0,0.1667,"ACfaFD"],[0,0,6,1,[1,2,11,7,5,3],0,0.1667,"BCfbFD"],[0,0,6,1,[0,1,11,10,7,4],0,0.1667,"ABfebE"],[0,0,6,1,[0,2,11,10,8,4],0,0.1667,"ACfecE"],[0,0,6,1,[0,1,11,8,5,4],0,0.1667,"ABfcFE"],[0,0,6,1,[0,11,9,10,3,4],0,0.1667,"AfdeDE"],[0,0,6,1,[0,2,10,6,3,4],0,0.1667,"ACeaDE"],[0,0,6,1,[1,2,10,7,3,4],0,0.1667,"BCebDE"],[0,0,6,1,[2,11,10,5,3,4],0,0.1667,"CfeFDE"],[0,0,6,1,[1,2,8,5,3,4],0,0.1667,"BCcFDE"],[0,0,7,1,[0,1,2,11,10,6,7],0,0.1429,"ABCfeab"],[0,0,7,1,[0,1,2,11,6,8,5],0,0.1429,"ABCfacF"],[0,0,7,1,[0,2,11,9,10,6,3],0,0.1429,"ACfdeaD"],[0,0,7,1,[1,2,11,9,10,7,3],0,0.1429,"BCfdebD"],[0,0,7,2,[0,1,2,11,9,8,3],0,0.2857,"ABCfdcD"],[0,0,7,1,[0,1,2,9,6,8,3],0,0.1429,"ABCdacD"],[0,0,7,2,[0,1,2,11,6,5,3],0,0.2857,"ABCfaFD"],[0,0,7,1,[0,1,11,9,6,5,3],0,0.1429,"ABfdaFD"],[0,0,7,1,[1,2,11,9,8,5,3],0,0.1429,"BCfdcFD"],[0,0,7,2,[0,1,2,11,10,8,4],0,0.2857,"ABCfecE"],[0,0,7,1,[0,1,11,10,6,5,4],0,0.1429,"ABfeaFE"],[0,0,7,2,[0,1,11,9,10,3,4],0,0.2857,"ABfdeDE"],[0,0,7,2,[0,1,2,10,6,3,4],0,0.2857,"ABCeaDE"],[0,0,7,1,[1,2,9,10,8,3,4],0,0.1429,"BCdecDE"],[0,0,7,1,[0,1,2,7,8,3,4],0,0.1429,"ABCbcDE"],[0,0,7,1,[0,1,11,7,5,3,4],0,0.1429,"ABfbFDE"],[0,0,7,1,[0,2,11,8,5,3,4],0,0.1429,"ACfcFDE"],[0,0,8,1,[0,1,2,11,9,10,6,8],0,0.125,"ABCfdeac"],[0,0,8,2,[0,1,2,11,9,10,6,3],0,0.25,"ABCfdeaD"],[0,0,8,1,[0,1,2,11,9,7,8,3],0,0.125,"ABCfdbcD"],[0,0,8,1,[1,2,11,9,10,6,5,3],0,0.125,"BCfdeaFD"],[0,0,8,1,[0,1,2,11,6,7,5,3],0,0.125,"ABCfabFD"],[0,0,8,1,[0,1,2,11,10,7,8,4],0,0.125,"ABCfebcE"],[0,0,8,1,[0,1,11,9,10,7,3,4],0,0.125,"ABfdebDE"],[0,0,8,1,[0,2,11,9,10,8,3,4],0,0.125,"ACfdecDE"],[0,0,8,2,[0,1,2,11,8,5,3,4],0,0.25,"ABCfcFDE"],[0,0,8,1,[0,1,11,9,8,5,3,4],0,0.125,"ABfdcFDE"],[0,0,8,1,[0,1,2,6,8,5,3,4],0,0.125,"ABCacFDE"],[0,0,9,1,[0,1,2,11,9,6,8,5,3],0,0.1111,"ABCfdacFD"],[0,0,9,1,[0,1,2,11,10,6,8,5,4],0,0.1111,"ABCfeacFE"],[0,0,9,2,[0,1,2,11,9,10,8,3,4],0,0.2222,"ABCfdecDE"],[0,0,9,1,[0,1,2,9,10,6,8,3,4],0,0.1111,"ABCdeacDE"],[0,0,9,1,[0,1,2,11,7,8,5,3,4],0,0.1111,"ABCfbcFDE"],[0,0,10,1,[0,1,2,11,9,10,7,8,3,4],0,0.1,"ABCfdebcDE"],
+[1,1,2,1,[1],2,0.5,"B"],[1,1,3,1,[0,11],3,0.3333,"Af"],[1,1,3,1,[2,3],3,0.3333,"CD"],[1,1,4,2,[0,1,11],4,0.5,"ABf"],[1,1,4,1,[2,11,10],4,0.25,"Cfe"],[1,1,4,1,[0,1,6],4,0.25,"ABa"],[1,1,4,1,[1,2,8],4,0.25,"BCc"],[1,1,4,1,[1,11,5],4,0.25,"BfF"],[1,1,4,2,[1,2,3],12,0.5,"BCD"],[1,1,4,1,[1,9,3],4,0.25,"BdD"],[1,1,4,1,[1,10,4],4,0.25,"BeE"],[1,1,4,1,[0,3,4],4,0.25,"ADE"],[1,1,5,2,[1,2,11,10],5,0.4,"BCfe"],[1,1,5,1,[1,11,9,10],5,0.2,"Bfde"],[1,1,5,1,[1,2,10,6],5,0.2,"BCea"],[1,1,5,1,[0,1,11,7],5,0.2,"ABfb"],[1,1,5,1,[0,2,11,8],5,0.2,"ACfc"],[1,1,5,2,[0,2,11,3],5,0.4,"ACfD"],[1,1,5,1,[0,11,9,3],5,0.2,"AfdD"],[1,1,5,1,[0,2,6,3],5,0.2,"ACaD"],[1,1,5,1,[1,2,7,3],5,0.2,"BCbD"],[1,1,5,1,[2,11,5,3],5,0.2,"CfFD"],[1,1,5,1,[0,11,10,4],5,0.2,"AfeE"],[1,1,5,1,[0,1,8,4],5,0.2,"ABcE"],[1,1,5,2,[0,1,3,4],5,0.4,"ABDE"],[1,1,5,1,[2,10,3,4],5,0.2,"CeDE"],[1,1,5,1,[1,5,3,4],5,0.2,"BFDE"],[1,1,6,1,[0,2,11,10,6],6,0.1667,"ACfea"],[1,1,6,1,[1,2,11,10,7],6,0.1667,"BCfeb"],[1,1,6,2,[0,1,2,11,8],6,0.3333,"ABCfc"],[1,1,6,1,[0,1,11,9,8],6,0.1667,"ABfdc"],[1,1,6,1,[0,1,2,6,8],6,0.1667,"ABCac"],[1,1,6,1,[0,1,11,6,5],6,0.1667,"ABfaF"],[1,1,6,1,[1,2,11,8,5],6,0.1667,"BCfcF"],[1,1,6,3,[0,1,2,11,3],6,0.5,"ABCfD"],[1,1,6,2,[0,1,11,9,3],6,0.3333,"ABfdD"],[1,1,6,1,[2,11,9,10,3],6,0.1667,"CfdeD"],[1,1,6,2,[0,1,2,6,3],6,0.3333,"ABCaD"],[1,1,6,1,[0,1,9,6,3],6,0.1667,"ABdaD"],[1,1,6,1,[0,2,11,7,3],6,0.1667,"ACfbD"],[1,1,6,1,[1,2,9,8,3],6,0.1667,"BCdcD"],[1,1,6,2,[1,2,11,5,3],6,0.3333,"BCfFD"],[1,1,6,1,[1,11,9,5,3],6,0.1667,"BfdFD"],[1,1,6,1,[1,2,6,5,3],6,0.1667,"BCaFD"],[1,1,6,2,[0,1,11,10,4],6,0.3333,"ABfeE"],[1,1,6,1,[0,1,10,6,4],6,0.1667,"ABeaE"],[1,1,6,1,[1,2,10,8,4],6,0.1667,"BCecE"],[1,1,6,1,[1,11,10,5,4],6,0.1667,"BfeFE"],[1,1,6,2,[1,2,10,3,4],6,0.3333,"BCeDE"],[1,1,6,1,[1,9,10,3,4],6,0.1667,"BdeDE"],[1,1,6,1,[0,1,7,3,4],6,0.1667,"ABbDE"],[1,1,6,1,[0,2,8,3,4],6,0.1667,"ACcDE"],[1,1,6,1,[0,11,5,3,4],6,0.1667,"AfFDE"],[1,1,7,2,[0,1,2,11,10,6],7,0.2857,"ABCfea"],[1,1,7,1,[1,2,11,9,10,8],7,0.1429,"BCfdec"],[1,1,7,1,[0,1,2,11,7,8],7,0.1429,"ABCfbc"],[1,1,7,1,[1,2,11,10,6,5],7,0.1429,"BCfeaF"],[1,1,7,2,[1,2,11,9,10,3],7,0.2857,"BCfdeD"],[1,1,7,1,[1,2,9,10,6,3],7,0.1429,"BCdeaD"],[1,1,7,2,[0,1,2,11,7,3],7,0.2857,"ABCfbD"],[1,1,7,1,[0,1,11,9,7,3],7,0.1429,"ABfdbD"],[1,1,7,1,[0,1,2,6,7,3],7,0.1429,"ABCabD"],[1,1,7,1,[0,2,11,9,8,3],7,0.1429,"ACfdcD"],[1,1,7,1,[0,2,11,6,5,3],7,0.1429,"ACfaFD"],[1,1,7,1,[1,2,11,7,5,3],7,0.1429,"BCfbFD"],[1,1,7,1,[0,1,11,10,7,4],7,0.1429,"ABfebE"],[1,1,7,1,[0,2,11,10,8,4],7,0.1429,"ACfecE"],[1,1,7,1,[0,1,11,8,5,4],7,0.1429,"ABfcFE"],[1,1,7,2,[0,2,11,10,3,4],7,0.2857,"ACfeDE"],[1,1,7,1,[1,2,10,7,3,4],7,0.1429,"BCebDE"],[1,1,7,2,[0,1,2,8,3,4],7,0.2857,"ABCcDE"],[1,1,7,1,[0,1,9,8,3,4],7,0.1429,"ABdcDE"],[1,1,7,2,[0,1,11,5,3,4],7,0.2857,"ABfFDE"],[1,1,7,1,[2,11,10,5,3,4],7,0.1429,"CfeFDE"],[1,1,7,1,[1,2,8,5,3,4],7,0.1429,"BCcFDE"],[1,1,8,1,[0,1,2,11,10,6,7],8,0.125,"ABCfeab"],[1,1,8,1,[0,1,2,11,6,8,5],8,0.125,"ABCfacF"],[1,1,8,1,[0,2,11,9,10,6,3],8,0.125,"ACfdeaD"],[1,1,8,1,[1,2,11,9,10,7,3],8,0.125,"BCfdebD"],[1,1,8,2,[0,1,2,11,9,8,3],8,0.25,"ABCfdcD"],[1,1,8,1,[0,1,2,9,6,8,3],8,0.125,"ABCdacD"],[1,1,8,2,[0,1,2,11,6,5,3],8,0.25,"ABCfaFD"],[1,1,8,1,[0,1,11,9,6,5,3],8,0.125,"ABfdaFD"],[1,1,8,1,[1,2,11,9,8,5,3],8,0.125,"BCfdcFD"],[1,1,8,2,[0,1,2,11,10,8,4],8,0.25,"ABCfecE"],[1,1,8,1,[0,1,11,10,6,5,4],8,0.125,"ABfeaFE"],[1,1,8,1,[1,2,11,10,8,5,4],8,0.125,"BCfecFE"],[1,1,8,3,[0,1,2,11,10,3,4],8,0.375,"ABCfeDE"],[1,1,8,1,[0,1,9,10,6,3,4],8,0.125,"ABdeaDE"],[1,1,8,1,[0,2,11,10,7,3,4],8,0.125,"ACfebDE"],[1,1,8,1,[1,2,9,10,8,3,4],8,0.125,"BCdecDE"],[1,1,8,2,[1,2,11,10,5,3,4],8,0.25,"BCfeFDE"],[1,1,9,2,[0,1,2,11,9,10,6,3],9,0.2222,"ABCfdeaD"],[1,1,9,1,[0,1,2,11,9,7,8,3],9,0.1111,"ABCfdbcD"],[1,1,9,1,[1,2,11,9,10,6,5,3],9,0.1111,"BCfdeaFD"],[1,1,9,1,[0,1,2,11,6,7,5,3],9,0.1111,"ABCfabFD"],[1,1,9,2,[0,1,2,11,10,7,3,4],9,0.2222,"ABCfebDE"],[1,1,9,1,[0,2,11,10,6,5,3,4],9,0.1111,"ACfeaFDE"],[1,1,10,1,[0,1,2,11,9,6,8,5,3],10,0.1,"ABCfdacFD"],[1,1,10,1,[0,1,2,11,10,6,8,5,4],10,0.1,"ABCfeacFE"],[1,1,10,1,[0,1,2,9,10,6,8,3,4],10,0.1,"ABCdeacDE"],[1,1,10,2,[0,1,2,11,10,6,5,3,4],10,0.2,"ABCfeaFDE"],[1,1,10,1,[0,1,2,11,7,8,5,3,4],10,0.1,"ABCfbcFDE"],[1,1,11,1,[0,1,2,11,10,6,7,5,3,4],11,0.0909,"ABCfeabFDE"]
+];
+function buildParticleSpec(mode,bits){const entries=[];const n=bits.length;if(mode===0){for(let i=0;i<n;i++)entries.push([1<<bits[i],1<<bits[(i+1)%n]]);}else{for(let i=0;i<n-1;i++)entries.push([1<<bits[i],1<<bits[i+1]]);entries.push([1<<bits[n-1],SELF]);entries.push([SELF,1<<bits[0]]);}let seed=0;for(const b of bits)seed|=(1<<b);if(mode===1)seed|=SELF;return {entries,seed};}
+function loadParticle(p){
+  const {entries,seed}=buildParticleSpec(p[0],p[4]);
+  const v=p[6],N=p[2],m=p[3],k=p[1],name=p[7];
+  const steps=Math.min(30,Math.max(12,Math.round(7/Math.max(v,0.2))));
+  closeAllModals();
+  deckLoadCustom(simR13(entries,[[[0,0,0],seed]],steps),{title:name,rule:`v = m/N = <b>${m}/${N}</b> · ${k===0?'massless':'massive'} · ${entries.length}-step cycle`,vel:v>=1?'c':v.toFixed(3)+'c',sub:`k=${k} · N=${N} · m=${m}`});
+}
+function particleToStudio(p){const {entries,seed}=buildParticleSpec(p[0],p[4]);draft.entries=entries.map(e=>[e[0],e[1]]);draft.seedState=seed;draft.count=1;draft.steps=Math.min(30,Math.max(16,p[2]*3));closeAllModals();openStudio13();}
+let spMode='all',spN='all',spSort='v';
+function renderSpectrum(){
+  let arr=PARTICLE_DATA.slice();
+  if(spMode==='0')arr=arr.filter(p=>p[0]===0);else if(spMode==='1')arr=arr.filter(p=>p[0]===1);
+  if(spN!=='all')arr=arr.filter(p=>p[2]===spN);
+  if(spSort==='v')arr.sort((a,b)=>b[6]-a[6]||a[2]-b[2]);else if(spSort==='N')arr.sort((a,b)=>a[2]-b[2]||b[6]-a[6]);else arr.sort((a,b)=>a[7].localeCompare(b[7]));
+  $('spCount').textContent=`${arr.length} / 211 particles`;
+  const list=$('spList');list.innerHTML='';
+  if(!arr.length){list.innerHTML='<div class="libempty">none match this filter</div>';return;}
+  for(const p of arr){const row=document.createElement('div');row.className='sp-row'+(p[0]===1?' k1':'');
+    row.innerHTML=`<span class="nm">${p[7]}</span><span class="meta">k${p[1]} · N${p[2]} · m${p[3]}</span><span class="vv">${p[6]>=1?'c':p[6].toFixed(3)}</span>`;
+    row.addEventListener('click',()=>loadParticle(p));
+    const edit=document.createElement('button');edit.className='sp-edit';edit.textContent='✎';edit.title='edit in studio';
+    edit.addEventListener('click',e=>{e.stopPropagation();particleToStudio(p);});row.appendChild(edit);list.appendChild(row);}
+}
+function buildFilters(){
+  const mk=(host,opts,getter,setter)=>{const el=$(host);el.innerHTML='';opts.forEach(([val,lab])=>{const b=document.createElement('button');b.textContent=lab;b.classList.toggle('sel',getter()===val);b.addEventListener('click',()=>{setter(val);buildFilters();renderSpectrum();});el.appendChild(b);});};
+  mk('spMode',[['all','all'],['0','k=0 massless'],['1','k=1 massive']],()=>spMode,v=>spMode=v);
+  mk('spN',[['all','all'],[1,'1'],[2,'2'],[3,'3'],[4,'4'],[5,'5'],[6,'6'],[7,'7'],[8,'8'],[9,'9'],[10,'10'],[11,'11']],()=>spN,v=>spN=v);
+  mk('spSort',[['v','v ↓'],['N','N ↑'],['name','name']],()=>spSort,v=>spSort=v);
+}
+function openSpectrum(){closeAllModals();buildFilters();renderSpectrum();$('modalSpectrum').classList.add('show');}
+
+// ── 13-bit rule studio ──
+let draft={inState:SELF,outState:SELF|1,seedState:SELF,count:1,steps:18,entries:[[SELF,SELF|1]]};
+let lastResult='';
+const bitOn=(s,b)=>(s&(1<<b))!==0;
+function buildBitGrid(elId,which){
+  const el=$(elId);el.innerHTML='';
+  const sc=document.createElement('div');sc.className='bc self';sc.dataset.b='12';sc.textContent='self';el.appendChild(sc);
+  for(let i=0;i<12;i++){const c=document.createElement('div');c.className='bc';c.dataset.b=String(i);c.textContent=DIRLBL[i];el.appendChild(c);}
+  el.querySelectorAll('.bc').forEach(c=>c.addEventListener('click',()=>{draft[which]^=(1<<(+c.dataset.b));paintGrid(elId,which);refreshIO();}));
+}
+function paintGrid(elId,which){const st=draft[which];document.querySelectorAll('#'+elId+' .bc').forEach(c=>c.classList.toggle('on',bitOn(st,+c.dataset.b)));}
+function refreshIO(){
+  $('inReadout').innerHTML='in <b>'+stateStr(draft.inState)+'</b> · '+draft.inState;
+  $('outReadout').innerHTML='out <b>'+stateStr(draft.outState)+'</b> · '+draft.outState;
+  $('seedReadout').innerHTML='seed <b>'+stateStr(draft.seedState)+'</b> · '+draft.seedState;
+  refreshCode13();
+}
+function renderEntries(){
+  const el=$('entryList');el.innerHTML='';
+  if(!draft.entries.length){el.innerHTML='<div class="libempty">No overrides — pure identity (signals just stream).</div>';refreshCode13();return;}
+  draft.entries.forEach((e,idx)=>{const row=document.createElement('div');row.className='entry';
+    row.innerHTML=`<span class="ein">${stateStr(e[0])}</span><span class="ar">→</span><span class="eout">${stateStr(e[1])}</span>`;
+    const del=document.createElement('button');del.textContent='✕';del.addEventListener('click',()=>{draft.entries.splice(idx,1);renderEntries();});
+    row.appendChild(del);el.appendChild(row);});
+  refreshCode13();
+}
+function paintAllStudio(){paintGrid('inGrid','inState');paintGrid('outGrid','outState');paintGrid('seedGrid','seedState');$('cntVal').textContent=draft.count;$('rStepVal').textContent=draft.steps;refreshIO();renderEntries();}
+function addEntry(){const i=draft.inState,o=draft.outState;draft.entries=draft.entries.filter(e=>e[0]!==i);draft.entries.push([i,o]);renderEntries();}
+const PRESETS={gun:{entries:[[1,3],[3,6],[6,1]],seed:1},emit:{entries:[[SELF,SELF|1]],seed:SELF},absorb:{entries:[[1,SELF]],seed:1},clear:{entries:[],seed:SELF}};
+function applyPreset(name){const p=PRESETS[name];if(!p)return;draft.entries=p.entries.map(e=>[e[0],e[1]]);draft.seedState=p.seed;draft.count=1;paintAllStudio();}
+function rollEntry(){const n=1+Math.floor(Math.random()*2);for(let q=0;q<n;q++){const d=Math.floor(Math.random()*12),d2=Math.floor(Math.random()*12);const kind=Math.floor(Math.random()*4);let i,o;if(kind===0){i=SELF;o=SELF|(1<<d);}else if(kind===1){i=(1<<d);o=SELF;}else if(kind===2){i=SELF;o=(1<<d);}else{i=(1<<d);o=(1<<d)|(1<<d2);}draft.entries=draft.entries.filter(e=>e[0]!==i);draft.entries.push([i,o]);}draft.seedState=Math.random()<0.5?SELF:1;draft.count=1;paintAllStudio();}
+function refreshCode13(){$('shareCode').textContent=makeCode13(draft.seedState,draft.count,draft.steps,draft.entries);}
+function runStudio(){
+  const ruleArr=draft.entries.map(e=>[e[0],e[1]]);
+  const seedCells=draft.count<=1?[[[0,0,0],draft.seedState]]:evenBlob(draft.count).map(pp=>[pp,draft.seedState]);
+  const fr=simR13(ruleArr,seedCells,draft.steps);const a=analyzeR13(fr);
+  lastResult=`<b>${a.label}</b> — ${a.note}<br>slope ${a.slope.toFixed(2)}/tick · drift ${a.dv.toFixed(2)}c · front ${a.fv.toFixed(2)}c · pop ${a.fp} (peak ${a.peak})`;
+  closeAllModals();
+  deckLoadCustom(fr,{title:a.label,rule:`R <b>${ruleArr.length}</b> override${ruleArr.length===1?'':'s'} · seed ${stateStr(draft.seedState)}${seedCells.length>1?' ×'+seedCells.length:''}`,vel:a.vel,sub:a.note});
+}
+function sStudioMsg(t,cls){const m=$('loadMsg');m.textContent=t;m.className='loadmsg'+(cls?' '+cls:'');}
+function openStudio13(){closeAllModals();paintAllStudio();$('resultBox').innerHTML=lastResult||'— run a rule to see what it makes —';sStudioMsg('');$('nameInput').value='';studioLoadLibrary();$('modalStudio13').classList.add('show');}
+// auto-search
+let searchN=500,searching=false;
+const HUNT=new Set(['⚡ light-speed gun','🌱 growing gun','✨ glowing mover']);
+function scoreHit(a,nEnt){if(a.label==='✨ glowing mover')return 1000+a.dv*100+a.peak;if(a.label==='⚡ light-speed gun')return 500+a.slope*8+a.peak*0.2+nEnt*4;if(a.label==='🌱 growing gun')return 400+a.slope*8+a.fv*30+nEnt*4;return 0;}
+const rDir=()=>Math.floor(Math.random()*12);
+function randomCandidate(){
+  const k=1+Math.floor(Math.random()*4),map=new Map();
+  for(let q=0;q<k;q++){const t=Math.floor(Math.random()*7),d=rDir(),d2=rDir(),d3=rDir();let i,o;
+    if(t===0){i=SELF;o=SELF|(1<<d);}else if(t===1){i=SELF;o=(1<<d);}else if(t===2){i=(1<<d);o=SELF;}else if(t===3){i=(1<<d);o=(1<<d2)|(1<<d3);}else if(t===4){i=(1<<d);o=(1<<d2);}else if(t===5){i=SELF;o=SELF|(1<<d)|(1<<d2);}else{i=(1<<d)|(1<<d2);o=SELF|(1<<d3);}
+    map.set(i,o);}
+  const entries=[...map.entries()];const seed=entries[Math.floor(Math.random()*entries.length)][0];return {entries,seed};
+}
+const sigOf=(entries,seed)=>entries.slice().sort((a,b)=>a[0]-b[0]).map(e=>e[0]+'>'+e[1]).join(',')+'|'+seed;
+function searchRules(){
+  if(searching)return;searching=true;$('searchBtn').textContent='… searching';
+  const total=searchN,steps=16,chunk=70;let tried=0;const seen=new Set(),hits=[];const msg=$('searchMsg');$('hitList').innerHTML='';
+  const tick2=()=>{
+    const end=Math.min(tried+chunk,total);
+    for(;tried<end;tried++){const {entries,seed}=randomCandidate();const sig=sigOf(entries,seed);if(seen.has(sig))continue;seen.add(sig);
+      const a=analyzeR13(simR13(entries,[[[0,0,0],seed]],steps));if(HUNT.has(a.label))hits.push({entries,seed,a,score:scoreHit(a,entries.length)});}
+    msg.textContent=`tried ${tried}/${total} · ${hits.length} hit${hits.length===1?'':'s'}…`;msg.className='loadmsg';
+    if(tried<total)setTimeout(tick2,0);else{searching=false;$('searchBtn').textContent='🔭 search again';renderHits(hits);}
+  };
+  setTimeout(tick2,0);
+}
+function renderHits(hits){
+  const list=$('hitList'),msg=$('searchMsg');hits.sort((x,y)=>y.score-x.score);const top=hits.slice(0,14);
+  msg.textContent=`${hits.length} hit${hits.length===1?'':'s'} — showing ${top.length}, best first`;msg.className='loadmsg ok';list.innerHTML='';
+  if(!top.length){list.innerHTML='<div class="libempty">No movers or guns this batch — search again or raise the count.</div>';return;}
+  for(const h of top){const code=makeCode13(h.seed,1,18,h.entries);const row=document.createElement('div');row.className='libitem';
+    row.innerHTML=`<div class="ln">${h.a.label}<div class="lc">seed ${stateStr(h.seed)} · ${h.entries.map(e=>stateStr(e[0])+'→'+stateStr(e[1])).join('  ')} · slope ${h.a.slope.toFixed(2)} · v ${h.a.dv.toFixed(2)}c</div></div>`;
+    const load=document.createElement('button');load.className='lload';load.textContent='load';load.addEventListener('click',()=>{draft.entries=h.entries.map(e=>[e[0],e[1]]);draft.seedState=h.seed;draft.count=1;draft.steps=18;paintAllStudio();runStudio();});
+    const cp=document.createElement('button');cp.textContent='copy';cp.addEventListener('click',()=>copyText(code).then(ok=>{cp.textContent=ok?'✓':'×';setTimeout(()=>cp.textContent='copy',900);}));
+    row.appendChild(load);row.appendChild(cp);list.appendChild(row);}
+}
+async function studioLoadLibrary(){
+  const list=$('libList');list.innerHTML='';
+  if(!gHasStore){list.innerHTML='<div class="libempty">Saving needs the Claude app. Codes still work.</div>';return;}
+  let keys=[];try{const r=await window.storage.list('cg13:');keys=(r&&r.keys)?r.keys:[];}catch(e){}
+  if(!keys.length){list.innerHTML='<div class="libempty">No saved rules yet.</div>';return;}
+  const items=[];for(const k of keys){try{const r=await window.storage.get(k);if(r&&r.value)items.push({key:k,...JSON.parse(r.value)});}catch(e){}}
+  items.sort((a,b)=>(b.ts||0)-(a.ts||0));if(!items.length){list.innerHTML='<div class="libempty">No saved rules yet.</div>';return;}
+  for(const it of items){const row=document.createElement('div');row.className='libitem';row.innerHTML=`<div class="ln">${it.name||'untitled'}<div class="lc">${it.code||''}</div></div>`;
+    const load=document.createElement('button');load.className='lload';load.textContent='load';load.addEventListener('click',()=>{const pp=parseCode13(it.code);if(!pp){sStudioMsg('saved code invalid','err');return;}draft.entries=pp.entries;draft.seedState=pp.seed;draft.count=pp.count;draft.steps=pp.steps;paintAllStudio();runStudio();});
+    const del=document.createElement('button');del.textContent='delete';del.addEventListener('click',async()=>{try{await window.storage.delete(it.key);}catch(e){}studioLoadLibrary();});
+    row.appendChild(load);row.appendChild(del);list.appendChild(row);}
+}
+// studio wiring
+buildBitGrid('inGrid','inState');buildBitGrid('outGrid','outState');buildBitGrid('seedGrid','seedState');
+$('addEntry').addEventListener('click',addEntry);
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>applyPreset(b.dataset.preset)));
+$('rollEntry').addEventListener('click',rollEntry);
+$('cntMinus').addEventListener('click',()=>{draft.count=Math.max(1,draft.count-(draft.count>20?10:1));$('cntVal').textContent=draft.count;refreshCode13();});
+$('cntPlus').addEventListener('click',()=>{draft.count=Math.min(200,draft.count+(draft.count>=20?10:1));$('cntVal').textContent=draft.count;refreshCode13();});
+$('rStepMinus').addEventListener('click',()=>{draft.steps=Math.max(6,draft.steps-2);$('rStepVal').textContent=draft.steps;refreshCode13();});
+$('rStepPlus').addEventListener('click',()=>{draft.steps=Math.min(30,draft.steps+2);$('rStepVal').textContent=draft.steps;refreshCode13();});
+$('runBtn').addEventListener('click',runStudio);
+$('nMinus').addEventListener('click',()=>{searchN=Math.max(250,searchN-250);$('nVal').textContent=searchN;});
+$('nPlus').addEventListener('click',()=>{searchN=Math.min(3000,searchN+250);$('nVal').textContent=searchN;});
+$('searchBtn').addEventListener('click',searchRules);
+$('copyCode').addEventListener('click',()=>copyText($('shareCode').textContent).then(ok=>sStudioMsg(ok?'copied ✓':'copy failed — long-press to select',ok?'ok':'err')));
+$('loadCode').addEventListener('click',()=>{const pp=parseCode13($('codeInput').value);if(!pp){sStudioMsg('not a valid CG13 code','err');return;}draft.entries=pp.entries;draft.seedState=pp.seed;draft.count=pp.count;draft.steps=pp.steps;paintAllStudio();sStudioMsg('loaded ✓ — running…','ok');runStudio();});
+$('saveCre').addEventListener('click',async()=>{if(!gHasStore){sStudioMsg('saving needs the Claude app — copy the code','err');return;}const name=($('nameInput').value||'').trim()||'untitled';const code=makeCode13(draft.seedState,draft.count,draft.steps,draft.entries);const safe=name.replace(/[^\w一-鿿 -]/g,'').slice(0,40)||'untitled';const key='cg13:'+Date.now().toString(36)+':'+safe;try{await window.storage.set(key,JSON.stringify({name,code,ts:Date.now()}));sStudioMsg('saved ✓','ok');$('nameInput').value='';studioLoadLibrary();}catch(e){sStudioMsg('save failed','err');}});
 
 /* ════════════ WORKSHOP ════════════ */
 let wkNoun='a',wkVerb='compute',wkPhi=0;
