@@ -125,7 +125,9 @@ body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-si
 .kc:active{transform:scale(.95);}
 .kc.on{background:rgba(109,240,200,.12);border-color:var(--green-d);color:var(--green);font-weight:600;}
 #gsGrid .kc.on{background:rgba(108,184,255,.12);border-color:#2f5d86;color:var(--indigo);}
-.kc.one{box-shadow:inset 0 0 0 1px var(--green-d);}
+.sproutnote{font-family:var(--mono);font-size:10px;margin-top:8px;color:var(--fg-2);}
+.sproutnote.ok{color:var(--green);}
+.sproutnote.warn{color:var(--amber);}
 .seedrow{display:flex;flex-wrap:wrap;gap:6px;}
 .seedchip{background:var(--bg-1);border:1px solid var(--line);color:var(--fg-2);font-family:var(--mono);font-size:11px;padding:8px 11px;cursor:pointer;border-radius:1px;display:inline-flex;align-items:center;gap:7px;transition:all .1s;}
 .seedchip .sg{font-size:13px;color:var(--amber);line-height:1;}
@@ -283,7 +285,7 @@ body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-si
   <p>Set the <em>Birth</em> / <em>Survival</em> rule and a seed, grow it, and the lattice tells you which of the six forms you made. Every creation has a share code.</p>
   <h3>Birth — empty cell is born when <span style="font-family:var(--mono);color:var(--green)">k ∈ B</span></h3>
   <div class="kgrid" id="gbGrid"></div>
-  <p style="font-size:10px;color:var(--fg-2);margin-top:6px;">A lone seed sees k = 1 occupied neighbour, so a point can only grow if <span style="color:var(--green)">1 ∈ B</span>.</p>
+  <p style="font-size:10px;color:var(--fg-2);margin-top:6px;">Any combination works. Tip: a lone point seed only offers <span style="color:var(--green)">k = 1</span> sites, so a single-cell seed needs 1 ∈ B to sprout — bigger seeds don't.</p>
   <h3>Survival — live cell stays when <span style="font-family:var(--mono);color:var(--indigo)">k ∈ S</span></h3>
   <div class="kgrid" id="gsGrid"></div>
   <button class="dice-btn" id="gRollRule">🎲 random rule</button>
@@ -293,6 +295,7 @@ body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-si
   <div class="seednote" id="gSeedNote"></div>
   <h3>Generations to grow</h3>
   <div class="stepper"><button id="gStepMinus">−</button><span id="gStepVal">14</span><button id="gStepPlus">+</button></div>
+  <div class="sproutnote" id="gSproutNote"></div>
   <button class="grow-btn" id="gGrowBtn">▶  grow this creation</button>
   <h3>Share code</h3>
   <div class="codebox"><code id="gShareCode">—</code><button id="gCopyCode">copy</button></div>
@@ -1489,7 +1492,7 @@ function exitSeedEdit(){
 let gDraft={B:new Set([1,2,3]),S:new Set([0,1,2,3,4,5,6,7,8,9,10,11,12]),seedCode:'pt',steps:14};
 const gHasStore=(typeof window!=='undefined'&&window.storage&&typeof window.storage.set==='function');
 function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).then(()=>true).catch(()=>false);try{const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const ok=document.execCommand('copy');document.body.removeChild(ta);return Promise.resolve(ok);}catch(e){return Promise.resolve(false);}}
-function gBuildKGrid(elId,which){const el=$(elId);el.innerHTML='';for(let k=0;k<=12;k++){const c=document.createElement('div');c.className='kc'+(k===1?' one':'');c.textContent=k;c.addEventListener('click',()=>{const set=gDraft[which];if(set.has(k))set.delete(k);else set.add(k);c.classList.toggle('on',set.has(k));gRefreshCode();});el.appendChild(c);}}
+function gBuildKGrid(elId,which){const el=$(elId);el.innerHTML='';for(let k=0;k<=12;k++){const c=document.createElement('div');c.className='kc';c.textContent=k;c.addEventListener('click',()=>{const set=gDraft[which];if(set.has(k))set.delete(k);else set.add(k);c.classList.toggle('on',set.has(k));gRefreshCode();});el.appendChild(c);}}
 function gBuildSeedRow(){const el=$('gSeedRow');el.innerHTML='';SEED_ORDER.forEach(code=>{const s=SEEDS[code];const b=document.createElement('button');b.className='seedchip';b.dataset.code=code;b.innerHTML=`<span class="sg">${s.glyph}</span><span>${s.label}</span>`;b.addEventListener('click',()=>{gDraft.seedCode=code;document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===code));gUpdateSeedNote();gRefreshCode();});el.appendChild(b);});
   // LIG-1: custom seed chip — picking it drops into the place/dig seed editor
   const cb=document.createElement('button');cb.className='seedchip';cb.dataset.code='custom';cb.innerHTML='<span class="sg">✎</span><span>custom</span>';
@@ -1497,7 +1500,24 @@ function gBuildSeedRow(){const el=$('gSeedRow');el.innerHTML='';SEED_ORDER.forEa
   el.appendChild(cb);}
 function gUpdateSeedNote(){const el=$('gSeedNote');if(gDraft.seedCode==='custom'){el.textContent=`✎ custom seed · ${customSeedCells.length} cells — tap ✎ custom to edit on the canvas`;}else if(gDraft.seedCode&&gDraft.seedCode[0]==='r'&&!SEEDS[gDraft.seedCode]){el.textContent=`🎲 random seed · ${seedCellsOf(gDraft.seedCode).length} cells · ${gDraft.seedCode.toUpperCase()}`;}else el.textContent='';}
 function gPaintDraft(){document.querySelectorAll('#gbGrid .kc').forEach((c,k)=>c.classList.toggle('on',gDraft.B.has(k)));document.querySelectorAll('#gsGrid .kc').forEach((c,k)=>c.classList.toggle('on',gDraft.S.has(k)));document.querySelectorAll('#gSeedRow .seedchip').forEach(x=>x.classList.toggle('on',x.dataset.code===gDraft.seedCode));$('gStepVal').textContent=gDraft.steps;gUpdateSeedNote();gRefreshCode();}
-function gRefreshCode(){$('gShareCode').textContent=makeCG3([...gDraft.B],[...gDraft.S],gDraft.seedCode,gDraft.steps);}
+function gRefreshCode(){$('gShareCode').textContent=makeCG3([...gDraft.B],[...gDraft.S],gDraft.seedCode,gDraft.steps);gUpdateSproutNote();}
+// LIG-2: pre-flight check — does the drafted rule produce anything at generation 1 from the drafted seed?
+function gSproutOutlook(){
+  const seed=seedCellsOf(gDraft.seedCode);
+  const occ=new Set(seed.map(p=>key(p[0],p[1],p[2])));
+  const cnt=new Map();
+  for(const [x,y,z] of seed)for(const d of DIRS){const nk=key(x+d[0],y+d[1],z+d[2]);cnt.set(nk,(cnt.get(nk)||0)+1);}
+  let births=0;for(const [k,c] of cnt)if(!occ.has(k)&&gDraft.B.has(c))births++;
+  let survivors=0;for(const k of occ)if(gDraft.S.has(cnt.get(k)||0))survivors++;
+  return {births,survivors};
+}
+function gUpdateSproutNote(){
+  const el=$('gSproutNote');if(!el)return;
+  const {births,survivors}=gSproutOutlook();
+  if(births>0){el.textContent=`✓ sprouts — ${births} cell${births===1?'':'s'} born at gen 1, ${survivors} of ${seedCellsOf(gDraft.seedCode).length} seed cells survive`;el.className='sproutnote ok';}
+  else if(survivors>0){el.textContent='✗ no births at gen 1 — no empty site around this seed sees k ∈ B. It starts by freezing or shrinking; try lower k in Birth or a bigger seed.';el.className='sproutnote warn';}
+  else{el.textContent="✗ won't sprout — gen 1 is empty: no site sees k ∈ B and no seed cell has k ∈ S. Try other k values or a bigger seed.";el.className='sproutnote warn';}
+}
 function gSetMsg(t,cls){const m=$('gLoadMsg');m.textContent=t;m.className='loadmsg'+(cls?' '+cls:'');}
 function openGardenStudio(){document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));
   // keep the authored custom seed selected when opening rules from the seed editor
@@ -1507,7 +1527,7 @@ function gGrowFromDraft(B,S,seedCode,steps){document.querySelectorAll('.modal-bg
 gBuildKGrid('gbGrid','B');gBuildKGrid('gsGrid','S');gBuildSeedRow();
 $('gStepMinus').addEventListener('click',()=>{gDraft.steps=Math.max(6,gDraft.steps-1);$('gStepVal').textContent=gDraft.steps;gRefreshCode();});
 $('gStepPlus').addEventListener('click',()=>{gDraft.steps=Math.min(20,gDraft.steps+1);$('gStepVal').textContent=gDraft.steps;gRefreshCode();});
-$('gRollRule').addEventListener('click',()=>{const B=new Set([1]);for(let k=2;k<=12;k++)if(Math.random()<0.32)B.add(k);const S=new Set();for(let k=0;k<=12;k++)if(Math.random()<0.42)S.add(k);gDraft.B=B;gDraft.S=S;gPaintDraft();});
+$('gRollRule').addEventListener('click',()=>{const B=new Set();for(let k=1;k<=12;k++)if(Math.random()<0.32)B.add(k);const S=new Set();for(let k=0;k<=12;k++)if(Math.random()<0.42)S.add(k);gDraft.B=B;gDraft.S=S;gPaintDraft();});
 $('gRollSeed').addEventListener('click',()=>{gDraft.seedCode='r'+Math.floor(Math.random()*46656).toString(36);gPaintDraft();});
 $('gGrowBtn').addEventListener('click',()=>{gGrowFromDraft([...gDraft.B].sort((a,b)=>a-b),[...gDraft.S].sort((a,b)=>a-b),gDraft.seedCode,gDraft.steps);});
 $('gCopyCode').addEventListener('click',()=>copyText($('gShareCode').textContent).then(ok=>gSetMsg(ok?'copied ✓ — send it to anyone':'copy failed — long-press to select',ok?'ok':'err')));
