@@ -68,6 +68,32 @@ input[type=range]{width:100%;accent-color:var(--blue);}
 .busy{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,5,10,.55);color:var(--green);font-size:12px;z-index:5;}
 .backlink{font-family:var(--mono);font-size:9.5px;color:var(--fg-2);text-decoration:none;border:1px solid var(--line-2);padding:3px 8px;border-radius:2px;white-space:nowrap;transition:.12s;}
 .backlink:hover{color:var(--blue);border-color:var(--blue);}
+/* ─── LIG-4: mobile layout — viewer first, controls in a slide-up sheet ─── */
+.fab{display:none;}
+.mobScore{display:none;}
+@media (max-width:720px){
+  .head{padding:0 10px;gap:8px;}
+  .brand .ver{display:none;}
+  .brand .logo{white-space:nowrap;font-size:15px;}
+  .head .hint{font-size:8.5px;text-align:right;}
+  .legend{align-self:flex-start;}
+  .body{flex-direction:column;position:relative;}
+  .side{position:absolute;left:0;right:0;bottom:0;width:100%;max-height:62%;border-left:0;border-top:1px solid var(--line-2);z-index:6;
+   transform:translateY(100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s;box-shadow:0 -8px 24px rgba(0,0,0,.45);
+   padding-bottom:env(safe-area-inset-bottom);}
+  .side.open{transform:translateY(0);visibility:visible;transition:transform .22s ease;}
+  .side button{padding:8px 11px;font-size:11px;}
+  .card{max-width:92%;}
+  .mobScore.show{display:block;}
+  .fab{position:absolute;right:10px;bottom:12px;display:flex;flex-direction:column;gap:9px;z-index:4;}
+  .fab button{width:46px;height:46px;font-size:15px;background:rgba(12,16,25,.92);}
+  .fab .grow{color:var(--green);border-color:var(--green);}
+  .playbar button{padding:8px 12px;}
+}
+/* narrow window on a mouse device: the gesture hint is noise — hide it */
+@media (max-width:720px) and (pointer:fine){
+  .head .hint{display:none;}
+}
 </style>
 </head>
 <body>
@@ -83,11 +109,18 @@ input[type=range]{width:100%;accent-color:var(--blue);}
   <div class="body">
     <div class="viewer" id="viewer">
       <div class="busy" id="busy">生长求解中…</div>
+      <div class="fab">
+        <button id="sheetTog" title="编辑与旋钮">⚙</button>
+        <button class="grow" id="mobGrowBtn" title="生长">▶</button>
+      </div>
       <div class="ov">
-        <div class="card">
-          <div class="label" id="stageLabel">编辑关键帧</div>
-          <div class="title" id="stageTitle">关键帧 #1</div>
-          <div class="sub" id="stageSub">摆放种子 → 生长 → 打分</div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+          <div class="card">
+            <div class="label" id="stageLabel">编辑关键帧</div>
+            <div class="title" id="stageTitle">关键帧 #1</div>
+            <div class="sub" id="stageSub">摆放种子 → 生长 → 打分</div>
+          </div>
+          <div class="card mobScore" id="mobScore"></div>
         </div>
         <div class="legend">
           <span><i style="background:#6df0c8"></i>命中 / 生长</span>
@@ -306,6 +339,7 @@ function refreshView(){
     document.getElementById('stageSub').textContent='帧 '+(playIdx+1)+' / '+playFrames.length+'（绿=命中，金=漏格 FN）';
     document.getElementById('frameLabel').textContent='帧 '+(playIdx+1)+'/'+playFrames.length;
   }else{
+    document.getElementById('mobScore').classList.remove('show');
     renderVoxels(currentEditSet(),null);
     document.getElementById('stageLabel').textContent='编辑关键帧';
     document.getElementById('stageTitle').textContent='关键帧 #'+(selKF+1);
@@ -316,16 +350,28 @@ function refreshView(){
 
 // ============================ 交互：轨道 + 绘制 ============================
 let dragging=false,dragBtn=0,lastX=0,lastY=0,moved=false;
-renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;dragBtn=e.button;lastX=e.clientX;lastY=e.clientY;moved=false;renderer.domElement.setPointerCapture(e.pointerId);});
+// LIG-4: track active pointers so two fingers pinch-zoom instead of orbiting
+const ptrs=new Map();let pinchD=0;
+const pdist=()=>{const p=[...ptrs.values()];return Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);};
+renderer.domElement.addEventListener('pointerdown',e=>{
+  ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2){pinchD=pdist();dragging=false;moved=true;}
+  else if(ptrs.size===1){dragging=true;dragBtn=e.button;lastX=e.clientX;lastY=e.clientY;moved=false;}
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
 renderer.domElement.addEventListener('pointermove',e=>{
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2&&pinchD>0){const d=pdist();if(d>1){camR=Math.max(8,Math.min(90,camR*(pinchD/d)));pinchD=d;updateCam();}return;}
   if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;lastX=e.clientX;lastY=e.clientY;
   const orbit=(mode==='orbit')||dragBtn===2;
   if(orbit){camTheta+=dx*0.008;camPhi=Math.max(0.15,Math.min(Math.PI-0.15,camPhi-dy*0.008));updateCam();}
 });
 renderer.domElement.addEventListener('pointerup',e=>{
-  dragging=false;
-  if(mode==='paint'&&dragBtn===0&&!moved&&!playFrames){paintAt(e);}
+  ptrs.delete(e.pointerId);if(ptrs.size<2)pinchD=0;
+  const wasDrag=dragging;dragging=false;
+  if(wasDrag&&mode==='paint'&&dragBtn===0&&!moved&&!playFrames){paintAt(e);}
 });
+renderer.domElement.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinchD=0;dragging=false;});
 renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
 renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();camR=Math.max(8,Math.min(90,camR*(1+Math.sign(e.deltaY)*0.08)));updateCam();},{passive:false});
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
@@ -385,6 +431,7 @@ document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{document.querySe
 // ============================ 生长 ============================
 document.getElementById('growBtn').onclick=()=>{
   if(keyframes.length<2){alert('至少需要 2 个关键帧');return;}
+  document.querySelector('.side').classList.remove('open'); // LIG-4: sheet out of the way so the growth is visible
   document.getElementById('busy').style.display='flex';
   const kfArrays=keyframes.map(s=>[...s]);
   worker.postMessage({keyframes:kfArrays,opt:opt});
@@ -414,6 +461,10 @@ function showScore(){
   document.getElementById('nSteps').textContent=nSteps;
   const note=tFP===0?'precise 结构性保证 FP=0。':'majority 出现假阳性——尝试改回 precise。';
   document.getElementById('scoreNote').textContent=note+' 用更少关键帧 / 更小感受野拿更高分。';
+  // LIG-4: compact score card over the viewer so mobile sees the result without opening the sheet
+  const ms=document.getElementById('mobScore');
+  ms.innerHTML='<div class="label">评分</div><div class="title">'+score+'</div><div class="sub">F1 '+mF1.toFixed(4)+' · FP '+tFP+' · FN '+tFN+'</div>';
+  ms.classList.add('show');
 }
 
 // ============================ 播放 ============================
@@ -430,6 +481,13 @@ function loop(ts){
   if(playing&&playFrames){const spf=1000/(+document.getElementById('speed').value);if(ts-lastTick>spf){lastTick=ts;playIdx++;if(playIdx>=playFrames.length){playIdx=playFrames.length-1;stopPlay();}else{document.getElementById('scrub').value=playIdx;refreshView();}}}
   renderer.render(scene,camera);requestAnimationFrame(loop);
 }
+// ============================ LIG-4: 移动端 ============================
+const IS_TOUCH=matchMedia('(pointer: coarse)').matches;
+if(IS_TOUCH)document.querySelector('.head .hint').innerHTML='单指：<span id="hintMode">旋转</span> · 双指捏合：缩放';
+const sideEl=document.querySelector('.side');
+document.getElementById('sheetTog').onclick=()=>sideEl.classList.toggle('open');
+document.getElementById('mobGrowBtn').onclick=()=>document.getElementById('growBtn').onclick();
+
 // init
 resize();updateCam();updateLayerPlane();updateKFList();refreshView();requestAnimationFrame(loop);
 </script>
