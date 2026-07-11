@@ -1570,6 +1570,8 @@ const MODES=[
   {id:'roam',name:'Roam',glyph:'✈',setup:setupRoam},
 ];
 const tabsEl=$('tabs');
+// LIG-3: Seed & Crystal (M1) — first game in the nav; a sibling page, not an in-app mode, so no active state
+{const b=document.createElement('button');b.className='tab';b.innerHTML=`<span class="g">❖</span>Seed & Crystal`;b.addEventListener('click',()=>{location.href='seed_and_crystal_M1.html';});tabsEl.appendChild(b);}
 MODES.forEach(m=>{const b=document.createElement('button');b.className='tab';b.dataset.id=m.id;b.innerHTML=`<span class="g">${m.glyph}</span>${m.name}`;b.addEventListener('click',()=>switchMode(m.id));tabsEl.appendChild(b);});
 function switchMode(id){
   if(id===mode&&document.querySelector('.tab.active'))return;
