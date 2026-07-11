@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<title>种子与晶体 · 体素动画原型 M1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-deep:#04050a;--bg-0:#07090f;--bg-1:#0c1019;--bg-2:#131826;--line:#1e2638;--line-2:#2f3a52;
+ --fg-0:#ebeef5;--fg-1:#b9bfcc;--fg-2:#6e7588;--fg-3:#3b4254;
+ --green:#6df0c8;--blue:#6cb8ff;--gold:#e3c264;--red:#ee6868;
+ --serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;height:100dvh;overflow:hidden;}
+body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-size:12px;line-height:1.45;
+ background-image:radial-gradient(ellipse 600px 400px at 25% 0%,rgba(227,194,100,.03),transparent 65%),radial-gradient(ellipse 500px 300px at 90% 100%,rgba(109,240,200,.02),transparent 60%);}
+.app{display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+.head{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;background:var(--bg-0);flex-shrink:0;gap:10px;}
+.brand{display:flex;align-items:baseline;gap:9px;flex:1;}
+.brand .logo{font-family:var(--serif);font-size:17px;font-weight:500;letter-spacing:-.012em;}
+.brand .logo .roman{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.04em;color:var(--gold);margin-left:3px;}
+.brand .ver{font-family:var(--mono);font-size:8px;color:var(--fg-2);letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--line-2);padding:2px 6px;border-radius:1px;}
+.head .hint{color:var(--fg-2);font-size:9.5px;}
+.body{flex:1;display:flex;min-height:0;}
+.viewer{flex:1;position:relative;background:radial-gradient(ellipse at 50% 55%,#0d121d 0%,#04050a 100%);overflow:hidden;min-width:0;touch-action:none;}
+.viewer canvas{display:block;width:100%;height:100%;}
+.ov{position:absolute;inset:0;pointer-events:none;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;}
+.card{background:rgba(7,9,15,.8);backdrop-filter:blur(10px);border:1px solid var(--line-2);padding:8px 11px;align-self:flex-start;max-width:70%;}
+.card .label{color:var(--fg-3);font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;}
+.card .title{font-family:var(--serif);font-weight:500;font-size:15px;margin-top:1px;}
+.card .sub{font-size:9px;color:var(--fg-2);margin-top:3px;}
+.legend{align-self:flex-end;display:flex;gap:12px;font-size:9px;color:var(--fg-1);}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:4px;vertical-align:-1px;border-radius:2px;}
+.side{width:308px;flex-shrink:0;border-left:1px solid var(--line);background:var(--bg-0);display:flex;flex-direction:column;overflow-y:auto;}
+.sec{border-bottom:1px solid var(--line);padding:11px 13px;}
+.sec h3{margin:0 0 8px;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3);font-weight:600;}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+button{font-family:var(--mono);font-size:10px;color:var(--fg-1);background:var(--bg-2);border:1px solid var(--line-2);
+ padding:5px 8px;border-radius:2px;cursor:pointer;transition:.12s;}
+button:hover{border-color:var(--blue);color:var(--fg-0);}
+button.on{background:rgba(108,184,255,.14);border-color:var(--blue);color:var(--blue);}
+button.go{background:rgba(109,240,200,.14);border-color:var(--green);color:var(--green);font-size:11px;padding:7px 10px;flex:1;}
+button.go:hover{background:rgba(109,240,200,.24);}
+.mini{font-size:9px;color:var(--fg-2);margin:4px 0;}
+input[type=range]{width:100%;accent-color:var(--blue);}
+.kf-list{display:flex;gap:6px;overflow-x:auto;padding:9px 13px;background:var(--bg-1);border-top:1px solid var(--line);flex-shrink:0;align-items:center;min-height:64px;}
+.kf{flex-shrink:0;width:58px;height:44px;border:1px solid var(--line-2);border-radius:3px;background:var(--bg-2);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+.kf.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+.kf .n{font-family:var(--serif);font-size:15px;color:var(--fg-0);}
+.kf .c{font-size:8px;color:var(--fg-2);}
+.kf .x{position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg-2);border:1px solid var(--line-2);color:var(--red);font-size:9px;line-height:13px;text-align:center;display:none;}
+.kf:hover .x{display:block;}
+.addkf{flex-shrink:0;width:44px;height:44px;font-size:18px;color:var(--green);}
+.stat{display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--fg-1);}
+.stat b{font-family:var(--serif);color:var(--fg-0);font-weight:500;}
+.stat.f1 b{color:var(--green);} .stat.fp b{color:var(--red);} .stat.fn b{color:var(--gold);}
+.score{font-family:var(--serif);font-size:26px;color:var(--gold);text-align:center;margin:4px 0 2px;}
+.playbar{display:flex;align-items:center;gap:9px;padding:8px 13px;background:var(--bg-0);border-top:1px solid var(--line);flex-shrink:0;}
+.playbar button{padding:5px 9px;}
+.playbar .t{font-size:9px;color:var(--fg-2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:2px;overflow:hidden;}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line-2);}
+.seg button:last-child{border-right:0;}
+.busy{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,5,10,.55);color:var(--green);font-size:12px;z-index:5;}
+.backlink{font-family:var(--mono);font-size:9.5px;color:var(--fg-2);text-decoration:none;border:1px solid var(--line-2);padding:3px 8px;border-radius:2px;white-space:nowrap;transition:.12s;}
+.backlink:hover{color:var(--blue);border-color:var(--blue);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <a class="backlink" href="lightgrid.html">← Lightgrid</a>
+    <div class="brand">
+      <span class="logo">Seed & Crystal<span class="roman">M1</span></span>
+      <span class="ver">FCC · radius-1 precise · 关键帧生长原型</span>
+    </div>
+    <span class="hint">左键：<span id="hintMode">旋转</span> · 右键拖动：始终旋转 · 滚轮：缩放</span>
+  </div>
+  <div class="body">
+    <div class="viewer" id="viewer">
+      <div class="busy" id="busy">生长求解中…</div>
+      <div class="ov">
+        <div class="card">
+          <div class="label" id="stageLabel">编辑关键帧</div>
+          <div class="title" id="stageTitle">关键帧 #1</div>
+          <div class="sub" id="stageSub">摆放种子 → 生长 → 打分</div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#6df0c8"></i>命中 / 生长</span>
+          <span><i style="background:#e3c264"></i>漏格 FN</span>
+          <span><i style="background:#6cb8ff"></i>编辑层</span>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="sec">
+        <h3>关键帧编辑</h3>
+        <div class="row">
+          <button data-shape="ball">球</button>
+          <button data-shape="rod">柱</button>
+          <button data-shape="lshape">L 形</button>
+          <button data-shape="torus">环</button>
+          <button data-shape="blob">团块</button>
+          <button data-shape="clear">清空</button>
+        </div>
+        <div class="mini">平移当前帧（保持 FCC 偶和格）</div>
+        <div class="row">
+          <button data-mv="-1,-1,0">←</button>
+          <button data-mv="1,1,0">→</button>
+          <button data-mv="0,0,2">↑z</button>
+          <button data-mv="0,0,-2">↓z</button>
+          <button data-mv="1,-1,0">↗</button>
+          <button data-mirror="x">镜像X</button>
+        </div>
+        <div class="row">
+          <button id="paintBtn">绘制模式</button>
+          <span class="mini" style="align-self:center">层 z=<b id="layerVal">0</b></span>
+        </div>
+        <input type="range" id="layer" min="-8" max="16" value="0">
+      </div>
+      <div class="sec">
+        <h3>引擎旋钮（精度 ↔ 涌现感）</h3>
+        <div class="mini">感受野</div>
+        <div class="seg row" style="margin-bottom:8px">
+          <button class="on" data-r="1">radius-1</button>
+          <button data-r="2">radius-2</button>
+        </div>
+        <div class="mini">冲突解决策略</div>
+        <div class="seg row">
+          <button class="on" data-s="precise">precise (FP=0)</button>
+          <button data-s="majority">majority</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="row"><button class="go" id="growBtn">▶ 生长（求解规则序列）</button></div>
+      </div>
+      <div class="sec" id="scorePanel" style="display:none">
+        <h3>评分</h3>
+        <div class="score" id="scoreVal">—</div>
+        <div class="stat f1"><span>平均 F1（到各目标帧）</span><b id="mF1">—</b></div>
+        <div class="stat f1"><span>最低 F1</span><b id="minF1">—</b></div>
+        <div class="stat fp"><span>假阳性 FP 总计</span><b id="tFP">—</b></div>
+        <div class="stat fn"><span>假阴性 FN 总计</span><b id="tFN">—</b></div>
+        <div class="stat"><span>关键帧数</span><b id="nKF">—</b></div>
+        <div class="stat"><span>总补间步数</span><b id="nSteps">—</b></div>
+        <div class="mini" id="scoreNote" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="kf-list" id="kfList"></div>
+  <div class="playbar">
+    <div class="seg">
+      <button id="playBtn">▶</button>
+      <button id="stopBtn">■</button>
+    </div>
+    <input type="range" id="scrub" min="0" max="0" value="0" style="flex:1">
+    <span class="t" id="frameLabel">编辑中</span>
+    <span class="t">速度</span>
+    <input type="range" id="speed" min="1" max="30" value="12" style="width:70px">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================ 引擎（供 Worker 使用的源码字符串）============================
+const ENGINE_SRC = `
+const NB=(()=>{const s=new Set(),o=[];for(const a of[-1,1])for(const b of[-1,1])for(const v of[[a,b,0],[a,0,b],[0,a,b]])s.add(v.join(','));for(const k of[...s].sort())o.push(k.split(',').map(Number));return o;})();
+const OFF2=(()=>{const s=new Set();for(const i of NB){s.add(i.join(','));for(const j of NB)s.add([i[0]+j[0],i[1]+j[1],i[2]+j[2]].join(','));}s.delete('0,0,0');return[...s].sort().map(k=>k.split(',').map(Number));})();
+const enc=(x,y,z)=>x+','+y+','+z, dec=k=>k.split(',').map(Number);
+function keyOf(cellK,occ,offs){const p=dec(cellK);let s='';for(const o of offs)s+=occ.has(enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]))?'1':'0';return s;}
+function buildEmit(A,B,offs,strategy){const bk=new Map();for(const c of A){const p=keyOf(c,A,offs);let a=bk.get(p);if(!a){a=[];bk.set(p,a);}a.push(c);}const em=new Map();for(const[patt,cells]of bk){const dirs=[],n=cells.length;for(let di=0;di<NB.length;di++){const o=NB[di];let vin=0;for(const c of cells){const p=dec(c);if(B.has(enc(p[0]+o[0],p[1]+o[1],p[2]+o[2])))vin++;}let ok;if(strategy==='precise')ok=(vin===n&&vin>0);else if(strategy==='majority')ok=(vin>n/2);else ok=(vin>0);if(ok)dirs.push(di);}em.set(patt,dirs);}return em;}
+function reconstruct(A,em,offs){const out=new Set();for(const c of A){const dirs=em.get(keyOf(c,A,offs));if(!dirs||!dirs.length)continue;const p=dec(c);for(const di of dirs){const o=NB[di];out.add(enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]));}}return out;}
+function metrics(pred,truth){let tp=0,fp=0;for(const c of pred)truth.has(c)?tp++:fp++;let fn=0;for(const c of truth)if(!pred.has(c))fn++;const pr=(tp+fp)?tp/(tp+fp):1,rc=(tp+fn)?tp/(tp+fn):1;return{tp,fp,fn,f1:(pr+rc)?2*pr*rc/(pr+rc):0};}
+function grow(A,B,opt){opt=opt||{};const offs=(opt.radius>=2)?OFF2:NB,strat=opt.strategy||'precise',maxSteps=opt.maxSteps||60;const frames=[],perStep=[];let cur=new Set(A);for(let s=0;s<maxSteps;s++){const em=buildEmit(cur,B,offs,strat);const nxt=reconstruct(cur,em,offs);frames.push(nxt);perStep.push(metrics(nxt,B));if(nxt.size===cur.size){let same=true;for(const c of nxt)if(!cur.has(c)){same=false;break;}if(same)break;}cur=nxt;}return{frames,perStep,final:metrics(cur,B)};}
+const T_=(S,v)=>{const o=new Set();for(const c of S){const p=dec(c);o.add(enc(p[0]+v[0],p[1]+v[1],p[2]+v[2]));}return o;};
+function centroid(S){let n=0,s=[0,0,0];for(const c of S){const p=dec(c);s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];n++;}return n?[s[0]/n,s[1]/n,s[2]/n]:[0,0,0];}
+function evenVec(v){let r=v.map(Math.round);if(((r[0]+r[1]+r[2])%2+2)%2!==0)r[0]+=1;return r;}
+function bbox2(sets,pad){let mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(const S of sets)for(const c of S){const p=dec(c);for(let i=0;i<3;i++){mn[i]=Math.min(mn[i],p[i]);mx[i]=Math.max(mx[i],p[i]);}}for(let i=0;i<3;i++){mn[i]-=pad;mx[i]+=pad;}return[mn,mx];}
+function boxCells(mn,mx){const s=new Set();for(let x=mn[0];x<=mx[0];x++)for(let y=mn[1];y<=mx[1];y++)for(let z=mn[2];z<=mx[2];z++)if(((x+y+z)%2+2)%2===0)s.add(enc(x,y,z));return s;}
+function distField(sources,box){const dist=new Map();let q=[];for(const c of sources)if(box.has(c)){dist.set(c,0);q.push(c);}let h=0;while(h<q.length){const c=q[h++];const p=dec(c),d=dist.get(c);for(const o of NB){const nc=enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]);if(box.has(nc)&&!dist.has(nc)){dist.set(nc,d+1);q.push(nc);}}}return dist;}
+function sdf(X,box){const nonX=new Set([...box].filter(c=>!X.has(c)));const dOut=distField(X,box),dIn=distField(nonX,box);const f=new Map();for(const c of box)f.set(c,X.has(c)?-(dIn.get(c)||0):(dOut.get(c)||99));return f;}
+function lerp3(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function symDiff(A,B){let d=0;for(const c of A)if(!B.has(c))d++;for(const c of B)if(!A.has(c))d++;return d;}
+function morphTargets(A,B){const cA=evenVec(centroid(A)),cB=evenVec(centroid(B));const A0=T_(A,cA.map(x=>-x)),B0=T_(B,cB.map(x=>-x));const box=boxCells.apply(null,bbox2([A0,B0],3));const fa=sdf(A0,box),fb=sdf(B0,box);const cells=[...box];const cd=Math.hypot(cB[0]-cA[0],cB[1]-cA[1],cB[2]-cA[2]);const K=Math.max(5,Math.min(22,Math.round(cd)+8));const outs=[];for(let k=1;k<=K;k++){const t=k/K;const scored=cells.map(c=>[(1-t)*fa.get(c)+t*fb.get(c),c]).sort((p,q)=>p[0]-q[0]);const cnt=Math.max(1,Math.round(A.size+(B.size-A.size)*t));const S=new Set();for(let i=0;i<cnt&&i<scored.length;i++)S.add(scored[i][1]);outs.push(T_(S,evenVec(lerp3(cA,cB,t))));}return outs;}
+function growMorph(A,B,opt){const tg=morphTargets(A,B);let seed=new Set(A);const frames=[];for(const Tg of tg){const g=grow(seed,Tg,{radius:opt.radius,strategy:opt.strategy,maxSteps:8});for(const f of g.frames)frames.push(f);seed=Tg;}const cur=frames.length?frames[frames.length-1]:new Set(A);return{frames,final:metrics(cur,B)};}
+function growChain(keyframes,opt){const allFrames=[],perTarget=[];if(!keyframes.length)return{allFrames,perTarget};const HOLD=(opt&&opt.hold)||4;let actual=new Set(keyframes[0]);for(let h=0;h<HOLD;h++)allFrames.push({occ:[...actual],targetIdx:0,isKey:true});for(let t=1;t<keyframes.length;t++){const B=new Set(keyframes[t]);const g=growMorph(actual,B,opt);g.frames.forEach((f)=>allFrames.push({occ:[...f],targetIdx:t,isKey:false}));const last=g.frames.length?g.frames[g.frames.length-1]:actual;for(let h=0;h<HOLD;h++)allFrames.push({occ:[...last],targetIdx:t,isKey:true});perTarget.push(Object.assign({targetIdx:t,steps:g.frames.length},g.final));actual=last;}return{allFrames,perTarget};}
+`;
+
+// ============================ Worker ============================
+const WORKER_SRC = ENGINE_SRC + `
+onmessage=function(e){
+  const {keyframes,opt}=e.data;
+  const kfSets=keyframes.map(k=>new Set(k));
+  const res=growChain(kfSets,opt);
+  postMessage(res);
+};`;
+const worker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC],{type:'application/javascript'})));
+
+// ============================ 主线程 · 几何/形状 ============================
+const NB = (()=>{const s=new Set(),o=[];for(const a of[-1,1])for(const b of[-1,1])for(const v of[[a,b,0],[a,0,b],[0,a,b]])s.add(v.join(','));for(const k of[...s].sort())o.push(k.split(',').map(Number));return o;})();
+const enc=(x,y,z)=>x+','+y+','+z, dec=k=>k.split(',').map(Number);
+function fill(pred,box){const s=new Set();for(let x=box[0];x<=box[1];x++)for(let y=box[2];y<=box[3];y++)for(let z=box[4];z<=box[5];z++)if((x+y+z)%2===0&&pred(x,y,z))s.add(enc(x,y,z));return s;}
+const shapes={
+  ball:()=>fill((x,y,z)=>x*x+y*y+(z-6)*(z-6)<=16,[-4,4,-4,4,2,10]),
+  rod:()=>fill((x,y,z)=>x*x+y*y<=4,[-2,2,-2,2,0,10]),
+  lshape:()=>{const a=fill(()=>true,[0,8,-1,1,0,1]);const b=fill(()=>true,[0,1,-1,1,0,8]);return new Set([...a,...b]);},
+  torus:()=>fill((x,y,z)=>{const d=Math.sqrt(x*x+y*y);return (d-5)*(d-5)+(z-6)*(z-6)<=4;},[-8,8,-8,8,3,9]),
+  blob:()=>{let cur=new Set([enc(0,0,6)]),fr=[enc(0,0,6)];while(cur.size<150&&fr.length){const c=fr[Math.floor(Math.random()*fr.length)];const p=dec(c);let grew=false;const sh=[...NB].sort(()=>Math.random()-.5);for(const o of sh){const nc=enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]);if(!cur.has(nc)){cur.add(nc);fr.push(nc);grew=true;if(cur.size>=150)break;}}if(!grew)fr.splice(fr.indexOf(c),1);}return cur;},
+};
+
+// ============================ 状态 ============================
+let keyframes=[ shapes.ball(), (function(){const s=shapes.ball();const t=new Set();for(const c of s){const p=dec(c);t.add(enc(p[0]+6,p[1]+6,p[2]));}return t;})() ];
+let selKF=0;
+let opt={radius:1,strategy:'precise',maxSteps:60};
+let playFrames=null;      // 生长结果 allFrames
+let perTarget=null;
+let mode='orbit';         // 'orbit' | 'paint'
+let layer=0;
+let playing=false, playIdx=0, lastTick=0;
+
+// ============================ Three.js 场景 ============================
+const viewer=document.getElementById('viewer');
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,0.1,1000);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+viewer.appendChild(renderer.domElement);
+const S=1.0;                                   // 格距
+const target=new THREE.Vector3(0,6*S*0.55,0);  // 视线中心
+let camR=34, camTheta=0.9, camPhi=1.15;
+function updateCam(){camera.position.set(target.x+camR*Math.sin(camPhi)*Math.cos(camTheta),target.y+camR*Math.cos(camPhi),target.z+camR*Math.sin(camPhi)*Math.sin(camTheta));camera.lookAt(target);}
+scene.add(new THREE.AmbientLight(0xffffff,0.55));
+const dl=new THREE.DirectionalLight(0xffffff,0.85);dl.position.set(1,2,1.4);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0x6cb8ff,0.25);dl2.position.set(-1,0.5,-1);scene.add(dl2);
+// 地面网格
+const grid=new THREE.GridHelper(40,40,0x2f3a52,0x141a28);grid.position.y=0;scene.add(grid);
+// lattice (x,y,z) -> world (x, z, y)  使 z 朝上
+function world(x,y,z){return new THREE.Vector3(x*S, z*S, y*S);}
+// 编辑层平面（用于绘制拾取）
+const planeGeo=new THREE.PlaneGeometry(60,60);
+const planeMat=new THREE.MeshBasicMaterial({color:0x6cb8ff,transparent:true,opacity:0.06,side:THREE.DoubleSide});
+const layerPlane=new THREE.Mesh(planeGeo,planeMat);layerPlane.rotation.x=-Math.PI/2;scene.add(layerPlane);
+function updateLayerPlane(){layerPlane.position.y=layer*S;layerPlane.visible=(mode==='paint');}
+
+// 体素实例网格：菱形十二面体（FCC 的 Voronoi / Wigner–Seitz 胞，可无缝铺满 FCC 格）
+function rhombicDodecaGeometry(scale){
+  const cube=[];for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])cube.push([x,y,z]); // 8 个立方顶点(度3)
+  const axis=[[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]];                                  // 6 个轴顶点(度4)
+  const V=cube.concat(axis);
+  const dirs=[];for(const a of[-1,1])for(const b of[-1,1]){dirs.push([a,b,0]);dirs.push([a,0,b]);dirs.push([0,a,b]);} // 12 面法向
+  const pos=[];
+  for(const d of dirs){
+    const on=V.filter(v=>v[0]*d[0]+v[1]*d[1]+v[2]*d[2]===2);   // 该面平面上的 4 个顶点
+    const axisVs=on.filter(v=>Math.abs(v[0])===2||Math.abs(v[1])===2||Math.abs(v[2])===2);
+    const cubeVs=on.filter(v=>!(Math.abs(v[0])===2||Math.abs(v[1])===2||Math.abs(v[2])===2));
+    let q=[axisVs[0],cubeVs[0],axisVs[1],cubeVs[1]].map(v=>[v[0]*scale,v[1]*scale,v[2]*scale]); // 菱形四顶点(交替)
+    // 保证外向缠绕：面法线须与该面方向 d 同向，否则会被背面剔除而“透明”
+    const ux=q[1][0]-q[0][0],uy=q[1][1]-q[0][1],uz=q[1][2]-q[0][2];
+    const vx=q[2][0]-q[0][0],vy=q[2][1]-q[0][1],vz=q[2][2]-q[0][2];
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    if(nx*d[0]+ny*d[1]+nz*d[2]<0) q=[q[0],q[3],q[2],q[1]];
+    for(const tri of [[0,1,2],[0,2,3]]) for(const idx of tri) pos.push(q[idx][0],q[idx][1],q[idx][2]);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.computeVertexNormals();
+  return g;
+}
+const cellGeo=rhombicDodecaGeometry(0.47);  // 0.5=正好铺满；0.47 留出细缝显棱
+const matGreen=new THREE.MeshLambertMaterial({color:0x6df0c8,flatShading:true});
+const matGold=new THREE.MeshLambertMaterial({color:0xe3c264,transparent:true,opacity:0.5,flatShading:true});
+let meshGreen=null, meshGold=null;
+const dummy=new THREE.Object3D();
+function makeInstanced(set,mat,old){
+  if(old){scene.remove(old);old.geometry.dispose?.();old.dispose?.();}
+  const n=set.size; if(!n)return null;
+  const m=new THREE.InstancedMesh(cellGeo,mat,n);let i=0;
+  for(const c of set){const p=dec(c);const w=world(p[0],p[1],p[2]);dummy.position.copy(w);dummy.updateMatrix();m.setMatrixAt(i++,dummy.matrix);}
+  m.instanceMatrix.needsUpdate=true;scene.add(m);return m;
+}
+function renderVoxels(green,gold){
+  meshGreen=makeInstanced(green,matGreen,meshGreen);
+  meshGold=makeInstanced(gold||new Set(),matGold,meshGold);
+}
+
+// ============================ 渲染当前视图 ============================
+function currentEditSet(){return keyframes[selKF]||new Set();}
+function refreshView(){
+  if(playFrames){
+    const fr=playFrames[playIdx];
+    const green=new Set(fr.occ);
+    // 若该帧是某目标关键帧的终点，显示其 FN 幽灵
+    let gold=new Set();
+    if(fr.isKey && fr.targetIdx>0){
+      const B=keyframes[fr.targetIdx];
+      for(const c of B) if(!green.has(c)) gold.add(c);
+    }
+    renderVoxels(green,gold);
+    const tgt=fr.targetIdx;
+    document.getElementById('stageLabel').textContent='生长播放';
+    document.getElementById('stageTitle').textContent=(fr.isKey&&tgt===0)?'起始关键帧 #1':(fr.isKey?('关键帧 #'+(tgt+1)+' 达成'):('生长中 → #'+(tgt+1)));
+    document.getElementById('stageSub').textContent='帧 '+(playIdx+1)+' / '+playFrames.length+'（绿=命中，金=漏格 FN）';
+    document.getElementById('frameLabel').textContent='帧 '+(playIdx+1)+'/'+playFrames.length;
+  }else{
+    renderVoxels(currentEditSet(),null);
+    document.getElementById('stageLabel').textContent='编辑关键帧';
+    document.getElementById('stageTitle').textContent='关键帧 #'+(selKF+1);
+    document.getElementById('stageSub').textContent='体素 '+currentEditSet().size+' 个 · 摆放种子 → 生长 → 打分';
+    document.getElementById('frameLabel').textContent='编辑中';
+  }
+}
+
+// ============================ 交互：轨道 + 绘制 ============================
+let dragging=false,dragBtn=0,lastX=0,lastY=0,moved=false;
+renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;dragBtn=e.button;lastX=e.clientX;lastY=e.clientY;moved=false;renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener('pointermove',e=>{
+  if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;lastX=e.clientX;lastY=e.clientY;
+  const orbit=(mode==='orbit')||dragBtn===2;
+  if(orbit){camTheta+=dx*0.008;camPhi=Math.max(0.15,Math.min(Math.PI-0.15,camPhi-dy*0.008));updateCam();}
+});
+renderer.domElement.addEventListener('pointerup',e=>{
+  dragging=false;
+  if(mode==='paint'&&dragBtn===0&&!moved&&!playFrames){paintAt(e);}
+});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();camR=Math.max(8,Math.min(90,camR*(1+Math.sign(e.deltaY)*0.08)));updateCam();},{passive:false});
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function paintAt(e){
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.x=((e.clientX-r.left)/r.width)*2-1; ndc.y=-((e.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObject(layerPlane);
+  if(!hit.length)return;
+  const p=hit[0].point;
+  let x=Math.round(p.x/S), y=Math.round(p.z/S), z=layer;
+  if(((x+y+z)%2+2)%2!==0){ y+=1; }  // 吸附到偶和 FCC 子格
+  const k=enc(x,y,z), set=currentEditSet();
+  if(set.has(k))set.delete(k);else set.add(k);
+  playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';
+  updateKFList();refreshView();
+}
+
+// ============================ 关键帧列表 ============================
+function updateKFList(){
+  const el=document.getElementById('kfList');el.innerHTML='';
+  keyframes.forEach((kf,i)=>{
+    const d=document.createElement('div');d.className='kf'+(i===selKF?' sel':'');
+    d.innerHTML='<div class="n">'+(i+1)+'</div><div class="c">'+kf.size+' vox</div><div class="x" title="删除">×</div>';
+    d.onclick=(ev)=>{if(ev.target.classList.contains('x')){if(keyframes.length>1){keyframes.splice(i,1);selKF=Math.max(0,selKF-(i<=selKF?1:0));playFrames=null;updateKFList();refreshView();}return;}selKF=i;playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';updateKFList();refreshView();};
+    el.appendChild(d);
+  });
+  const add=document.createElement('div');add.className='kf addkf';add.textContent='+';add.title='在末尾复制当前帧';
+  add.onclick=()=>{keyframes.push(new Set(currentEditSet()));selKF=keyframes.length-1;playFrames=null;updateKFList();refreshView();};
+  el.appendChild(add);
+}
+
+// ============================ 控件绑定 ============================
+document.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{
+  const s=b.dataset.shape;
+  keyframes[selKF]= s==='clear'?new Set():shapes[s]();
+  playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';updateKFList();refreshView();
+});
+document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.mv.split(',').map(Number),set=currentEditSet(),ns=new Set();
+  for(const c of set){const p=dec(c);ns.add(enc(p[0]+v[0],p[1]+v[1],p[2]+v[2]));}
+  keyframes[selKF]=ns;playFrames=null;updateKFList();refreshView();
+});
+document.querySelector('[data-mirror="x"]').onclick=()=>{
+  const set=currentEditSet(),ns=new Set();for(const c of set){const p=dec(c);ns.add(enc(-p[0],p[1],p[2]));}
+  keyframes[selKF]=ns;playFrames=null;refreshView();
+};
+document.getElementById('paintBtn').onclick=function(){
+  mode=(mode==='paint')?'orbit':'paint';this.classList.toggle('on',mode==='paint');
+  document.getElementById('hintMode').textContent=(mode==='paint')?'绘制体素（单击切换）':'旋转';
+  updateLayerPlane();
+};
+document.getElementById('layer').oninput=function(){layer=+this.value;document.getElementById('layerVal').textContent=layer;updateLayerPlane();};
+document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-r]').forEach(x=>x.classList.remove('on'));b.classList.add('on');opt.radius=+b.dataset.r;});
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-s]').forEach(x=>x.classList.remove('on'));b.classList.add('on');opt.strategy=b.dataset.s;});
+
+// ============================ 生长 ============================
+document.getElementById('growBtn').onclick=()=>{
+  if(keyframes.length<2){alert('至少需要 2 个关键帧');return;}
+  document.getElementById('busy').style.display='flex';
+  const kfArrays=keyframes.map(s=>[...s]);
+  worker.postMessage({keyframes:kfArrays,opt:opt});
+};
+worker.onmessage=(e)=>{
+  document.getElementById('busy').style.display='none';
+  const res=e.data;playFrames=res.allFrames;perTarget=res.perTarget;playIdx=0;
+  document.getElementById('scrub').max=playFrames.length-1;document.getElementById('scrub').value=0;
+  showScore();refreshView();startPlay();
+};
+function showScore(){
+  const f1s=perTarget.map(p=>p.f1);
+  const mF1=f1s.reduce((a,b)=>a+b,0)/f1s.length;
+  const minF1=Math.min(...f1s);
+  const tFP=perTarget.reduce((a,p)=>a+p.fp,0);
+  const tFN=perTarget.reduce((a,p)=>a+p.fn,0);
+  const nSteps=perTarget.reduce((a,p)=>a+p.steps,0);
+  // 评分（设计稿公式）：Σ F1 - λfp·FP - λfn·FN - μ·关键帧 - ν·感受野档
+  const score=Math.round(1000*(f1s.reduce((a,b)=>a+b,0) - 3.0*tFP/100 - 0.3*tFN/100 - 0.15*keyframes.length - 0.2*(opt.radius-1)));
+  document.getElementById('scorePanel').style.display='block';
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('mF1').textContent=mF1.toFixed(4);
+  document.getElementById('minF1').textContent=minF1.toFixed(4);
+  document.getElementById('tFP').textContent=tFP;
+  document.getElementById('tFN').textContent=tFN;
+  document.getElementById('nKF').textContent=keyframes.length;
+  document.getElementById('nSteps').textContent=nSteps;
+  const note=tFP===0?'precise 结构性保证 FP=0。':'majority 出现假阳性——尝试改回 precise。';
+  document.getElementById('scoreNote').textContent=note+' 用更少关键帧 / 更小感受野拿更高分。';
+}
+
+// ============================ 播放 ============================
+function startPlay(){playing=true;document.getElementById('playBtn').textContent='❚❚';}
+function stopPlay(){playing=false;document.getElementById('playBtn').textContent='▶';}
+document.getElementById('playBtn').onclick=()=>{if(!playFrames)return;playing?stopPlay():startPlay();};
+document.getElementById('stopBtn').onclick=()=>{playFrames=null;stopPlay();playIdx=0;document.getElementById('scorePanel').style.display='none';document.getElementById('scrub').value=0;refreshView();};
+document.getElementById('scrub').oninput=function(){if(!playFrames)return;stopPlay();playIdx=+this.value;refreshView();};
+
+// ============================ 循环 ============================
+function resize(){const w=viewer.clientWidth,h=viewer.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);
+function loop(ts){
+  if(playing&&playFrames){const spf=1000/(+document.getElementById('speed').value);if(ts-lastTick>spf){lastTick=ts;playIdx++;if(playIdx>=playFrames.length){playIdx=playFrames.length-1;stopPlay();}else{document.getElementById('scrub').value=playIdx;refreshView();}}}
+  renderer.render(scene,camera);requestAnimationFrame(loop);
+}
+// init
+resize();updateCam();updateLayerPlane();updateKFList();refreshView();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
