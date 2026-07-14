@@ -1,6 +1,6 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/lightgrid.html" },
-    { "source": "/seed", "destination": "/seed_and_crystal_M1.html" }
+    { "source": "/seed", "destination": "/seed_and_crystal_M2.html" }
   ]
 }

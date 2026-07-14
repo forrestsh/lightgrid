@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<title>种子与晶体 · 体素动画原型 M2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg-deep:#04050a;--bg-0:#07090f;--bg-1:#0c1019;--bg-2:#131826;--line:#1e2638;--line-2:#2f3a52;
+ --fg-0:#ebeef5;--fg-1:#b9bfcc;--fg-2:#6e7588;--fg-3:#3b4254;
+ --green:#6df0c8;--blue:#6cb8ff;--gold:#e3c264;--red:#ee6868;
+ --serif:'Fraunces',Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace;}
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;height:100dvh;overflow:hidden;}
+body{background:var(--bg-deep);color:var(--fg-0);font-family:var(--mono);font-size:12px;line-height:1.45;
+ background-image:radial-gradient(ellipse 600px 400px at 25% 0%,rgba(227,194,100,.03),transparent 65%),radial-gradient(ellipse 500px 300px at 90% 100%,rgba(109,240,200,.02),transparent 60%);}
+.app{display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+.head{height:46px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;background:var(--bg-0);flex-shrink:0;gap:10px;}
+.brand{display:flex;align-items:baseline;gap:9px;flex:1;}
+.brand .logo{font-family:var(--serif);font-size:17px;font-weight:500;letter-spacing:-.012em;}
+.brand .logo .roman{font-family:var(--mono);font-weight:600;font-size:11.5px;letter-spacing:.04em;color:var(--gold);margin-left:3px;}
+.brand .ver{font-family:var(--mono);font-size:8px;color:var(--fg-2);letter-spacing:.18em;text-transform:uppercase;border:1px solid var(--line-2);padding:2px 6px;border-radius:1px;}
+.head .hint{color:var(--fg-2);font-size:9.5px;}
+.body{flex:1;display:flex;min-height:0;}
+.viewer{flex:1;position:relative;background:radial-gradient(ellipse at 50% 55%,#0d121d 0%,#04050a 100%);overflow:hidden;min-width:0;touch-action:none;}
+.viewer canvas{display:block;width:100%;height:100%;}
+.ov{position:absolute;inset:0;pointer-events:none;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;}
+.card{background:rgba(7,9,15,.8);backdrop-filter:blur(10px);border:1px solid var(--line-2);padding:8px 11px;align-self:flex-start;max-width:70%;}
+.card .label{color:var(--fg-3);font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;}
+.card .title{font-family:var(--serif);font-weight:500;font-size:15px;margin-top:1px;}
+.card .sub{font-size:9px;color:var(--fg-2);margin-top:3px;}
+.legend{align-self:flex-end;display:flex;gap:12px;font-size:9px;color:var(--fg-1);}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:4px;vertical-align:-1px;border-radius:2px;}
+.side{width:308px;flex-shrink:0;border-left:1px solid var(--line);background:var(--bg-0);display:flex;flex-direction:column;overflow-y:auto;}
+.sec{border-bottom:1px solid var(--line);padding:11px 13px;}
+.sec h3{margin:0 0 8px;font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-3);font-weight:600;}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+button{font-family:var(--mono);font-size:10px;color:var(--fg-1);background:var(--bg-2);border:1px solid var(--line-2);
+ padding:5px 8px;border-radius:2px;cursor:pointer;transition:.12s;}
+button:hover{border-color:var(--blue);color:var(--fg-0);}
+button.on{background:rgba(108,184,255,.14);border-color:var(--blue);color:var(--blue);}
+button.go{background:rgba(109,240,200,.14);border-color:var(--green);color:var(--green);font-size:11px;padding:7px 10px;flex:1;}
+button.go:hover{background:rgba(109,240,200,.24);}
+.mini{font-size:9px;color:var(--fg-2);margin:4px 0;}
+input[type=range]{width:100%;accent-color:var(--blue);}
+.kf-list{display:flex;gap:6px;overflow-x:auto;padding:9px 13px;background:var(--bg-1);border-top:1px solid var(--line);flex-shrink:0;align-items:center;min-height:64px;}
+.kf{flex-shrink:0;width:58px;height:44px;border:1px solid var(--line-2);border-radius:3px;background:var(--bg-2);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;}
+.kf.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+.kf .n{font-family:var(--serif);font-size:15px;color:var(--fg-0);}
+.kf .c{font-size:8px;color:var(--fg-2);}
+.kf .x{position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--bg-2);border:1px solid var(--line-2);color:var(--red);font-size:9px;line-height:13px;text-align:center;display:none;}
+.kf:hover .x{display:block;}
+.addkf{flex-shrink:0;width:44px;height:44px;font-size:18px;color:var(--green);}
+.stat{display:flex;justify-content:space-between;font-size:10px;padding:2px 0;color:var(--fg-1);}
+.stat b{font-family:var(--serif);color:var(--fg-0);font-weight:500;}
+.stat.f1 b{color:var(--green);} .stat.fp b{color:var(--red);} .stat.fn b{color:var(--gold);}
+.score{font-family:var(--serif);font-size:26px;color:var(--gold);text-align:center;margin:4px 0 2px;}
+.playbar{display:flex;align-items:center;gap:9px;padding:8px 13px;background:var(--bg-0);border-top:1px solid var(--line);flex-shrink:0;}
+.playbar button{padding:5px 9px;}
+.playbar .t{font-size:9px;color:var(--fg-2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:2px;overflow:hidden;}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line-2);}
+.seg button:last-child{border-right:0;}
+.busy{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(4,5,10,.55);color:var(--green);font-size:12px;z-index:5;}
+.backlink{font-family:var(--mono);font-size:9.5px;color:var(--fg-2);text-decoration:none;border:1px solid var(--line-2);padding:3px 8px;border-radius:2px;white-space:nowrap;transition:.12s;}
+.backlink:hover{color:var(--blue);border-color:var(--blue);}
+/* ─── LIG-4 (re-applied for M2): mobile layout — viewer first, controls in a slide-up sheet ─── */
+.fab{display:none;}
+.mobScore{display:none;}
+@media (max-width:720px){
+  .head{padding:0 10px;gap:8px;}
+  .brand .ver{display:none;}
+  .brand .logo{white-space:nowrap;font-size:15px;}
+  .head .hint{font-size:8.5px;text-align:right;}
+  .legend{align-self:flex-start;}
+  .body{flex-direction:column;position:relative;}
+  .side{position:absolute;left:0;right:0;bottom:0;width:100%;max-height:62%;border-left:0;border-top:1px solid var(--line-2);z-index:6;
+   transform:translateY(100%);visibility:hidden;transition:transform .22s ease,visibility 0s .22s;box-shadow:0 -8px 24px rgba(0,0,0,.45);
+   padding-bottom:env(safe-area-inset-bottom);}
+  .side.open{transform:translateY(0);visibility:visible;transition:transform .22s ease;}
+  .side button{padding:8px 11px;font-size:11px;}
+  .card{max-width:92%;}
+  .mobScore.show{display:block;}
+  .fab{position:absolute;right:10px;bottom:12px;display:flex;flex-direction:column;gap:9px;z-index:7;} /* above the sheet so ⚙/▶ stay reachable while it's open */
+  .fab button{width:46px;height:46px;font-size:15px;background:rgba(12,16,25,.92);}
+  .fab .grow{color:var(--green);border-color:var(--green);}
+  .playbar button{padding:8px 12px;}
+}
+/* narrow window on a mouse device: the gesture hint is noise — hide it */
+@media (max-width:720px) and (pointer:fine){
+  .head .hint{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <a class="backlink" href="lightgrid.html">← Lightgrid</a>
+    <div class="brand">
+      <span class="logo">Seed & Crystal<span class="roman">M2</span></span>
+      <span class="ver">FCC · 生长 · 关卡 · 图灵逻辑</span>
+    </div>
+    <span class="hint">左键：<span id="hintMode">旋转</span> · 右键拖动：始终旋转 · 滚轮：缩放</span>
+  </div>
+  <div class="body">
+    <div class="viewer" id="viewer">
+      <div class="busy" id="busy">生长求解中…</div>
+      <div class="fab">
+        <button id="sheetTog" title="控制面板">⚙</button>
+        <button class="grow" id="mobGrowBtn" title="生长 / 运行">▶</button>
+      </div>
+      <div class="ov">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+          <div class="card">
+            <div class="label" id="stageLabel">编辑关键帧</div>
+            <div class="title" id="stageTitle">关键帧 #1</div>
+            <div class="sub" id="stageSub">摆放种子 → 生长 → 打分</div>
+          </div>
+          <div class="card mobScore" id="mobScore"></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:#6df0c8"></i>命中 / 生长</span>
+          <span><i style="background:#e3c264"></i>漏格 FN</span>
+          <span><i style="background:#6cb8ff"></i>编辑层</span>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="sec">
+        <h3>模式</h3>
+        <div class="seg row" style="margin-bottom:0">
+          <button class="on" data-mode="sandbox">沙盒</button>
+          <button data-mode="puzzle">关卡</button>
+          <button data-mode="logic">逻辑/红石</button>
+        </div>
+        <div id="levelBox" style="display:none;margin-top:8px">
+          <div class="mini">选择关卡</div>
+          <div class="row" id="levelBtns"></div>
+          <div class="mini" id="levelDesc" style="color:var(--fg-1);line-height:1.5"></div>
+          <div class="row" style="margin-top:4px"><button id="resetLevel">重置关卡</button><button id="addWaypoint">＋ 插入路点</button></div>
+        </div>
+      </div>
+      <div class="sec" id="logicBox" style="display:none">
+        <h3>逻辑 / 红石（固定规则自治 CA）</h3>
+        <div class="mini">论文构造 · 按原坐标复现（可验证）</div>
+        <div class="row">
+          <button data-preset="gun" class="on">Gun</button>
+          <button data-preset="not">NOT</button>
+          <button data-preset="and">AND</button>
+          <button data-preset="nand">NAND</button>
+        </div>
+        <div class="mini">电路套件（自建·已 node 验证）</div>
+        <div class="row">
+          <button data-preset="latch">锁存器</button>
+          <button data-preset="clock">时钟</button>
+          <button data-preset="fanout">扇出</button>
+        </div>
+        <div class="mini">振荡 / 反射（多循环规则）</div>
+        <div class="row">
+          <button data-preset="reflector">反射器</button>
+          <button data-preset="rotor2">时钟·2</button>
+          <button data-preset="rotor4">时钟·4</button>
+          <button data-preset="rotor6">时钟·6</button>
+          <button data-preset="clockgun">时钟枪</button>
+          <button data-preset="clockbank">双频时钟</button>
+          <button data-preset="clear">清空</button>
+        </div>
+        <div class="mini">艺术图案（对称自旋阵）</div>
+        <div class="row">
+          <button data-preset="mandala">旋花阵</button>
+          <button data-preset="dualbloom">双色旋花</button>
+        </div>
+        <div class="mini">单门真值演示（论文 3-循环）</div>
+        <div class="seg row" style="margin-bottom:4px">
+          <button id="tdNOT" class="on">NOT (1入)</button>
+          <button id="tdAND">AND (2入)</button>
+        </div>
+        <div class="row">
+          <button id="tdI1">输入① = 0</button>
+          <button id="tdI2" disabled style="opacity:.4">输入② = 0</button>
+          <button id="tdRun" class="go" style="flex:1">载入并运行</button>
+        </div>
+        <div class="stat"><span>门输出</span><b id="tdOut">—</b></div>
+        <div class="mini" id="tdTable" style="line-height:1.6"></div>
+        <div class="mini">自由放置信号（点视图放置/切换）</div>
+        <div class="row">
+          <button data-place="0">A 种子</button>
+          <button data-place="1">B 线</button>
+          <button data-place="2">C 线</button>
+          <button data-place="off" class="on">停止放置</button>
+        </div>
+        <div class="row" style="align-items:center;margin-bottom:2px"><span class="mini">放置层 z=<b id="logicLayerVal">0</b></span></div>
+        <input type="range" id="logicLayer" min="-10" max="16" value="0">
+        <div class="row" style="margin-top:8px">
+          <button id="logicPlay" class="go" style="flex:1">▶ 运行</button>
+          <button id="logicStepBtn">⏭ 单步</button>
+          <button id="logicReset">⟲ 重置</button>
+        </div>
+        <div class="row" style="align-items:center"><span class="mini">速度</span><input type="range" id="logicSpeed" min="1" max="30" value="8" style="flex:1"></div>
+        <div class="stat"><span>tick</span><b id="logicTick">0</b></div>
+        <div class="stat f1"><span>信号数（应对上论文）</span><b id="logicSig">0</b></div>
+        <div class="stat"><span>已发射节拍（逃逸信号）</span><b id="logicBeat">0</b></div>
+        <div class="mini" id="logicNote" style="margin-top:6px;line-height:1.55;color:var(--fg-1)"></div>
+      </div>
+      <div class="sec" id="secEdit">
+        <h3>关键帧编辑</h3>
+        <div class="row">
+          <button data-shape="ball">球</button>
+          <button data-shape="rod">柱</button>
+          <button data-shape="lshape">L 形</button>
+          <button data-shape="torus">环</button>
+          <button data-shape="blob">团块</button>
+          <button data-shape="clear">清空</button>
+        </div>
+        <div class="mini">平移当前帧（保持 FCC 偶和格）</div>
+        <div class="row">
+          <button data-mv="-1,-1,0">←</button>
+          <button data-mv="1,1,0">→</button>
+          <button data-mv="0,0,2">↑z</button>
+          <button data-mv="0,0,-2">↓z</button>
+          <button data-mv="1,-1,0">↗</button>
+          <button data-mirror="x">镜像X</button>
+        </div>
+        <div class="row">
+          <button id="paintBtn">绘制模式</button>
+          <span class="mini" style="align-self:center">层 z=<b id="layerVal">0</b></span>
+        </div>
+        <input type="range" id="layer" min="-8" max="16" value="0">
+      </div>
+      <div class="sec" id="secEngine">
+        <h3>引擎旋钮（精度 ↔ 涌现感）</h3>
+        <div class="mini">感受野</div>
+        <div class="seg row" style="margin-bottom:8px">
+          <button class="on" data-r="1">radius-1</button>
+          <button data-r="2">radius-2</button>
+        </div>
+        <div class="mini">冲突解决策略</div>
+        <div class="seg row" style="margin-bottom:8px">
+          <button class="on" data-s="precise">precise (FP=0)</button>
+          <button data-s="majority">majority</button>
+        </div>
+        <div class="mini">补间方式（决定计划成本）</div>
+        <div class="seg row">
+          <button class="on" data-assist="0">纯 CA · 免费涌现</button>
+          <button data-assist="1">形变辅助 · 计费</button>
+        </div>
+        <div class="mini" style="margin-top:4px;line-height:1.5">纯 CA：只有相邻帧足够接近/重叠才连得上，但零计划成本。形变辅助：任意两帧都能连，但每个自动中间目标都记为借用的计划。</div>
+      </div>
+      <div class="sec" id="secGrow">
+        <div class="row"><button class="go" id="growBtn">▶ 生长（求解规则序列）</button></div>
+      </div>
+      <div class="sec" id="scorePanel" style="display:none">
+        <h3>评分</h3>
+        <div class="score" id="scoreVal">—</div>
+        <div class="stat f1" id="rowGoalF1" style="display:none"><span>到达目标 F1</span><b id="goalF1">—</b></div>
+        <div class="stat f1"><span>平均 F1（到各目标帧）</span><b id="mF1">—</b></div>
+        <div class="stat"><span>平滑度（连续性）</span><b id="smoothVal">—</b></div>
+        <div class="stat fp"><span>假阳性 FP 总计</span><b id="tFP">—</b></div>
+        <div class="stat fn"><span>假阴性 FN 总计</span><b id="tFN">—</b></div>
+        <div class="stat"><span>关键帧数</span><b id="nKF">—</b></div>
+        <div class="stat" id="rowWp" style="display:none"><span>路点（显式计划）</span><b id="nWp">—</b></div>
+        <div class="stat" id="rowInt" style="display:none"><span>形变中间目标（借用计划）</span><b id="nInt">—</b></div>
+        <div class="stat" id="rowPlan" style="display:none;border-top:1px solid var(--line);padding-top:4px"><span>计划成本合计</span><b id="planCost">—</b></div>
+        <div class="mini" id="scoreNote" style="margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="kf-list" id="kfList"></div>
+  <div class="playbar" id="playbar">
+    <div class="seg">
+      <button id="playBtn">▶</button>
+      <button id="stopBtn">■</button>
+    </div>
+    <input type="range" id="scrub" min="0" max="0" value="0" style="flex:1">
+    <span class="t" id="frameLabel">编辑中</span>
+    <span class="t">速度</span>
+    <input type="range" id="speed" min="1" max="30" value="12" style="width:70px">
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================ 引擎（供 Worker 使用的源码字符串）============================
+const ENGINE_SRC = `
+const NB=(()=>{const s=new Set(),o=[];for(const a of[-1,1])for(const b of[-1,1])for(const v of[[a,b,0],[a,0,b],[0,a,b]])s.add(v.join(','));for(const k of[...s].sort())o.push(k.split(',').map(Number));return o;})();
+const OFF2=(()=>{const s=new Set();for(const i of NB){s.add(i.join(','));for(const j of NB)s.add([i[0]+j[0],i[1]+j[1],i[2]+j[2]].join(','));}s.delete('0,0,0');return[...s].sort().map(k=>k.split(',').map(Number));})();
+const enc=(x,y,z)=>x+','+y+','+z, dec=k=>k.split(',').map(Number);
+function keyOf(cellK,occ,offs){const p=dec(cellK);let s='';for(const o of offs)s+=occ.has(enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]))?'1':'0';return s;}
+function buildEmit(A,B,offs,strategy){const bk=new Map();for(const c of A){const p=keyOf(c,A,offs);let a=bk.get(p);if(!a){a=[];bk.set(p,a);}a.push(c);}const em=new Map();for(const[patt,cells]of bk){const dirs=[],n=cells.length;for(let di=0;di<NB.length;di++){const o=NB[di];let vin=0;for(const c of cells){const p=dec(c);if(B.has(enc(p[0]+o[0],p[1]+o[1],p[2]+o[2])))vin++;}let ok;if(strategy==='precise')ok=(vin===n&&vin>0);else if(strategy==='majority')ok=(vin>n/2);else ok=(vin>0);if(ok)dirs.push(di);}em.set(patt,dirs);}return em;}
+function reconstruct(A,em,offs){const out=new Set();for(const c of A){const dirs=em.get(keyOf(c,A,offs));if(!dirs||!dirs.length)continue;const p=dec(c);for(const di of dirs){const o=NB[di];out.add(enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]));}}return out;}
+function metrics(pred,truth){let tp=0,fp=0;for(const c of pred)truth.has(c)?tp++:fp++;let fn=0;for(const c of truth)if(!pred.has(c))fn++;const pr=(tp+fp)?tp/(tp+fp):1,rc=(tp+fn)?tp/(tp+fn):1;return{tp,fp,fn,f1:(pr+rc)?2*pr*rc/(pr+rc):0};}
+function grow(A,B,opt){opt=opt||{};const offs=(opt.radius>=2)?OFF2:NB,strat=opt.strategy||'precise',maxSteps=opt.maxSteps||60;const frames=[],perStep=[];let cur=new Set(A);for(let s=0;s<maxSteps;s++){const em=buildEmit(cur,B,offs,strat);const nxt=reconstruct(cur,em,offs);frames.push(nxt);perStep.push(metrics(nxt,B));if(nxt.size===cur.size){let same=true;for(const c of nxt)if(!cur.has(c)){same=false;break;}if(same)break;}cur=nxt;}return{frames,perStep,final:metrics(cur,B)};}
+const T_=(S,v)=>{const o=new Set();for(const c of S){const p=dec(c);o.add(enc(p[0]+v[0],p[1]+v[1],p[2]+v[2]));}return o;};
+function centroid(S){let n=0,s=[0,0,0];for(const c of S){const p=dec(c);s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];n++;}return n?[s[0]/n,s[1]/n,s[2]/n]:[0,0,0];}
+function evenVec(v){let r=v.map(Math.round);if(((r[0]+r[1]+r[2])%2+2)%2!==0)r[0]+=1;return r;}
+function bbox2(sets,pad){let mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(const S of sets)for(const c of S){const p=dec(c);for(let i=0;i<3;i++){mn[i]=Math.min(mn[i],p[i]);mx[i]=Math.max(mx[i],p[i]);}}for(let i=0;i<3;i++){mn[i]-=pad;mx[i]+=pad;}return[mn,mx];}
+function boxCells(mn,mx){const s=new Set();for(let x=mn[0];x<=mx[0];x++)for(let y=mn[1];y<=mx[1];y++)for(let z=mn[2];z<=mx[2];z++)if(((x+y+z)%2+2)%2===0)s.add(enc(x,y,z));return s;}
+function distField(sources,box){const dist=new Map();let q=[];for(const c of sources)if(box.has(c)){dist.set(c,0);q.push(c);}let h=0;while(h<q.length){const c=q[h++];const p=dec(c),d=dist.get(c);for(const o of NB){const nc=enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]);if(box.has(nc)&&!dist.has(nc)){dist.set(nc,d+1);q.push(nc);}}}return dist;}
+function sdf(X,box){const nonX=new Set([...box].filter(c=>!X.has(c)));const dOut=distField(X,box),dIn=distField(nonX,box);const f=new Map();for(const c of box)f.set(c,X.has(c)?-(dIn.get(c)||0):(dOut.get(c)||99));return f;}
+function lerp3(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function symDiff(A,B){let d=0;for(const c of A)if(!B.has(c))d++;for(const c of B)if(!A.has(c))d++;return d;}
+function morphTargets(A,B){const cA=evenVec(centroid(A)),cB=evenVec(centroid(B));const A0=T_(A,cA.map(x=>-x)),B0=T_(B,cB.map(x=>-x));const box=boxCells.apply(null,bbox2([A0,B0],3));const fa=sdf(A0,box),fb=sdf(B0,box);const cells=[...box];const cd=Math.hypot(cB[0]-cA[0],cB[1]-cA[1],cB[2]-cA[2]);const K=Math.max(5,Math.min(22,Math.round(cd)+8));const outs=[];for(let k=1;k<=K;k++){const t=k/K;const scored=cells.map(c=>[(1-t)*fa.get(c)+t*fb.get(c),c]).sort((p,q)=>p[0]-q[0]);const cnt=Math.max(1,Math.round(A.size+(B.size-A.size)*t));const S=new Set();for(let i=0;i<cnt&&i<scored.length;i++)S.add(scored[i][1]);outs.push(T_(S,evenVec(lerp3(cA,cB,t))));}return outs;}
+function growMorph(A,B,opt){const tg=morphTargets(A,B);let seed=new Set(A);const frames=[];for(const Tg of tg){const g=grow(seed,Tg,{radius:opt.radius,strategy:opt.strategy,maxSteps:8});for(const f of g.frames)frames.push(f);seed=Tg;}const cur=frames.length?frames[frames.length-1]:new Set(A);return{frames,final:metrics(cur,B),K:tg.length};}
+function growChain(keyframes,opt){const allFrames=[],perTarget=[];if(!keyframes.length)return{allFrames,perTarget};const HOLD=(opt&&opt.hold)||4;const assist=opt&&opt.assist;let actual=new Set(keyframes[0]);for(let h=0;h<HOLD;h++)allFrames.push({occ:[...actual],targetIdx:0,isKey:true});for(let t=1;t<keyframes.length;t++){const B=new Set(keyframes[t]);let g,intermediates;if(assist){g=growMorph(actual,B,opt);intermediates=g.K;}else{g=grow(actual,B,{radius:opt.radius,strategy:opt.strategy,maxSteps:80});intermediates=0;}g.frames.forEach((f)=>allFrames.push({occ:[...f],targetIdx:t,isKey:false}));const last=g.frames.length?g.frames[g.frames.length-1]:actual;for(let h=0;h<HOLD;h++)allFrames.push({occ:[...last],targetIdx:t,isKey:true});perTarget.push(Object.assign({targetIdx:t,steps:g.frames.length,intermediates:intermediates},g.final));actual=last;}return{allFrames,perTarget};}
+`;
+
+// ============================ Worker ============================
+const WORKER_SRC = ENGINE_SRC + `
+onmessage=function(e){
+  const {keyframes,opt}=e.data;
+  const kfSets=keyframes.map(k=>new Set(k));
+  const res=growChain(kfSets,opt);
+  postMessage(res);
+};`;
+const worker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC],{type:'application/javascript'})));
+
+// ============================ 主线程 · 几何/形状 ============================
+const NB = (()=>{const s=new Set(),o=[];for(const a of[-1,1])for(const b of[-1,1])for(const v of[[a,b,0],[a,0,b],[0,a,b]])s.add(v.join(','));for(const k of[...s].sort())o.push(k.split(',').map(Number));return o;})();
+const enc=(x,y,z)=>x+','+y+','+z, dec=k=>k.split(',').map(Number);
+function fill(pred,box){const s=new Set();for(let x=box[0];x<=box[1];x++)for(let y=box[2];y<=box[3];y++)for(let z=box[4];z<=box[5];z++)if((x+y+z)%2===0&&pred(x,y,z))s.add(enc(x,y,z));return s;}
+const shapes={
+  ball:()=>fill((x,y,z)=>x*x+y*y+(z-6)*(z-6)<=16,[-4,4,-4,4,2,10]),
+  rod:()=>fill((x,y,z)=>x*x+y*y<=4,[-2,2,-2,2,0,10]),
+  lshape:()=>{const a=fill(()=>true,[0,8,-1,1,0,1]);const b=fill(()=>true,[0,1,-1,1,0,8]);return new Set([...a,...b]);},
+  torus:()=>fill((x,y,z)=>{const d=Math.sqrt(x*x+y*y);return (d-5)*(d-5)+(z-6)*(z-6)<=4;},[-8,8,-8,8,3,9]),
+  blob:()=>{let cur=new Set([enc(0,0,6)]),fr=[enc(0,0,6)];while(cur.size<150&&fr.length){const c=fr[Math.floor(Math.random()*fr.length)];const p=dec(c);let grew=false;const sh=[...NB].sort(()=>Math.random()-.5);for(const o of sh){const nc=enc(p[0]+o[0],p[1]+o[1],p[2]+o[2]);if(!cur.has(nc)){cur.add(nc);fr.push(nc);grew=true;if(cur.size>=150)break;}}if(!grew)fr.splice(fr.indexOf(c),1);}return cur;},
+};
+
+// ============================ 状态 ============================
+let keyframes=[ shapes.ball(), (function(){const s=shapes.ball();const t=new Set();for(const c of s){const p=dec(c);t.add(enc(p[0]+6,p[1]+6,p[2]));}return t;})() ];
+let selKF=0;
+let opt={radius:1,strategy:'precise',maxSteps:60,assist:false};
+let playFrames=null;      // 生长结果 allFrames
+let perTarget=null;
+let mode='orbit';         // 'orbit' | 'paint'
+let layer=0;
+let playing=false, playIdx=0, lastTick=0;
+let gameMode='sandbox';   // 'sandbox' | 'puzzle'
+
+// 关卡：start 锁定为第0帧，goal 锁定为末帧；玩家在中间插路点
+const T3=(S,v)=>new Set([...S].map(c=>{const p=dec(c);return enc(p[0]+v[0],p[1]+v[1],p[2]+v[2]);}));
+const LEVELS=[
+  {name:'平移', start:()=>shapes.ball(), goal:()=>T3(shapes.ball(),[10,10,0]),
+   desc:'把球移到目标位。两端不重叠，纯 CA 直连会断（F1=0）——最省的解通常是加 1 个中途路点让相邻帧重叠，或开形变辅助。'},
+  {name:'变形', start:()=>shapes.ball(), goal:()=>shapes.rod(),
+   desc:'球变柱。两者重叠，纯 CA 直接就能连上且零计划成本——试试不加任何路点、不开辅助。'},
+  {name:'环→柱', start:()=>shapes.torus(), goal:()=>shapes.rod(),
+   desc:'拓扑剧变，环心是空的。纯 CA 直连必崩；开形变辅助能过但要付一堆中间目标。想想：插一个能同时和环、柱重叠的路点（如球），也许纯 CA 就能免费串起来。'},
+];
+let curLevel=0;
+const PLAN={waypoint:40, intermediate:3, radius2:120};  // 计划成本权重（可调）
+
+// ============================ Three.js 场景 ============================
+const viewer=document.getElementById('viewer');
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,0.1,1000);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+viewer.appendChild(renderer.domElement);
+const S=1.0;                                   // 格距
+const target=new THREE.Vector3(0,6*S*0.55,0);  // 视线中心
+let camR=34, camTheta=0.9, camPhi=1.15;
+function updateCam(){camera.position.set(target.x+camR*Math.sin(camPhi)*Math.cos(camTheta),target.y+camR*Math.cos(camPhi),target.z+camR*Math.sin(camPhi)*Math.sin(camTheta));camera.lookAt(target);}
+scene.add(new THREE.AmbientLight(0xffffff,0.55));
+const dl=new THREE.DirectionalLight(0xffffff,0.85);dl.position.set(1,2,1.4);scene.add(dl);
+const dl2=new THREE.DirectionalLight(0x6cb8ff,0.25);dl2.position.set(-1,0.5,-1);scene.add(dl2);
+// 地面网格
+const grid=new THREE.GridHelper(40,40,0x2f3a52,0x141a28);grid.position.y=0;scene.add(grid);
+// lattice (x,y,z) -> world (x, z, y)  使 z 朝上
+function world(x,y,z){return new THREE.Vector3(x*S, z*S, y*S);}
+// 编辑层平面（用于绘制拾取）
+const planeGeo=new THREE.PlaneGeometry(60,60);
+const planeMat=new THREE.MeshBasicMaterial({color:0x6cb8ff,transparent:true,opacity:0.06,side:THREE.DoubleSide});
+const layerPlane=new THREE.Mesh(planeGeo,planeMat);layerPlane.rotation.x=-Math.PI/2;scene.add(layerPlane);
+function updateLayerPlane(){layerPlane.position.y=layer*S;layerPlane.visible=(mode==='paint');}
+
+// 体素实例网格：菱形十二面体（FCC 的 Voronoi / Wigner–Seitz 胞，可无缝铺满 FCC 格）
+function rhombicDodecaGeometry(scale){
+  const cube=[];for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])cube.push([x,y,z]); // 8 个立方顶点(度3)
+  const axis=[[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]];                                  // 6 个轴顶点(度4)
+  const V=cube.concat(axis);
+  const dirs=[];for(const a of[-1,1])for(const b of[-1,1]){dirs.push([a,b,0]);dirs.push([a,0,b]);dirs.push([0,a,b]);} // 12 面法向
+  const pos=[];
+  for(const d of dirs){
+    const on=V.filter(v=>v[0]*d[0]+v[1]*d[1]+v[2]*d[2]===2);   // 该面平面上的 4 个顶点
+    const axisVs=on.filter(v=>Math.abs(v[0])===2||Math.abs(v[1])===2||Math.abs(v[2])===2);
+    const cubeVs=on.filter(v=>!(Math.abs(v[0])===2||Math.abs(v[1])===2||Math.abs(v[2])===2));
+    let q=[axisVs[0],cubeVs[0],axisVs[1],cubeVs[1]].map(v=>[v[0]*scale,v[1]*scale,v[2]*scale]); // 菱形四顶点(交替)
+    // 保证外向缠绕：面法线须与该面方向 d 同向，否则会被背面剔除而“透明”
+    const ux=q[1][0]-q[0][0],uy=q[1][1]-q[0][1],uz=q[1][2]-q[0][2];
+    const vx=q[2][0]-q[0][0],vy=q[2][1]-q[0][1],vz=q[2][2]-q[0][2];
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    if(nx*d[0]+ny*d[1]+nz*d[2]<0) q=[q[0],q[3],q[2],q[1]];
+    for(const tri of [[0,1,2],[0,2,3]]) for(const idx of tri) pos.push(q[idx][0],q[idx][1],q[idx][2]);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.computeVertexNormals();
+  return g;
+}
+const cellGeo=rhombicDodecaGeometry(0.47);  // 0.5=正好铺满；0.47 留出细缝显棱
+const matGreen=new THREE.MeshLambertMaterial({color:0x6df0c8,flatShading:true});
+const matGold=new THREE.MeshLambertMaterial({color:0xe3c264,transparent:true,opacity:0.5,flatShading:true});
+let meshGreen=null, meshGold=null;
+const dummy=new THREE.Object3D();
+function makeInstanced(set,mat,old){
+  if(old){scene.remove(old);old.geometry.dispose?.();old.dispose?.();}
+  const n=set.size; if(!n)return null;
+  const m=new THREE.InstancedMesh(cellGeo,mat,n);let i=0;
+  for(const c of set){const p=dec(c);const w=world(p[0],p[1],p[2]);dummy.position.copy(w);dummy.updateMatrix();m.setMatrixAt(i++,dummy.matrix);}
+  m.instanceMatrix.needsUpdate=true;scene.add(m);return m;
+}
+function renderVoxels(green,gold){
+  clearArrows();
+  meshGreen=makeInstanced(green,matGreen,meshGreen);
+  meshGold=makeInstanced(gold||new Set(),matGold,meshGold);
+}
+// ---- 信号箭头渲染（v1.0 配色：shaft 与 head 独立着色）----
+const A_SHAFT=[0xe8443a,0xe8c23a,0x3a82e8,0xffffff,0xffffff,0xffffff,0xe8443a,0xe8c23a,0x3a82e8,0xf2a39d,0xf2e3a0,0xa8c4f2];
+const A_HEAD =[0xe8443a,0xe8c23a,0x3a82e8,0xe8443a,0xe8c23a,0x3a82e8,0xffffff,0xffffff,0xffffff,0xf2a39d,0xf2e3a0,0xa8c4f2];
+const shaftGeo=new THREE.CylinderGeometry(0.045,0.045,0.46,6);
+const headGeo=new THREE.ConeGeometry(0.12,0.22,10);
+const arrowMat=new THREE.MeshLambertMaterial({});
+let shaftMesh=null,headMesh=null,_WDIR=null;
+const _up=new THREE.Vector3(0,1,0),_q=new THREE.Quaternion(),_ap=new THREE.Vector3(),_as=new THREE.Vector3(1,1,1),_am=new THREE.Matrix4(),_acol=new THREE.Color();
+function clearArrows(){if(shaftMesh){scene.remove(shaftMesh);shaftMesh=null;}if(headMesh){scene.remove(headMesh);headMesh=null;}}
+function renderSignals(cells){
+  if(meshGreen){scene.remove(meshGreen);meshGreen=null;} if(meshGold){scene.remove(meshGold);meshGold=null;}
+  if(!_WDIR)_WDIR=DIRS12.map(v=>new THREE.Vector3(v[0],v[2],v[1]).normalize());  // 世界重映射 (x,z,y)
+  const arr=[]; for(const [k,s] of cells){for(let d=0;d<12;d++) if(s&(1<<d)) arr.push([k,d]);}
+  clearArrows(); const n=arr.length; if(!n)return;
+  shaftMesh=new THREE.InstancedMesh(shaftGeo,arrowMat,n);
+  headMesh=new THREE.InstancedMesh(headGeo,arrowMat,n);
+  let i=0;
+  for(const [k,d] of arr){
+    const p=k.split(',').map(Number); const base=world(p[0],p[1],p[2]); const wd=_WDIR[d];
+    _q.setFromUnitVectors(_up,wd);
+    _ap.copy(base).addScaledVector(wd,0.16); _am.compose(_ap,_q,_as); shaftMesh.setMatrixAt(i,_am); shaftMesh.setColorAt(i,_acol.setHex(A_SHAFT[d]));
+    _ap.copy(base).addScaledVector(wd,0.46); _am.compose(_ap,_q,_as); headMesh.setMatrixAt(i,_am); headMesh.setColorAt(i,_acol.setHex(A_HEAD[d]));
+    i++;
+  }
+  shaftMesh.instanceMatrix.needsUpdate=true; headMesh.instanceMatrix.needsUpdate=true;
+  if(shaftMesh.instanceColor)shaftMesh.instanceColor.needsUpdate=true;
+  if(headMesh.instanceColor)headMesh.instanceColor.needsUpdate=true;
+  scene.add(shaftMesh); scene.add(headMesh);
+}
+
+// ============================ 渲染当前视图 ============================
+function currentEditSet(){return keyframes[selKF]||new Set();}
+function refreshView(){
+  if(playFrames){
+    const fr=playFrames[playIdx];
+    const green=new Set(fr.occ);
+    // 若该帧是某目标关键帧的终点，显示其 FN 幽灵
+    let gold=new Set();
+    if(fr.isKey && fr.targetIdx>0){
+      const B=keyframes[fr.targetIdx];
+      for(const c of B) if(!green.has(c)) gold.add(c);
+    }
+    renderVoxels(green,gold);
+    const tgt=fr.targetIdx;
+    document.getElementById('stageLabel').textContent='生长播放';
+    document.getElementById('stageTitle').textContent=(fr.isKey&&tgt===0)?'起始关键帧 #1':(fr.isKey?('关键帧 #'+(tgt+1)+' 达成'):('生长中 → #'+(tgt+1)));
+    document.getElementById('stageSub').textContent='帧 '+(playIdx+1)+' / '+playFrames.length+'（绿=命中，金=漏格 FN）';
+    document.getElementById('frameLabel').textContent='帧 '+(playIdx+1)+'/'+playFrames.length;
+  }else{
+    document.getElementById('mobScore').classList.remove('show');
+    const green=currentEditSet();let gold=new Set();
+    const lastIdx=keyframes.length-1;
+    if(gameMode==='puzzle'&&keyframes.length&&selKF!==lastIdx){const goal=keyframes[lastIdx];for(const c of goal)if(!green.has(c))gold.add(c);}
+    renderVoxels(green,gold);
+    const isGoal=(gameMode==='puzzle'&&selKF===lastIdx),isStart=(gameMode==='puzzle'&&selKF===0);
+    document.getElementById('stageLabel').textContent=(gameMode==='puzzle')?'关卡编辑':'编辑关键帧';
+    document.getElementById('stageTitle').textContent=isGoal?'目标帧（锁定）':(isStart?'起始帧（锁定）':'关键帧 #'+(selKF+1));
+    document.getElementById('stageSub').textContent=(gameMode==='puzzle')?'金色=目标轮廓 · 用最少计划让绿色长成它':('体素 '+green.size+' 个 · 摆放种子 → 生长 → 打分');
+    document.getElementById('frameLabel').textContent='编辑中';
+  }
+}
+
+// ============================ 交互：轨道 + 绘制 ============================
+let dragging=false,dragBtn=0,lastX=0,lastY=0,moved=false;
+// LIG-4 (re-applied): track active pointers so two fingers pinch-zoom instead of orbiting
+const ptrs=new Map();let pinchD=0;
+const pdist=()=>{const p=[...ptrs.values()];return Math.hypot(p[0][0]-p[1][0],p[0][1]-p[1][1]);};
+renderer.domElement.addEventListener('pointerdown',e=>{
+  ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2){pinchD=pdist();dragging=false;moved=true;}
+  else if(ptrs.size===1){dragging=true;dragBtn=e.button;lastX=e.clientX;lastY=e.clientY;moved=false;}
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+  if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptrs.size===2&&pinchD>0){const d=pdist();if(d>1){camR=Math.max(8,Math.min(90,camR*(pinchD/d)));pinchD=d;updateCam();}return;}
+  if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;lastX=e.clientX;lastY=e.clientY;
+  const orbit=(mode==='orbit')||dragBtn===2;
+  if(orbit){camTheta+=dx*0.008;camPhi=Math.max(0.15,Math.min(Math.PI-0.15,camPhi-dy*0.008));updateCam();}
+});
+renderer.domElement.addEventListener('pointerup',e=>{
+  ptrs.delete(e.pointerId);if(ptrs.size<2)pinchD=0;
+  const wasDrag=dragging;dragging=false;
+  if(wasDrag&&mode==='paint'&&dragBtn===0&&!moved&&!playFrames){paintAt(e);}
+});
+renderer.domElement.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinchD=0;dragging=false;});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();camR=Math.max(8,Math.min(90,camR*(1+Math.sign(e.deltaY)*0.08)));updateCam();},{passive:false});
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function paintAt(e){
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.x=((e.clientX-r.left)/r.width)*2-1; ndc.y=-((e.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const hit=ray.intersectObject(layerPlane);
+  if(!hit.length)return;
+  const p=hit[0].point;
+  let x=Math.round(p.x/S), y=Math.round(p.z/S), z=layer;
+  if(((x+y+z)%2+2)%2!==0){ y+=1; }  // 吸附到偶和 FCC 子格
+  if(gameMode==='logic'){                       // 逻辑模式：放置/切换某方向的信号位
+    if(logicPlaceDir===null)return;
+    const kk=enc(x,y,z),bit=1<<logicPlaceDir,cur=logicCells.get(kk)||0;
+    if(cur&bit){const nv=cur&~bit;nv?logicCells.set(kk,nv):logicCells.delete(kk);}else logicCells.set(kk,cur|bit);
+    logicInit=new Map(logicCells);logicTick=0;logicPlaying=false;document.getElementById('logicPlay').textContent='▶ 运行';logicRender();return;
+  }
+  const k=enc(x,y,z), set=currentEditSet();
+  if(set.has(k))set.delete(k);else set.add(k);
+  playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';
+  updateKFList();refreshView();
+}
+
+// ============================ 关键帧列表 ============================
+function updateKFList(){
+  const el=document.getElementById('kfList');el.innerHTML='';
+  const lastIdx=keyframes.length-1;
+  keyframes.forEach((kf,i)=>{
+    const locked=(gameMode==='puzzle'&&(i===0||i===lastIdx));
+    const tag=(gameMode==='puzzle'&&i===0)?'起点':((gameMode==='puzzle'&&i===lastIdx)?'目标':(i+1));
+    const d=document.createElement('div');d.className='kf'+(i===selKF?' sel':'');
+    d.innerHTML='<div class="n">'+tag+'</div><div class="c">'+kf.size+' vox</div>'+(locked?'':'<div class="x" title="删除">×</div>');
+    d.onclick=(ev)=>{
+      if(ev.target.classList.contains('x')){if(keyframes.length>1){keyframes.splice(i,1);if(selKF>=keyframes.length)selKF=keyframes.length-1;else if(i<selKF)selKF--;playFrames=null;document.getElementById('scorePanel').style.display='none';updateKFList();refreshView();}return;}
+      selKF=i;playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';updateKFList();refreshView();
+    };
+    el.appendChild(d);
+  });
+  const add=document.createElement('div');add.className='kf addkf';add.textContent='+';
+  if(gameMode==='puzzle'){add.title='在目标前插入路点';add.onclick=insertWaypoint;}
+  else{add.title='在末尾复制当前帧';add.onclick=()=>{keyframes.push(new Set(currentEditSet()));selKF=keyframes.length-1;playFrames=null;updateKFList();refreshView();};}
+  el.appendChild(add);
+}
+function insertWaypoint(){const gi=keyframes.length-1;const wp=new Set(keyframes[Math.max(0,gi-1)]);keyframes.splice(gi,0,wp);selKF=gi;playFrames=null;document.getElementById('scorePanel').style.display='none';updateKFList();refreshView();}
+
+// ============================ 控件绑定 ============================
+document.querySelectorAll('[data-shape]').forEach(b=>b.onclick=()=>{
+  const s=b.dataset.shape;
+  keyframes[selKF]= s==='clear'?new Set():shapes[s]();
+  playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';updateKFList();refreshView();
+});
+document.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{
+  const v=b.dataset.mv.split(',').map(Number),set=currentEditSet(),ns=new Set();
+  for(const c of set){const p=dec(c);ns.add(enc(p[0]+v[0],p[1]+v[1],p[2]+v[2]));}
+  keyframes[selKF]=ns;playFrames=null;updateKFList();refreshView();
+});
+document.querySelector('[data-mirror="x"]').onclick=()=>{
+  const set=currentEditSet(),ns=new Set();for(const c of set){const p=dec(c);ns.add(enc(-p[0],p[1],p[2]));}
+  keyframes[selKF]=ns;playFrames=null;refreshView();
+};
+document.getElementById('paintBtn').onclick=function(){
+  mode=(mode==='paint')?'orbit':'paint';this.classList.toggle('on',mode==='paint');
+  document.getElementById('hintMode').textContent=(mode==='paint')?'绘制体素（单击切换）':'旋转';
+  updateLayerPlane();
+};
+document.getElementById('layer').oninput=function(){layer=+this.value;document.getElementById('layerVal').textContent=layer;updateLayerPlane();};
+document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-r]').forEach(x=>x.classList.remove('on'));b.classList.add('on');opt.radius=+b.dataset.r;});
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-s]').forEach(x=>x.classList.remove('on'));b.classList.add('on');opt.strategy=b.dataset.s;});
+document.querySelectorAll('[data-assist]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-assist]').forEach(x=>x.classList.remove('on'));b.classList.add('on');opt.assist=(b.dataset.assist==='1');});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));b.classList.add('on');setMode(b.dataset.mode);});
+function setMode(m){gameMode=m;const isLogic=(m==='logic');
+  document.getElementById('mobScore').classList.remove('show');
+  document.getElementById('levelBox').style.display=(m==='puzzle')?'block':'none';
+  document.getElementById('logicBox').style.display=isLogic?'block':'none';
+  ['secEdit','secEngine','secGrow'].forEach(id=>document.getElementById(id).style.display=isLogic?'none':'block');
+  document.getElementById('scorePanel').style.display='none';
+  document.getElementById('kfList').style.display=isLogic?'none':'flex';
+  document.getElementById('playbar').style.display=isLogic?'none':'flex';
+  playFrames=null;playIdx=0;
+  if(isLogic){mode='orbit';logicPlaceDir=null;document.querySelectorAll('#logicBox [data-place]').forEach(x=>x.classList.toggle('on',x.dataset.place==='off'));updateLayerPlane();loadPreset('gun');}
+  else if(m==='puzzle'){loadLevel(curLevel);}
+  else{keyframes=[shapes.ball(),T3(shapes.ball(),[6,6,0])];selKF=0;updateKFList();refreshView();}
+}
+function loadLevel(i){curLevel=i;const L=LEVELS[i];keyframes=[L.start(),L.goal()];selKF=0;playFrames=null;playIdx=0;document.getElementById('scorePanel').style.display='none';document.getElementById('levelDesc').textContent=L.desc;document.querySelectorAll('#levelBtns button').forEach((b,j)=>b.classList.toggle('on',j===i));updateKFList();refreshView();}
+document.getElementById('resetLevel').onclick=()=>loadLevel(curLevel);
+document.getElementById('addWaypoint').onclick=insertWaypoint;
+(function(){const lb=document.getElementById('levelBtns');LEVELS.forEach((L,i)=>{const b=document.createElement('button');b.textContent=(i+1)+'·'+L.name;b.onclick=()=>loadLevel(i);lb.appendChild(b);});})();
+
+// ============================ 逻辑/红石：固定规则自治 CA（论文 fcc_single_rule_turing）============================
+// 12-bit 态；方向 A B C D E F a b c d e f；step = R∘T；rt 为 3-循环 (1→3→6→1)，其余不动。
+// v1.0 方向规范: A B C D E F a b c d e f
+const DIRS12=[[0,1,1],[1,0,1],[1,1,0],[0,-1,1],[1,0,-1],[-1,1,0],[0,-1,-1],[-1,0,-1],[-1,-1,0],[0,1,-1],[-1,0,1],[1,-1,0]];
+const TURING={1:3,3:6,6:1};                 // 论文 3-循环 A→A+B→B+C→A
+function makeRT(sp){return s=>sp[s]!==undefined?sp[s]:s;}
+let logicRT=makeRT(TURING);                  // 当前规则（可随预设切换）
+function stepCA(cells){const agg=new Map();for(const [k,s] of cells){const p=k.split(',').map(Number);for(let d=0;d<12;d++)if(s&(1<<d)){const v=DIRS12[d];const nk=(p[0]+v[0])+','+(p[1]+v[1])+','+(p[2]+v[2]);agg.set(nk,(agg.get(nk)||0)|(1<<d));}}const out=new Map();for(const [k,s] of agg){const ns=logicRT(s);if(ns)out.set(k,ns);}return out;}
+function sigCount(cells){let t=0;for(let s of cells.values()){while(s){t+=s&1;s>>=1;}}return t;}
+const LA=1,LB=2,LC=4,LD=1<<3,LE=1<<4,LF=1<<5,La=1<<6,Lb=1<<7,Lc=1<<8,Ld=1<<9,Le=1<<10,Lf=1<<11;  // 位常量(v1.0)
+const LOGIC_PRESETS={
+  gun:{title:'Gun', seed:()=>new Map([['0,0,0',LA]]), note:'单个 A 种子自我再生：信号数应 = t+1，头沿 (0,t,t) 以光速前进（金色=含 A 的活跃头）。'},
+  not:{title:'NOT 门', seed:()=>new Map([['0,0,0',LA],['-10,10,0',LB]]), note:'gun + 一条 B 线在 t=10 撞上头 → rt[3]=6 抹掉 A，gun 终结。信号应冻结在 11。'},
+  and:{title:'AND 门 (1,1)', seed:()=>new Map([['-5,0,-5',LB],['-5,-5,0',LC]]), note:'B、C 两线在 t=5 于原点相撞 → rt[6]=1 点燃新 gun → 之后线性增长（t=30 时信号=26）。单输入则只是一条线穿过，不点火。'},
+  nand:{title:'NAND 门 (1,1)', seed:()=>new Map([['-5,0,-5',LB],['-5,-5,0',LC],['-15,10,-5',LB]]), note:'AND 点燃的 gun 在 t=15 被下游 B 线终结 → 信号冻结在 11（无终结线则一直长到 196）。门可级联。'},
+  latch:{title:'SR 锁存器（1-bit 记忆）', seed:()=>new Map([['-5,0,-5',LB],['-5,-5,0',LC],['-15,10,-5',LB]]), note:'gun 的“存在”就是记忆：置位=AND 点火(t=5)→gun 诞生并永久保持=记住 1；复位=NOT 杀灭(t=15)→记住 0。看活跃头(gold)：0→1 保持 10 tick→0。无复位则 gun 永生（永久记 1）。'},
+  clock:{title:'时钟（gun 脉冲列）', seed:()=>new Map([['0,0,0',LA],['0,-4,-4',LA],['0,-8,-8',LA],['0,-12,-12',LA]]), note:'4 个 A 种子 → 4 条平行 gun = 空间上规则的脉冲列（时钟）。注意：本规则不存在“有界静止振荡器”——每个信号每 tick 必移动，无静止结构，故时钟只能用稳定 gun 列实现。'},
+  fanout:{title:'扇出（信号复制器）', seed:()=>new Map([['0,0,0',LA],['-1,-5,6',LC],['-2,-5,7',LC]]), note:'gun 每 tick 发一个 B（=信号复制器）：不同 C tap 各取一个 B 点火，一个 gun 同时触发多个门（此例 t=6/7 两次点火，看活跃头冲到 2）。局限：A/B 都以 z+1 同步推进，次级 gun 与主 gun 的 B 波前共面，难长期共存——深层级联需要一个“换面/反射”结构（本规则尚未发现），这是搭大电路的下一个待解元件。'},
+  reflector:{title:'反射器 / 时钟（2-循环，与逻辑共存）', ruleLabel:'3-循环 + {E↔e}', rule:{1:3,3:6,6:1,[LE]:Le,[Le]:LE},
+    seed:()=>new Map([['0,0,0',LA],['6,6,6',LE]]),
+    note:'规则 = 论文 3-循环 + {E↔e} 2-循环（方向不相交）。原点 gun 照常自我再生（逻辑）；(6,6,6) 处的 E 信号每步在 E↔−E 间翻转、原地往复（反射/时钟）。二者共存——逻辑与时钟同规则不冲突。'},
+  rotor2:{title:'rotor 时钟 · 周期 2', ruleLabel:'2-循环 {C↔c}', rule:{[LC]:Lc,[Lc]:LC},
+    seed:()=>new Map([['1,1,2',LC]]),
+    note:'最简 blinker：一个 C 信号在相邻两格 (1,1,2)↔(2,2,2) 间往复（C=−c）。周期 2 原地振荡器，也是反射器。'},
+  rotor4:{title:'rotor 时钟 · 周期 4', ruleLabel:'4-循环 {A,C,a,c}', rule:{1:LC,[LC]:La,[La]:Lc,[Lc]:1},
+    seed:()=>new Map([['0,0,0',LA]]),
+    note:'方向和为零的 4-闭环：一个信号依次成为 A→C→a→c，沿闭合环旋转，4 步回到原点。周期 4 rotor。'},
+  rotor6:{title:'rotor 时钟 · 周期 6', ruleLabel:'6-循环 {A,C,f,a,c,F}', rule:{1:LC,[LC]:Lf,[Lf]:La,[La]:Lc,[Lc]:LF,[LF]:1},
+    seed:()=>new Map([['0,0,0',LA]]),
+    note:'6-闭环：信号沿 A→C→f→a→c→F 旋转，6 步回到原点。周期 6 rotor（六边形闭环）。'},
+  clockbank:{title:'双频时钟组（周期4 + 周期6 · 数字核心）', ruleLabel:'ring4→F(周期4) + ring6→f(周期6)', rule:{1:LC|LF,[LC]:La,[La]:Lc,[Lc]:1, [LB]:LD|Lf,[LD]:LE,[LE]:Lb,[Lb]:Ld,[Ld]:Le,[Le]:LB},
+    seed:()=>new Map([['0,0,0',LA],['10,0,0',LB]]),
+    note:'一条规则里同时跑两台时钟枪：ring4 {A,C,a,c} 每 4 tick 发一只 F 滑翔机（周期4），ring6 {B,D,E,b,d,e} 每 6 tick 发一只 f 滑翔机（周期6）。两个频率同规则共存、互不干扰=一个多频时钟发生器（数字核心）。看两股不同速率、不同颜色的箭头流。同样可补全为双射。'},
+  clockgun:{title:'时钟枪（原地 · 周期 6 · 发射 E 流）', ruleLabel:'6-循环环 + 抽头 {A}→{C,E}', rule:{1:LC|LE,[LC]:Lf,[Lf]:La,[La]:Lc,[Lc]:LF,[LF]:1},
+    seed:()=>new Map([['0,0,0',LA]]),
+    note:'反射环 + 发射抽头 = 原地时钟枪。rotor6 环原地转圈；每转一圈（6 tick）在抽头 {A}→{C,E} 处甩出一只 E 滑翔机（白头箭头）向外飞。看：核在原点附近周期回归，E 流不断逃逸，信号数每 6 tick +1。这把枪整条演化只碰 7 个状态且 rt 在其上单射 → 可补全为完整双射（可逆、信息守恒）：双射+原地+发射三者兼得，实测正演/逆演可精确回溯。'},
+  mandala:{title:'艺术 · 旋花阵（曼陀罗）', ruleLabel:'rotor6 × 12 对称位（八面体对称）', rule:{1:LC,[LC]:Lf,[Lf]:La,[La]:Lc,[Lc]:LF,[LF]:1},
+    seed:()=>{const P=[];for(const a of[-1,1])for(const b of[-1,1]){P.push([0,a*4,b*4]);P.push([a*4,0,b*4]);P.push([a*4,b*4,0]);}const m=new Map();for(const p of P)m.set(p.join(','),LA);return m;},
+    note:'把 rotor6 自旋环种子放在 12 个八面体对称位（4×FCC 最近邻方向）。12 个彩色六边形环同步旋转、互不干扰，周期 6——一个有界、循环不息的信号曼陀罗。箭头颜色随方向循环变化。'},
+  dualbloom:{title:'艺术 · 双色旋花', ruleLabel:'ring4 + ring6 × 12（双周期 lcm=12）', rule:{1:LC,[LC]:La,[La]:Lc,[Lc]:1, [LB]:LD,[LD]:LE,[LE]:Lb,[Lb]:Ld,[Ld]:Le,[Le]:LB},
+    seed:()=>{const P=[];for(const a of[-1,1])for(const b of[-1,1]){P.push([0,a*4,b*4]);P.push([a*4,0,b*4]);P.push([a*4,b*4,0]);}const m=new Map();P.forEach((p,i)=>m.set(p.join(','), i%2?LB:LA));return m;},
+    note:'两种自旋环交替排布：ring4 {A,C,a,c}（周期4）与 ring6 {B,D,E,b,d,e}（周期6）各 6 个。两种速度、两组颜色的旋花交织，整体周期 12（lcm）——一幅双拍的动态图案。'},
+  clear:{title:'自由沙盒', seed:()=>new Map(), note:'空白。用上面的放置工具自由摆 A/B/C 信号，再运行看它们如何传播、碰撞。'}
+};
+let logicCells=new Map(), logicInit=new Map(), logicTick=0, logicPlaying=false, logicLastTick=0, logicPlaceDir=null, logicPreset='gun';
+function loadPreset(name){logicPreset=name;const p=LOGIC_PRESETS[name];logicRT=makeRT(p.rule||TURING);logicInit=p.seed();logicCells=new Map(logicInit);logicTick=0;logicPlaying=false;document.getElementById('logicPlay').textContent='▶ 运行';document.getElementById('logicNote').textContent=p.note;document.querySelectorAll('#logicBox [data-preset]').forEach(b=>b.classList.toggle('on',b.dataset.preset===name));logicRender();}
+function logicRender(){renderSignals(logicCells);
+  document.getElementById('logicTick').textContent=logicTick;document.getElementById('logicSig').textContent=sigCount(logicCells);
+  let beat=0;for(const k of logicCells.keys()){const p=k.split(',').map(Number);if(Math.max(Math.abs(p[0]),Math.abs(p[1]),Math.abs(p[2]))>5)beat++;}document.getElementById('logicBeat').textContent=beat;
+  document.getElementById('stageLabel').textContent='逻辑 / 红石';
+  document.getElementById('stageTitle').textContent=(LOGIC_PRESETS[logicPreset]||{}).title||'逻辑';
+  document.getElementById('stageSub').textContent='规则: '+((LOGIC_PRESETS[logicPreset]||{}).ruleLabel||'3-循环 (1→3→6→1)')+' · tick '+logicTick+' · 信号 '+sigCount(logicCells)+' · 箭头=信号方向（红/黄/蓝=A/B/C，白杆=D/E/F，白头=a/b/c，浅色=d/e/f）';
+  document.getElementById('frameLabel').textContent='t='+logicTick;}
+function logicStep(){logicCells=stepCA(logicCells);logicTick++;logicRender();}
+document.querySelectorAll('#logicBox [data-preset]').forEach(b=>b.onclick=()=>loadPreset(b.dataset.preset));
+// ---- 单门真值演示 ----
+let tdGate='NOT', tdI1=false, tdI2=false;
+function tdSeed(){const m=new Map();if(tdGate==='NOT'){m.set('0,0,0',LA);if(tdI1)m.set('-10,10,0',LB);}else{if(tdI1)m.set('-5,0,-5',LB);if(tdI2)m.set('-5,-5,0',LC);}return m;}
+function tdVerdict(seed){logicRT=makeRT(TURING);let c=new Map(seed),s20=0;for(let t=0;t<=40;t++){if(t===20)s20=sigCount(c);c=stepCA(c);}return (sigCount(c)>s20+2)?1:0;}
+function tdRenderTable(){const html=(tdGate==='NOT')?'NOT 真值表: 入0→出 <b>1</b> · 入1→出 <b>0</b>':'AND 真值表: (0,0)→0 · (1,0)→0 · (0,1)→0 · <b>(1,1)→1</b>';document.getElementById('tdTable').innerHTML=html+'　（输出 1 = gun 点燃/存活、信号持续增长）';}
+function tdSetGate(g){tdGate=g;document.getElementById('tdNOT').classList.toggle('on',g==='NOT');document.getElementById('tdAND').classList.toggle('on',g==='AND');const i2=document.getElementById('tdI2');i2.disabled=(g==='NOT');i2.style.opacity=(g==='NOT')?'.4':'1';document.getElementById('tdOut').textContent='—';tdRenderTable();}
+document.getElementById('tdNOT').onclick=()=>tdSetGate('NOT');
+document.getElementById('tdAND').onclick=()=>tdSetGate('AND');
+document.getElementById('tdI1').onclick=function(){tdI1=!tdI1;this.textContent='输入① = '+(tdI1?1:0);};
+document.getElementById('tdI2').onclick=function(){if(this.disabled)return;tdI2=!tdI2;this.textContent='输入② = '+(tdI2?1:0);};
+document.getElementById('tdRun').onclick=()=>{
+  logicPreset='truthdemo'; logicRT=makeRT(TURING);
+  const seed=tdSeed(); const out=tdVerdict(seed);
+  document.getElementById('tdOut').textContent=out+(out?'  （gun 点燃/存活）':'  （无 gun）');
+  logicInit=new Map(seed); logicCells=new Map(seed); logicTick=0; logicPlaying=false; document.getElementById('logicPlay').textContent='▶ 运行';
+  document.querySelectorAll('#logicBox [data-preset]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('logicNote').textContent=(tdGate==='NOT'?'NOT 门：gun 默认存活=输出1；输入① 放一条 B 线在 t=10 撞头杀掉 gun → 输出0。':'AND 门：两条输入线 B、C 需在 t=5 于原点相撞才点燃 gun → 仅 (1,1) 输出1。')+' 当前输入 ①='+(tdI1?1:0)+(tdGate==='AND'?' ②='+(tdI2?1:0):'')+' → 输出 '+out;
+  logicRender(); document.getElementById('stageTitle').textContent='单门真值演示 · '+tdGate;
+};
+tdRenderTable();
+document.querySelectorAll('#logicBox [data-place]').forEach(b=>b.onclick=()=>{document.querySelectorAll('#logicBox [data-place]').forEach(x=>x.classList.remove('on'));b.classList.add('on');logicPlaceDir=(b.dataset.place==='off')?null:+b.dataset.place;mode=(logicPlaceDir!==null)?'paint':'orbit';document.getElementById('hintMode').textContent=(logicPlaceDir!==null)?'放置信号（单击）':'旋转';updateLayerPlane();});
+document.getElementById('logicLayer').oninput=function(){layer=+this.value;document.getElementById('logicLayerVal').textContent=layer;updateLayerPlane();};
+document.getElementById('logicPlay').onclick=function(){logicPlaying=!logicPlaying;this.textContent=logicPlaying?'⏸ 暂停':'▶ 运行';};
+document.getElementById('logicStepBtn').onclick=()=>{logicPlaying=false;document.getElementById('logicPlay').textContent='▶ 运行';logicStep();};
+document.getElementById('logicReset').onclick=()=>{logicCells=new Map(logicInit);logicTick=0;logicPlaying=false;document.getElementById('logicPlay').textContent='▶ 运行';logicRender();};
+
+// ============================ 生长 ============================
+document.getElementById('growBtn').onclick=()=>{
+  if(keyframes.length<2){alert('至少需要 2 个关键帧');return;}
+  document.querySelector('.side').classList.remove('open'); // LIG-4: sheet out of the way so the growth is visible
+  document.getElementById('busy').style.display='flex';
+  const kfArrays=keyframes.map(s=>[...s]);
+  worker.postMessage({keyframes:kfArrays,opt:opt});
+};
+worker.onmessage=(e)=>{
+  document.getElementById('busy').style.display='none';
+  const res=e.data;playFrames=res.allFrames;perTarget=res.perTarget;playIdx=0;
+  document.getElementById('scrub').max=playFrames.length-1;document.getElementById('scrub').value=0;
+  showScore();refreshView();startPlay();
+};
+// 平滑度：惩罚帧间大跳变（相邻帧对称差 / 体素和）。突变→低，渐变→高。
+function computeSmoothness(frames){
+  const rs=[];
+  for(let i=1;i<frames.length;i++){
+    const A=new Set(frames[i-1].occ),B=new Set(frames[i].occ);
+    let d=0;for(const c of A)if(!B.has(c))d++;for(const c of B)if(!A.has(c))d++;
+    if(d===0)continue;                              // 跳过停留帧（完全相同）
+    rs.push(d/((A.size+B.size)||1));
+  }
+  if(!rs.length)return 1;
+  const mean=rs.reduce((a,b)=>a+b,0)/rs.length, max=Math.max(...rs);
+  return Math.max(0,1-(0.5*mean+0.5*max));          // 兼顾平均与最坏一跳
+}
+function showScore(){
+  const f1s=perTarget.map(p=>p.f1);
+  const mF1=f1s.reduce((a,b)=>a+b,0)/f1s.length;
+  const tFP=perTarget.reduce((a,p)=>a+p.fp,0);
+  const tFN=perTarget.reduce((a,p)=>a+p.fn,0);
+  const tInt=perTarget.reduce((a,p)=>a+(p.intermediates||0),0);
+  const smooth=computeSmoothness(playFrames);
+  const isP=(gameMode==='puzzle');
+  document.getElementById('scorePanel').style.display='block';
+  document.getElementById('smoothVal').textContent=(smooth*100).toFixed(0)+'%';
+  document.getElementById('mF1').textContent=mF1.toFixed(4);
+  document.getElementById('tFP').textContent=tFP;
+  document.getElementById('tFN').textContent=tFN;
+  document.getElementById('nKF').textContent=keyframes.length;
+  document.getElementById('nInt').textContent=tInt;
+  document.getElementById('rowGoalF1').style.display=isP?'flex':'none';
+  document.getElementById('rowWp').style.display=isP?'flex':'none';
+  document.getElementById('rowInt').style.display='flex';
+  document.getElementById('rowPlan').style.display=isP?'flex':'none';
+  let score,note;
+  if(isP){
+    const goalF1=f1s[f1s.length-1];
+    const nWp=Math.max(0,keyframes.length-2);
+    const planCost=PLAN.waypoint*nWp+PLAN.intermediate*tInt+(opt.radius>=2?PLAN.radius2:0);
+    score=Math.round(1000*goalF1*smooth-planCost-500*tFP);  // 质量 = 到达度 × 平滑度
+    document.getElementById('goalF1').textContent=goalF1.toFixed(4);
+    document.getElementById('nWp').textContent=nWp;
+    document.getElementById('planCost').textContent=planCost;
+    const reach=goalF1>0.98, jerky=smooth<0.7;
+    note=(reach?'✔ 到达目标！':'✘ 尚未长到目标（绿没盖住金）——加路点或开形变辅助。')+(reach&&jerky?' 但过渡突变（平滑度低）——开形变辅助或加密路点买回平滑分。':'')+' 分数 = 到达度×平滑度 − 计划成本。';
+  }else{
+    score=Math.round(1000*mF1*smooth-40*Math.max(0,keyframes.length-2)-120*(opt.radius>=2?1:0)-500*tFP);
+    note=(tFP===0?'precise 保证 FP=0。':'majority 出现假阳性。')+' 分数 = 平均F1×平滑度 − 关键帧/感受野成本。';
+  }
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('scoreNote').textContent=note;
+  // LIG-4 (re-applied): compact score card over the viewer so mobile sees the result without opening the sheet
+  const ms=document.getElementById('mobScore');
+  ms.innerHTML='<div class="label">评分</div><div class="title">'+score+'</div><div class="sub">F1 '+mF1.toFixed(4)+' · 平滑 '+(smooth*100).toFixed(0)+'% · FP '+tFP+' · FN '+tFN+'</div>';
+  ms.classList.add('show');
+}
+
+// ============================ 播放 ============================
+function startPlay(){playing=true;document.getElementById('playBtn').textContent='❚❚';}
+function stopPlay(){playing=false;document.getElementById('playBtn').textContent='▶';}
+document.getElementById('playBtn').onclick=()=>{if(!playFrames)return;playing?stopPlay():startPlay();};
+document.getElementById('stopBtn').onclick=()=>{playFrames=null;stopPlay();playIdx=0;document.getElementById('scorePanel').style.display='none';document.getElementById('scrub').value=0;refreshView();};
+document.getElementById('scrub').oninput=function(){if(!playFrames)return;stopPlay();playIdx=+this.value;refreshView();};
+
+// ============================ 循环 ============================
+function resize(){const w=viewer.clientWidth,h=viewer.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);
+function loop(ts){
+  if(gameMode==='logic'){
+    if(logicPlaying){const spf=1000/(+document.getElementById('logicSpeed').value);if(ts-logicLastTick>spf){logicLastTick=ts;logicStep();}}
+  }else if(playing&&playFrames){const spf=1000/(+document.getElementById('speed').value);if(ts-lastTick>spf){lastTick=ts;playIdx++;if(playIdx>=playFrames.length){playIdx=playFrames.length-1;stopPlay();}else{document.getElementById('scrub').value=playIdx;refreshView();}}}
+  renderer.render(scene,camera);requestAnimationFrame(loop);
+}
+// ============================ LIG-4 (re-applied): 移动端 ============================
+const IS_TOUCH=matchMedia('(pointer: coarse)').matches;
+if(IS_TOUCH)document.querySelector('.head .hint').innerHTML='单指：<span id="hintMode">旋转</span> · 双指捏合：缩放';
+const sideEl=document.querySelector('.side');
+document.getElementById('sheetTog').onclick=()=>sideEl.classList.toggle('open');
+// 逻辑模式下 ▶ 映射到自治 CA 的运行/暂停；其余模式触发生长求解
+document.getElementById('mobGrowBtn').onclick=()=>{
+  if(gameMode==='logic'){sideEl.classList.remove('open');document.getElementById('logicPlay').click();}
+  else document.getElementById('growBtn').click();
+};
+
+// init
+resize();updateCam();updateLayerPlane();updateKFList();refreshView();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
