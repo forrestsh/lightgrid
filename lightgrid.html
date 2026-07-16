@@ -1571,6 +1571,8 @@ const MODES=[
 ];
 const tabsEl=$('tabs');
 // LIG-3: Seed & Crystal (M1) — first game in the nav; a sibling page, not an in-app mode, so no active state
+// LIG-6: fcc-car is the home page (served at /); link to it as the first nav entry
+{const b=document.createElement('button');b.className='tab';b.innerHTML=`<span class="g">🏎</span>OpenRC F1`;b.addEventListener('click',()=>{location.href='fcc_car.html';});tabsEl.appendChild(b);}
 {const b=document.createElement('button');b.className='tab';b.innerHTML=`<span class="g">❖</span>Seed & Crystal`;b.addEventListener('click',()=>{location.href='seed_and_crystal_M2.html';});tabsEl.appendChild(b);}
 MODES.forEach(m=>{const b=document.createElement('button');b.className='tab';b.dataset.id=m.id;b.innerHTML=`<span class="g">${m.glyph}</span>${m.name}`;b.addEventListener('click',()=>switchMode(m.id));tabsEl.appendChild(b);});
 function switchMode(id){
