@@ -46,7 +46,7 @@ input[type=color]{width:30px;height:30px;border:1px solid var(--hair);border-rad
 #language button{min-width:48px;padding:5px 9px;font-size:11px;letter-spacing:.06em}
 @media(max-width:620px){.cap{display:none}#readout .big{font-size:20px}#label .name{font-size:16px}
  #language{top:72px;right:18px;left:auto;transform:none}#panel{bottom:10px}.row{gap:6px}.seg button,button{padding:7px 8px}
- #zoom{top:130px;bottom:auto}.hint{bottom:290px}}
+ #zoom{top:130px;bottom:auto}}
 </style></head><body>
 <div id="stage"></div>
 <div id="label" class="mono"><div class="k" data-i18n="subtitle">Livery · Assembly</div><div class="name">OpenRC F1</div>
@@ -97,6 +97,7 @@ function applyLanguage(next,persist=true){
  document.getElementById('hint').textContent=modeP==='move'?tr('moveHint'):tr('paintHint');
  document.getElementById('selName').textContent=selectedPart>=0?tr('selectedPart')(names[selectedPart]):'';
  const colorInput=document.querySelector('#palette input[type=color]');if(colorInput)colorInput.setAttribute('aria-label',tr('color'));
+ positionHint();
  if(persist)try{localStorage.setItem(LANGUAGE_KEY,language)}catch(e){}
 }
 const BASEPLAIN=[0.60,0.64,0.71];
@@ -279,11 +280,13 @@ document.getElementById('spin').onclick=e=>{autoSpin=!autoSpin;e.target.classLis
 document.getElementById('resetPaint').onclick=()=>{for(const k in paintedMap)delete paintedMap[k];applyBase();savePaint();updateCount()};
 document.getElementById('resetLayout').onclick=()=>{for(let i=0;i<names.length;i++){partOffset[i]=[0,0,0];refreshPartPos(i)}saveLayout()};
 const panel=document.getElementById('panel'),collapseBtn=document.getElementById('collapse');
-collapseBtn.onclick=()=>{const c=panel.classList.toggle('collapsed');collapseBtn.textContent=c?tr('expand'):'▾';collapseBtn.setAttribute('aria-label',c?tr('expandAria'):tr('collapse'))};
+function positionHint(){const top=collapseBtn.getBoundingClientRect().top;document.getElementById('hint').style.bottom=(innerHeight-top+10)+'px'}
+collapseBtn.onclick=()=>{const c=panel.classList.toggle('collapsed');collapseBtn.textContent=c?tr('expand'):'▾';collapseBtn.setAttribute('aria-label',c?tr('expandAria'):tr('collapse'));positionHint()};
+panel.addEventListener('transitionend',positionHint);
 document.getElementById('language').onclick=e=>{const b=e.target.closest('button[data-lang]');if(b)applyLanguage(b.dataset.lang)};
 
 applyLanguage(language,false);build();loadPaint();loadLayout();
-function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();updateFit()}
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();updateFit();positionHint()}
 addEventListener('resize',resize);resize();
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;let lastT=performance.now();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-lastT)/1000);lastT=now;
