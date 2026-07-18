@@ -63,13 +63,13 @@
 <div id="tags"></div>
 <div class="loadstate" id="loadstate">正在生成 FCC 小世界…</div>
 <script>
-window.addEventListener('error',event=>{const box=document.getElementById('loadstate');if(box){const detail=event.message&&event.message!=='Script error.'?event.message:(event.filename?event.filename.split('/').pop()+' · line '+event.lineno:'浏览器不支持当前 3D 功能或脚本未能载入');box.className='loadstate error';box.textContent='模型加载失败：'+detail;}});
+window.__valleyStage='script';window.addEventListener('error',event=>{const box=document.getElementById('loadstate');if(box){const detail=event.message&&event.message!=='Script error.'?event.message:(event.filename?event.filename.split('/').pop()+' · line '+event.lineno:'初始化阶段 '+window.__valleyStage+' 失败');box.className='loadstate error';box.textContent='模型加载失败：'+detail;}});
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous" onerror="document.getElementById('loadstate').className='loadstate error';document.getElementById('loadstate').textContent='模型加载失败：Three.js 网络脚本未能载入，请检查网络后刷新。'"></script>
 <script>
-const view=document.getElementById('view'),scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x060911,.012);
-const camera=new THREE.PerspectiveCamera(43,1,.1,800),renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;renderer.shadowMap.enabled=true;view.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xb8d3ff,0x15100b,.82));const sun=new THREE.DirectionalLight(0xffdfb8,1.08);sun.position.set(-30,45,22);sun.castShadow=true;scene.add(sun);const rim=new THREE.DirectionalLight(0x64bfff,.32);rim.position.set(35,8,-30);scene.add(rim);
+window.__valleyStage='renderer';const mobile3D=matchMedia('(max-width:760px)').matches,view=document.getElementById('view'),scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x060911,.012);
+const camera=new THREE.PerspectiveCamera(43,1,.1,800),renderer=new THREE.WebGLRenderer({antialias:!mobile3D,alpha:true,powerPreference:mobile3D?'low-power':'high-performance'});renderer.setPixelRatio(mobile3D?1:Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;renderer.shadowMap.enabled=!mobile3D;view.appendChild(renderer.domElement);renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();const box=document.getElementById('loadstate');box.className='loadstate error';box.textContent='模型加载失败：移动 GPU 丢失 WebGL 上下文';});
+scene.add(new THREE.HemisphereLight(0xb8d3ff,0x15100b,.82));const sun=new THREE.DirectionalLight(0xffdfb8,1.08);sun.position.set(-30,45,22);sun.castShadow=!mobile3D;scene.add(sun);const rim=new THREE.DirectionalLight(0x64bfff,.32);rim.position.set(35,8,-30);scene.add(rim);
 
 // FCC lattice coordinates use even x+y+z. World axes: lattice z is vertical.
 const key=(x,y,z)=>`${x},${y},${z}`,parse=k=>k.split(',').map(Number),even=(x,y,z)=>((x+y+z)&1)===0;
@@ -109,11 +109,12 @@ for(let i=0;i<54;i++){const x=-12+Math.floor(seeded(i,3,9)*34),y=16+Math.floor(s
 // Rule core: concentric FCC pylons around a luminous central seed.
 const core=[0,-28,-2];for(let a=0;a<12;a++){const t=a/12*Math.PI*2,x=Math.round(core[0]+Math.cos(t)*7),y=Math.round(core[1]+Math.sin(t)*7);for(let z=-2;z<=8;z+=2)put(x,y,z,'core')}for(let z=-2;z<=12;z+=2)put(core[0],core[1],z,'coreLight');
 
-// Remove doorway void markers.
+// Remove doorway void markers. Mobile also drops hidden terrain cells so the same 3D world fits a smaller GPU budget.
 for(const [k,t] of [...cells])if(t==='void')cells.delete(k);
+if(mobile3D){window.__valleyStage='mobile terrain culling';for(const [k,t] of [...cells]){if(!['stone','soil','riverbed','water'].includes(t))continue;const p=parse(k);if(cells.has(key(p[0],p[1],p[2]+2)))cells.delete(k)}}
 
 function rdGeometry(s){const cube=[];for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])cube.push([x,y,z]);const V=cube.concat([[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]]),dirs=[];for(const a of[-1,1])for(const b of[-1,1]){dirs.push([a,b,0],[a,0,b],[0,a,b])}const pos=[];for(const d of dirs){const on=V.filter(v=>v[0]*d[0]+v[1]*d[1]+v[2]*d[2]===2),av=on.filter(v=>v.some(n=>Math.abs(n)===2)),cv=on.filter(v=>v.every(n=>Math.abs(n)!==2));let q=[av[0],cv[0],av[1],cv[1]].map(v=>v.map(n=>n*s));const u=q[1].map((n,i)=>n-q[0][i]),v=q[2].map((n,i)=>n-q[0][i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];if(n[0]*d[0]+n[1]*d[1]+n[2]*d[2]<0)q=[q[0],q[3],q[2],q[1]];for(const tri of[[0,1,2],[0,2,3]])for(const j of tri)pos.push(...q[j])}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();return g}
-const geo=rdGeometry(.285),palette={stone:0x536175,soil:0x6c685d,riverbed:0x26384c,water:0x315f7b,road:0xa68456,bridge:0xb18b55,bridgeBreak:0xef7777,bridgeSupport:0x806642,bridgeRail:0xd0a965,workshop:0xd7a954,dwelling:0xb99558,roof:0x765f48,greenhouse:0x90c7ad,crop:0x6df0c8,crystal:0x4adbb5,core:0x568dd7,coreLight:0xa7dcff};
+window.__valleyStage='mesh creation';const geo=rdGeometry(.285),palette={stone:0x536175,soil:0x6c685d,riverbed:0x26384c,water:0x315f7b,road:0xa68456,bridge:0xb18b55,bridgeBreak:0xef7777,bridgeSupport:0x806642,bridgeRail:0xd0a965,workshop:0xd7a954,dwelling:0xb99558,roof:0x765f48,greenhouse:0x90c7ad,crop:0x6df0c8,crystal:0x4adbb5,core:0x568dd7,coreLight:0xa7dcff};
 const groups={};for(const [k,t] of cells){(groups[t]||(groups[t]=[])).push(k)}const meshes={},dummy=new THREE.Object3D();
 for(const [type,arr] of Object.entries(groups)){const emissive=type==='coreLight'||type==='crystal',mat=new THREE.MeshStandardMaterial({color:palette[type],roughness:type==='water'?.25:.72,metalness:type==='core'?.35:.03,transparent:type==='water'||type==='greenhouse',opacity:type==='water'?.58:type==='greenhouse'?.74:1,emissive:emissive?palette[type]:0,emissiveIntensity:emissive?.18:0});const m=new THREE.InstancedMesh(geo,mat,arr.length);m.castShadow=!['water','crystal'].includes(type);m.receiveShadow=true;arr.forEach((k,i)=>{const p=parse(k);dummy.position.copy(world(...p));dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)});m.instanceMatrix.needsUpdate=true;scene.add(m);meshes[type]=m}
 document.getElementById('cellCount').textContent=cells.size.toLocaleString();
@@ -165,7 +166,7 @@ if(actor.autoPhase==='travel'){if(actor.autoGoal==='repair'){actor.x-=5*dt;actor
 if(actor.autoPhase==='acting'&&actor.autoTimer>3){if(actor.autoGoal==='repair'){meshes.bridgeBreak.material.color.setHex(0xb18b55);meshes.bridgeBreak.material.emissive.setHex(0x000000);meshes.bridgeBreak.material.emissiveIntensity=0;logEvent('bridge_repaired','化身自主完成旧桥临时修复');setMission('自主行动完成','旧桥重新稳定。角色把玩家对公共设施的关心延续成了自己的行动。');document.getElementById('focus').innerHTML='<b>它修好了桥</b><span>这不是刚才下达的命令，但来自玩家留下的行为证据。</span>'}else{logEvent('greenhouse_stabilized','化身自主完成温室能源检查');setMission('自主行动完成','温室的能源与培育床已经稳定。角色延续了玩家完成当前责任的倾向。');document.getElementById('focus').innerHTML='<b>它留在了温室</b><span>它认为刚恢复供能的生命系统比尚可通行的桥更紧迫。</span>'}actor.autoPhase='complete';actor.autonomous=false;scene.fog.density=.012;sun.intensity=1.08}
 placeAvatar();avatar.position.y+=Math.abs(Math.sin(t*.012))*(actor.autoPhase==='travel'?.08:0);target.lerp(avatar.position.clone().add(new THREE.Vector3(0,1,0)),.055);theta=.9;phi=.95;camR=17
 }else if(!drag)theta+=.00012;camera.position.set(target.x+camR*Math.sin(phi)*Math.cos(theta),target.y+camR*Math.cos(phi),target.z+camR*Math.sin(phi)*Math.sin(theta));camera.lookAt(target);const pulse=.28+Math.sin(t*.003)*.12;if(meshes.coreLight)meshes.coreLight.material.emissiveIntensity=pulse;updateTags();renderer.render(scene,camera)}
-addEventListener('resize',resize);resize();selectPlace('valley');document.getElementById('loadstate').className='loadstate done';animate(0);
+addEventListener('resize',resize);resize();selectPlace('valley');window.__valleyStage='complete';document.getElementById('loadstate').className='loadstate done';animate(0);
 </script>
 </body>
 </html>
