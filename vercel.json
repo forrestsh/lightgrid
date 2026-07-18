@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/", "destination": "/fcc_car.html" },
     { "source": "/grid", "destination": "/lightgrid.html" },
-    { "source": "/seed", "destination": "/seed_and_crystal_M2.html" }
+    { "source": "/seed", "destination": "/seed_and_crystal_M2.html" },
+    { "source": "/valley", "destination": "/broken_bridge_valley_v1.html" }
   ]
 }

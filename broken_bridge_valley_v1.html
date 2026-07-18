@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070c">
+<title>断桥谷 · FCC 小世界模型 v1</title>
+<style>
+:root{--bg:#05070c;--panel:rgba(8,11,18,.88);--line:#263047;--text:#edf1f7;--muted:#8992a6;--gold:#e4c365;--green:#6df0c8;--blue:#6cb8ff;--red:#ef7777;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;--serif:Georgia,"Noto Serif SC",serif}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text)}body{font:12px/1.45 var(--mono)}
+#view{position:fixed;inset:0;background:radial-gradient(ellipse at 55% 44%,#172033 0,#080b13 45%,#030409 100%);touch-action:none}canvas{display:block;width:100%;height:100%}
+.top{position:fixed;left:0;right:0;top:0;height:52px;display:flex;align-items:center;gap:12px;padding:0 16px;background:linear-gradient(#070a10f2,#070a10c8);border-bottom:1px solid var(--line);z-index:3}.back{color:var(--muted);text-decoration:none;border:1px solid var(--line);padding:4px 8px}.brand{font:18px var(--serif)}.brand em{color:var(--gold);font-style:normal}.version{color:var(--muted);font-size:9px;letter-spacing:.12em}.spacer{flex:1}.hint{color:var(--muted);font-size:9px}
+.panel{position:fixed;z-index:3;background:var(--panel);backdrop-filter:blur(13px);border:1px solid var(--line);box-shadow:0 14px 40px #0006}.left{left:14px;top:66px;width:252px;padding:13px}.right{right:14px;top:66px;width:276px;padding:13px}.eyebrow{font-size:8px;color:var(--muted);letter-spacing:.2em;text-transform:uppercase}.title{font:20px var(--serif);margin:4px 0}.copy{color:#b9c1d1;font-size:10px}.divider{height:1px;background:var(--line);margin:11px 0}.row{display:flex;gap:6px;flex-wrap:wrap}button{font:10px var(--mono);color:#b9c1d1;background:#111725;border:1px solid #303a51;padding:6px 8px;cursor:pointer}button:hover,button.on{color:var(--green);border-color:var(--green);background:#10231f}.stat{display:flex;justify-content:space-between;margin:5px 0;color:var(--muted)}.stat b{color:var(--text);font-weight:500}.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;color:#aeb6c7;font-size:9px}.sw{display:inline-block;width:9px;height:9px;margin-right:6px;border-radius:2px;vertical-align:-1px}
+.place{width:100%;text-align:left;margin:3px 0;display:flex;justify-content:space-between}.place small{color:var(--muted)}.place.on small{color:var(--green)}
+.focus{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:3;min-width:300px;max-width:560px;text-align:center;background:var(--panel);border:1px solid var(--line);padding:9px 14px;pointer-events:none}.focus b{font:15px var(--serif);color:var(--gold)}.focus span{display:block;color:var(--muted);font-size:9px;margin-top:2px}
+.walkpad{position:fixed;right:18px;bottom:18px;z-index:5;display:none;grid-template-columns:42px 42px 42px;grid-template-rows:42px 42px;gap:5px}.walkpad.show{display:grid}.walkpad button{font-size:17px;padding:0;background:#0b111dda;touch-action:none}.walkpad .up{grid-column:2}.walkpad .leftkey{grid-column:1;grid-row:2}.walkpad .down{grid-column:2;grid-row:2}.walkpad .rightkey{grid-column:3;grid-row:2}
+.interact{position:fixed;right:24px;bottom:126px;z-index:6;display:none;width:126px;padding:10px;color:var(--gold);border-color:var(--gold);background:#241f10e8}.interact.show{display:block}.mission{margin-top:9px;padding:8px;border:1px solid #34405a;background:#0b101b}.mission b{display:block;color:var(--gold);font:13px var(--serif);margin-bottom:2px}.mission span{font-size:9px;color:var(--muted)}.record{max-height:112px;overflow:auto;margin-top:6px;padding-left:16px;color:#aeb6c7;font-size:8.5px}.record li{margin:3px 0}.record time{color:var(--green);margin-right:5px}
+.release{display:none;width:100%;margin-top:8px;padding:8px;color:var(--blue);border-color:var(--blue);background:#101d2b}.release.show{display:block}.decision{display:none;margin-top:7px;padding:7px;border-left:2px solid var(--green);background:#0b1718;color:#aeb6c7;font-size:8.5px}.decision.show{display:block}.decision b{font:10px var(--mono);color:var(--green)}
+.tag{position:fixed;z-index:2;transform:translate(-50%,-50%);padding:4px 7px;background:#070a10dc;border:1px solid #33405b;color:#d8deeb;font-size:9px;pointer-events:none;white-space:nowrap}.tag:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);margin-right:5px;box-shadow:0 0 8px var(--green)}
+.loadstate{position:fixed;inset:0;z-index:8;display:flex;align-items:center;justify-content:center;background:#05070c;color:var(--green);font:11px var(--mono);letter-spacing:.1em}.loadstate.error{color:var(--red);padding:24px;text-align:center;line-height:1.8}.loadstate.done{display:none}
+@media(max-width:760px){.right{display:none}.left{width:auto;right:10px;left:10px;top:62px;padding:10px}.left .copy,.left .divider,.left .legend,.left .recordTitle,.left .record{display:none}.top{padding:0 10px}.version,.hint{display:none}.focus{bottom:116px;max-width:calc(100% - 20px);min-width:0;width:calc(100% - 20px)}.tag{display:none}.walkpad{right:50%;transform:translateX(50%);bottom:10px}.interact{right:10px;bottom:68px;width:auto}}
+</style>
+</head>
+<body>
+<div id="view"></div>
+<header class="top"><a class="back" href="lightgrid.html">← Lightgrid</a><div class="brand"><em>断桥谷</em> · Broken Bridge Valley</div><div class="version">FCC WORLD STUDY · V1</div><div class="spacer"></div><div class="hint">拖动旋转 · 滚轮缩放 · 点击地标聚焦</div></header>
+<section class="panel left">
+  <div class="eyebrow">first persistent world</div><div class="title">一座会发生事情的地方</div>
+  <div class="copy">系统预制世界骨架；桥梁、道路、晶体生态与规则核心均由 FCC 单元程序化生成。这一版用于验证空间关系与主线事件。</div>
+  <div class="divider"></div>
+  <div class="row"><button id="overview" class="on">观察者</button><button id="embodied">开始旅程</button><button id="damage">桥梁损坏</button><button id="growth">森林生长</button></div>
+  <div class="divider"></div>
+  <div class="legend">
+    <span><i class="sw" style="background:#63738b"></i>谷地岩层</span><span><i class="sw" style="background:#e4c365"></i>聚落结构</span>
+    <span><i class="sw" style="background:#6df0c8"></i>晶体生态</span><span><i class="sw" style="background:#6cb8ff"></i>规则设施</span>
+    <span><i class="sw" style="background:#ef7777"></i>桥梁裂口</span><span><i class="sw" style="background:#a88556"></i>通行道路</span>
+  </div>
+  <div class="mission"><b id="missionTitle">尚未进入化身</b><span id="missionText">点击“开始旅程”启动能量晶体送货任务。</span></div>
+  <button class="release" id="release">放手测试 · 退出控制</button>
+  <div class="decision" id="decision"></div>
+  <div class="eyebrow recordTitle" style="margin-top:10px">behavior record</div><ol class="record" id="record"><li>等待第一段经历</li></ol>
+</section>
+<aside class="panel right">
+  <div class="eyebrow">semantic landmarks</div><div class="title" style="font-size:16px">世界地标</div>
+  <button class="place on" data-place="valley">全谷概览 <small>WORLD</small></button>
+  <button class="place" data-place="south">南岸工坊 <small>CRAFT</small></button>
+  <button class="place" data-place="bridge">旧桥 <small>CONNECT</small></button>
+  <button class="place" data-place="north">北岸温室 <small>CARE</small></button>
+  <button class="place" data-place="forest">晶体森林 <small>GROW</small></button>
+  <button class="place" data-place="core">旧规则核心 <small>KNOW</small></button>
+  <div class="divider"></div>
+  <div class="stat"><span>FCC 单元</span><b id="cellCount">—</b></div>
+  <div class="stat"><span>主要路线</span><b>桥 / 山路</b></div>
+  <div class="stat"><span>剧情压力</span><b>物流 · 生态 · 权力</b></div>
+  <div class="stat"><span>模型方式</span><b>程序化 + 语义</b></div>
+</aside>
+<div class="focus" id="focus"><b>断桥谷</b><span>南岸的材料、北岸的生命，以及连接二者的一座旧桥。</span></div>
+<div class="walkpad" id="walkpad"><button class="up" data-move="forward">↑</button><button class="leftkey" data-move="left">←</button><button class="down" data-move="back">↓</button><button class="rightkey" data-move="right">→</button></div>
+<button class="interact" id="interact">E · 交互</button>
+<div id="tags"></div>
+<div class="loadstate" id="loadstate">正在生成 FCC 小世界…</div>
+<script>
+window.addEventListener('error',event=>{const box=document.getElementById('loadstate');if(box){box.className='loadstate error';box.textContent='模型加载失败：'+(event.message||'无法载入本地渲染组件');}});
+</script>
+<script src="vendor/three.min.js"></script>
+<script>
+const view=document.getElementById('view'),scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x060911,.012);
+const camera=new THREE.PerspectiveCamera(43,1,.1,800),renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputEncoding=THREE.sRGBEncoding;renderer.shadowMap.enabled=true;view.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xb8d3ff,0x15100b,.82));const sun=new THREE.DirectionalLight(0xffdfb8,1.08);sun.position.set(-30,45,22);sun.castShadow=true;scene.add(sun);const rim=new THREE.DirectionalLight(0x64bfff,.32);rim.position.set(35,8,-30);scene.add(rim);
+
+// FCC lattice coordinates use even x+y+z. World axes: lattice z is vertical.
+const key=(x,y,z)=>`${x},${y},${z}`,parse=k=>k.split(',').map(Number),even=(x,y,z)=>((x+y+z)&1)===0;
+const world=(x,y,z)=>new THREE.Vector3(x*.58,z*.58,y*.58),cells=new Map();
+function put(x,y,z,type){if(even(x,y,z))cells.set(key(x,y,z),type)}
+function box(x0,x1,y0,y1,z0,z1,type,filter=()=>true){for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)for(let z=z0;z<=z1;z++)if(even(x,y,z)&&filter(x,y,z))put(x,y,z,type)}
+function line(a,b,r,type){const n=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]))*2;for(let i=0;i<=n;i++){const t=i/n,c=[Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)];for(let x=c[0]-r;x<=c[0]+r;x++)for(let y=c[1]-r;y<=c[1]+r;y++)for(let z=c[2]-1;z<=c[2]+1;z++)if(Math.hypot(x-c[0],y-c[1])<=r+.2)put(x,y,z,type)}}
+function seeded(x,y,z){let n=(x*73856093)^(y*19349663)^(z*83492791);n=(n^(n>>>13))*1274126177;return((n^(n>>>16))>>>0)/4294967295}
+
+// Valley floor and enclosing ridges.
+for(let x=-48;x<=48;x++)for(let y=-34;y<=34;y++){
+  if(!even(x,y,0))continue;const river=Math.abs(x)<6;const ridge=Math.max(0,Math.abs(x)-25);const und=Math.round((Math.sin(x*.23)+Math.cos(y*.19))*1.1);const h=-6+Math.floor(ridge*.22)+und;
+  for(let z=-10;z<=h;z+=2)put(x,y,z,river?'riverbed':'stone');
+  if(!river&&seeded(x,y,h)>.2)put(x,y,h+2,'soil');
+}
+// Central ravine and water-light bed.
+for(let y=-35;y<=35;y++)for(let x=-5;x<=5;x++)for(let z=-8;z<=-6;z++)put(x,y,z,'water');
+
+// Main bridge: east-west across ravine, deliberately segmented for damage state.
+for(let x=-18;x<=18;x++)for(let y=-3;y<=3;y++)for(let z=-1;z<=1;z++)if(even(x,y,z))put(x,y,z,Math.abs(x)<=2?'bridgeBreak':'bridge');
+for(const x of[-16,-8,8,16])for(let y=-3;y<=3;y++)for(let z=-7;z<=-1;z++)put(x,y,z,'bridgeSupport');
+for(let x=-18;x<=18;x+=2){put(x,-5,1,'bridgeRail');put(x,5,1,'bridgeRail')}
+
+// Roads from settlements to bridge plus a longer northern bypass.
+line([-38,0,-2],[-18,0,0],3,'road');line([18,0,0],[38,0,-2],3,'road');
+line([-37,4,-2],[-25,25,0],2,'road');line([-25,25,0],[25,25,0],2,'road');line([25,25,0],[38,4,-2],2,'road');
+
+function house(cx,cy,cz,w,d,h,type){box(cx-w,cx+w,cy-d,cy+d,cz,cz+h,type,(x,y,z)=>z===cz||z===cz+h||Math.abs(x-cx)===w||Math.abs(y-cy)===d);box(cx-w-1,cx+w+1,cy-d-1,cy+d+1,cz+h+1,cz+h+3,'roof',(x,y,z)=>z===cz+h+1+Math.max(0,Math.abs(x-cx)-w+1));box(cx-1,cx+1,cy-d-1,cy-d+1,cz,cz+3,'void');}
+house(-36,-8,-2,5,4,6,'workshop');house(-39,8,-2,4,4,5,'dwelling');house(-28,11,-2,3,3,4,'dwelling');
+house(36,-8,-2,5,4,6,'greenhouse');house(39,8,-2,4,4,5,'dwelling');house(29,11,-2,3,3,4,'dwelling');
+// Greenhouse inner beds.
+box(32,40,-8,-4,-1,1,'crop',(x,y,z)=>z===-1&&((x+y)%4===0));
+
+// Crystal forest along bypass: clustered columns and branching crowns.
+for(let i=0;i<54;i++){const x=-12+Math.floor(seeded(i,3,9)*34),y=16+Math.floor(seeded(i,5,2)*17),z=-2+Math.floor(seeded(i,9,4)*3)*2,h=3+Math.floor(seeded(i,7,1)*7);for(let q=0;q<h;q++)put(x+(q&1),y,z+q*2,'crystal');if(h>6){put(x-2,y,z+h*2,'crystal');put(x+2,y,z+h*2,'crystal');put(x,y+2,z+h*2,'crystal')}}
+
+// Rule core: concentric FCC pylons around a luminous central seed.
+const core=[0,-28,-2];for(let a=0;a<12;a++){const t=a/12*Math.PI*2,x=Math.round(core[0]+Math.cos(t)*7),y=Math.round(core[1]+Math.sin(t)*7);for(let z=-2;z<=8;z+=2)put(x,y,z,'core')}for(let z=-2;z<=12;z+=2)put(core[0],core[1],z,'coreLight');
+
+// Remove doorway void markers.
+for(const [k,t] of [...cells])if(t==='void')cells.delete(k);
+
+function rdGeometry(s){const cube=[];for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])cube.push([x,y,z]);const V=cube.concat([[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]]),dirs=[];for(const a of[-1,1])for(const b of[-1,1]){dirs.push([a,b,0],[a,0,b],[0,a,b])}const pos=[];for(const d of dirs){const on=V.filter(v=>v[0]*d[0]+v[1]*d[1]+v[2]*d[2]===2),av=on.filter(v=>v.some(n=>Math.abs(n)===2)),cv=on.filter(v=>v.every(n=>Math.abs(n)!==2));let q=[av[0],cv[0],av[1],cv[1]].map(v=>v.map(n=>n*s));const u=q[1].map((n,i)=>n-q[0][i]),v=q[2].map((n,i)=>n-q[0][i]),n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];if(n[0]*d[0]+n[1]*d[1]+n[2]*d[2]<0)q=[q[0],q[3],q[2],q[1]];for(const tri of[[0,1,2],[0,2,3]])for(const j of tri)pos.push(...q[j])}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();return g}
+const geo=rdGeometry(.285),palette={stone:0x536175,soil:0x6c685d,riverbed:0x26384c,water:0x315f7b,road:0xa68456,bridge:0xb18b55,bridgeBreak:0xef7777,bridgeSupport:0x806642,bridgeRail:0xd0a965,workshop:0xd7a954,dwelling:0xb99558,roof:0x765f48,greenhouse:0x90c7ad,crop:0x6df0c8,crystal:0x4adbb5,core:0x568dd7,coreLight:0xa7dcff};
+const groups={};for(const [k,t] of cells){(groups[t]||(groups[t]=[])).push(k)}const meshes={},dummy=new THREE.Object3D();
+for(const [type,arr] of Object.entries(groups)){const emissive=type==='coreLight'||type==='crystal',mat=new THREE.MeshStandardMaterial({color:palette[type],roughness:type==='water'?.25:.72,metalness:type==='core'?.35:.03,transparent:type==='water'||type==='greenhouse',opacity:type==='water'?.58:type==='greenhouse'?.74:1,emissive:emissive?palette[type]:0,emissiveIntensity:emissive?.18:0});const m=new THREE.InstancedMesh(geo,mat,arr.length);m.castShadow=!['water','crystal'].includes(type);m.receiveShadow=true;arr.forEach((k,i)=>{const p=parse(k);dummy.position.copy(world(...p));dummy.updateMatrix();m.setMatrixAt(i,dummy.matrix)});m.instanceMatrix.needsUpdate=true;scene.add(m);meshes[type]=m}
+document.getElementById('cellCount').textContent=cells.size.toLocaleString();
+
+// A small embodied avatar. It uses the same FCC cell language as the world.
+const avatar=new THREE.Group(),avatarMat=new THREE.MeshStandardMaterial({color:0xf4f7ff,roughness:.42,metalness:.12,emissive:0x173c45,emissiveIntensity:.28}),avatarCoreMat=new THREE.MeshStandardMaterial({color:0x6df0c8,emissive:0x6df0c8,emissiveIntensity:.75});
+for(const [x,y,z,core] of[[0,0,0,0],[0,0,1,0],[-.42,0,.48,0],[.42,0,.48,0],[0,0,1.78,1]]){const part=new THREE.Mesh(geo,core?avatarCoreMat:avatarMat);part.position.set(x,z,y);part.scale.setScalar(core ? .72 : .88);part.castShadow=true;avatar.add(part)}
+const shadow=new THREE.Mesh(new THREE.CircleGeometry(.55,24),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.35,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.25;avatar.add(shadow);scene.add(avatar);
+const cargo=new THREE.Mesh(rdGeometry(.15),new THREE.MeshStandardMaterial({color:0xffd55f,emissive:0xffb52e,emissiveIntensity:.9,roughness:.25}));cargo.position.set(.52,.78,0);cargo.visible=false;avatar.add(cargo);
+const actor={x:-35,y:0,z:-2,side:0,heading:0,stage:0,moving:new Set(),cargo:false,bridgeSeen:false,bridgeInspected:false,bridgePassed:false,missionStart:0,events:[],near:null,autonomous:false,autoGoal:null,autoPhase:null,autoTimer:0};
+function roadHeight(x){if(x<-18)return-2+(x+38)/20*2;if(x<=18)return 0;return-(x-18)/20*2}
+function placeAvatar(){actor.z=roadHeight(actor.x);const p=world(actor.x,actor.side,actor.z);avatar.position.copy(p);avatar.position.y+=.5;avatar.rotation.y=actor.heading}
+placeAvatar();
+
+const landmarks={valley:{p:[0,2,0],r:62,theta:.68,phi:1.05,title:'断桥谷',text:'南岸的材料、北岸的生命，以及连接二者的一座旧桥。'},south:{p:[-35,0,1],r:24,theta:.5,phi:1.15,title:'南岸工坊',text:'材料、工具和制造技能的来源。'},bridge:{p:[0,0,0],r:22,theta:.72,phi:1.15,title:'旧桥',text:'两个聚落共同依赖的基础设施；损坏后将改变所有角色的生活。'},north:{p:[35,0,1],r:24,theta:2.55,phi:1.13,title:'北岸温室',text:'食物、药品和照顾生命的价值在这里发生。'},forest:{p:[5,23,5],r:27,theta:-.35,phi:1.05,title:'晶体森林',text:'它是资源、生命，也是逐渐侵占备用道路的生态。'},core:{p:[0,-28,6],r:23,theta:1.55,phi:1.06,title:'旧规则核心',text:'玩家将在这里短暂恢复局部规则修改权。'}};
+let target=new THREE.Vector3(),camR=62,theta=.68,phi=1.05,drag=false,last=[0,0],embodied=false;
+function selectPlace(id){const l=landmarks[id];target.copy(world(...l.p));camR=l.r;theta=l.theta;phi=l.phi;document.querySelectorAll('.place').forEach(b=>b.classList.toggle('on',b.dataset.place===id));document.getElementById('focus').innerHTML=`<b>${l.title}</b><span>${l.text}</span>`;document.getElementById('overview').classList.toggle('on',id==='valley')}
+document.querySelectorAll('.place').forEach(b=>b.onclick=()=>selectPlace(b.dataset.place));document.getElementById('overview').onclick=()=>{embodied=false;document.getElementById('embodied').classList.remove('on');selectPlace('valley')};
+function journeyMessage(){if(actor.stage===0)document.getElementById('focus').innerHTML='<b>从南岸出发</b><span>用 W / S 或 ← / → 沿道路前进；A / D 可左右观察道路宽度。</span>';else if(actor.stage===1)document.getElementById('focus').innerHTML='<b>抵达旧桥</b><span>这条狭窄的连接承载着两个聚落的往来。继续向北岸前进。</span>';else document.getElementById('focus').innerHTML='<b>抵达北岸温室</b><span>靠近温室后按 E 或“交互”，把能量晶体交出去。</span>'}
+const missionTitle=document.getElementById('missionTitle'),missionText=document.getElementById('missionText'),recordEl=document.getElementById('record'),interactBtn=document.getElementById('interact'),releaseBtn=document.getElementById('release'),decisionEl=document.getElementById('decision');
+function logEvent(type,text,data={}){const sec=((performance.now()-actor.missionStart)/1000).toFixed(1),event={type,text,sec:+sec,...data};actor.events.push(event);recordEl.innerHTML=actor.events.map(e=>`<li><time>${e.sec.toFixed(1)}s</time>${e.text}</li>`).join('');recordEl.scrollTop=recordEl.scrollHeight}
+function setMission(title,text){missionTitle.textContent=title;missionText.textContent=text}
+function setNear(kind,label){actor.near=kind;interactBtn.textContent='E · '+label;interactBtn.classList.toggle('show',!!kind&&embodied)}
+function interact(){if(!embodied)return;if(actor.near==='cargo'&&!actor.cargo){actor.cargo=true;cargo.visible=true;logEvent('cargo_collected','在南岸领取能量晶体');setMission('送往北岸温室','沿主路穿过旧桥，把能量晶体交给北岸温室。');setNear(null,'交互');document.getElementById('focus').innerHTML='<b>能量晶体已取得</b><span>它将为北岸温室提供光和热。旧桥就在前方。</span>'}else if(actor.near==='bridge'&&!actor.bridgeInspected){actor.bridgeInspected=true;logEvent('bridge_inspected','主动停下检查旧桥裂纹',{value:'infrastructure'});setNear(null,'交互');document.getElementById('focus').innerHTML='<b>发现桥梁裂纹</b><span>裂纹暂未阻断通行，但下一场暴雨可能使它扩大。这个发现已进入记忆。</span>'}else if(actor.near==='delivery'&&actor.cargo){actor.cargo=false;cargo.visible=false;actor.stage=3;logEvent('cargo_delivered','将能量晶体交付北岸温室',{result:'mission_complete'});setMission('送货完成','现在可以退出控制，观察化身如何使用刚才形成的经验。');releaseBtn.classList.add('show');setNear(null,'交互');document.getElementById('focus').innerHTML='<b>送货完成</b><span>点击左侧“放手测试”，让角色在没有玩家输入时继续生活。</span>'}}
+interactBtn.onclick=interact;
+document.getElementById('embodied').onclick=function(){embodied=!embodied;this.classList.toggle('on',embodied);document.getElementById('walkpad').classList.toggle('show',embodied);this.textContent=embodied?'退出化身':'开始旅程';if(embodied){Object.assign(actor,{x:-35,side:0,stage:0,heading:Math.PI/2,cargo:false,bridgeSeen:false,bridgeInspected:false,bridgePassed:false,missionStart:performance.now(),events:[],near:null,autonomous:false,autoGoal:null,autoPhase:null,autoTimer:0});actor.moving.clear();cargo.visible=false;scene.fog.density=.012;sun.intensity=1.08;meshes.bridgeBreak.visible=true;meshes.bridgeBreak.material.color.setHex(0xef7777);meshes.bridgeBreak.material.emissive.setHex(0x000000);meshes.bridgeBreak.material.emissiveIntensity=0;releaseBtn.classList.remove('show');decisionEl.classList.remove('show');recordEl.innerHTML='';placeAvatar();camR=7;phi=1.32;logEvent('journey_started','从南岸工坊进入化身');setMission('领取能量晶体','靠近工坊的发光晶体，按 E 或“交互”。');journeyMessage()}else{setNear(null,'交互');selectPlace('valley')}};
+function releaseControl(){if(actor.stage!==3)return;embodied=false;actor.autonomous=true;actor.autoPhase='deciding';actor.autoTimer=0;actor.moving.clear();document.getElementById('embodied').classList.remove('on');document.getElementById('embodied').textContent='开始旅程';document.getElementById('walkpad').classList.remove('show');interactBtn.classList.remove('show');releaseBtn.classList.remove('show');scene.fog.density=.025;sun.intensity=.36;meshes.bridgeBreak.visible=true;meshes.bridgeBreak.material.color.setHex(0xef5555);meshes.bridgeBreak.material.emissive.setHex(0x8b1111);meshes.bridgeBreak.material.emissiveIntensity=.55;logEvent('control_released','玩家退出化身；暴雨使桥梁裂纹扩大');setMission('观察模式：不可干预','化身正在读取经历、评估目标并自主行动。');document.getElementById('focus').innerHTML='<b>第一次放手</b><span>控制已经解除。世界继续运行，而角色必须自己决定接下来做什么。</span>';camR=17;phi=.95}
+releaseBtn.onclick=releaseControl;
+document.getElementById('damage').onclick=function(){this.classList.toggle('on');meshes.bridgeBreak.visible=!meshes.bridgeBreak.visible;meshes.bridgeBreak.material.emissive.setHex(this.classList.contains('on')?0xef3030:0x000000);meshes.bridgeBreak.material.emissiveIntensity=.6};
+document.getElementById('growth').onclick=function(){this.classList.toggle('on');const on=this.classList.contains('on');meshes.crystal.scale.setScalar(on?1.35:1);meshes.crystal.material.emissiveIntensity=on?.45:.18};
+
+renderer.domElement.onpointerdown=e=>{drag=true;last=[e.clientX,e.clientY];renderer.domElement.setPointerCapture(e.pointerId)};renderer.domElement.onpointermove=e=>{if(!drag)return;theta-=(e.clientX-last[0])*.006;phi=Math.max(.18,Math.min(1.52,phi+(e.clientY-last[1])*.005));last=[e.clientX,e.clientY]};renderer.domElement.onpointerup=()=>drag=false;renderer.domElement.onwheel=e=>{e.preventDefault();camR=Math.max(5,Math.min(100,camR*Math.exp(e.deltaY*.001)))},{passive:false};
+const keyMove={KeyW:'forward',ArrowRight:'forward',KeyS:'back',ArrowLeft:'back',KeyA:'left',ArrowUp:'left',KeyD:'right',ArrowDown:'right'};
+addEventListener('keydown',e=>{if(embodied&&keyMove[e.code]){actor.moving.add(keyMove[e.code]);e.preventDefault()}if(embodied&&e.code==='KeyE'&&!e.repeat){interact();e.preventDefault()}});addEventListener('keyup',e=>{if(keyMove[e.code])actor.moving.delete(keyMove[e.code])});
+for(const b of document.querySelectorAll('[data-move]')){const on=e=>{e.preventDefault();actor.moving.add(b.dataset.move)},off=e=>{e.preventDefault();actor.moving.delete(b.dataset.move)};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)}
+const tagDefs=[['south','南岸工坊'],['bridge','旧桥'],['north','北岸温室'],['forest','晶体森林'],['core','规则核心']],tags=document.getElementById('tags');for(const [id,name] of tagDefs){const e=document.createElement('div');e.className='tag';e.textContent=name;e.dataset.id=id;tags.appendChild(e)}
+function updateTags(){for(const e of tags.children){const p=world(...landmarks[e.dataset.id].p).clone().project(camera);e.style.left=(p.x*.5+.5)*innerWidth+'px';e.style.top=(-p.y*.5+.5)*innerHeight+'px';e.style.opacity=p.z<1?'1':'0'}}
+function resize(){renderer.setSize(view.clientWidth,view.clientHeight,false);camera.aspect=view.clientWidth/view.clientHeight;camera.updateProjectionMatrix()}
+let prevT=0;function animate(t){requestAnimationFrame(animate);const dt=Math.min(.04,(t-prevT)/1000||0);prevT=t;if(embodied){let forward=(actor.moving.has('forward')?1:0)-(actor.moving.has('back')?1:0),side=(actor.moving.has('right')?1:0)-(actor.moving.has('left')?1:0);actor.x=Math.max(-38,Math.min(38,actor.x+forward*7*dt));actor.side=Math.max(-3,Math.min(3,actor.side+side*5*dt));if(forward)actor.heading=forward>0?Math.PI/2:-Math.PI/2;placeAvatar();avatar.position.y+=Math.abs(Math.sin(t*.012))*((forward||side) ? .09 : 0);
+if(!actor.cargo&&actor.stage===0&&actor.x<-31)setNear('cargo','领取晶体');else if(actor.cargo&&!actor.bridgeInspected&&Math.abs(actor.x)<7){setNear('bridge','检查桥梁');if(!actor.bridgeSeen){actor.bridgeSeen=true;logEvent('bridge_noticed','在送货途中注意到旧桥裂纹')}}else if(actor.cargo&&actor.x>31)setNear('delivery','交付晶体');else setNear(null,'交互');
+if(actor.stage===0&&actor.cargo&&actor.x>-5){actor.stage=1;journeyMessage()}if(actor.cargo&&!actor.bridgeInspected&&!actor.bridgePassed&&actor.x>8){actor.bridgePassed=true;logEvent('bridge_bypassed','看到裂纹后继续送货，没有停下检查',{priority:'delivery'})}if(actor.stage===1&&actor.x>31){actor.stage=2;journeyMessage();actor.moving.clear()}target.lerp(avatar.position.clone().add(new THREE.Vector3(1.6,1.1,0)),.12);theta=Math.PI;phi=1.25;camR=7
+}else if(actor.autonomous){actor.autoTimer+=dt;if(actor.autoPhase==='deciding'&&actor.autoTimer>1.2){const repair=.35+(actor.bridgeInspected?.45:0)+(actor.bridgeSeen?.10:0),care=.55+(actor.bridgePassed?.20:0);actor.autoGoal=repair>care?'repair':'care';actor.autoPhase='travel';actor.autoTimer=0;logEvent('autonomous_goal','化身自主选择：'+(actor.autoGoal==='repair'?'返回旧桥进行修复':'留在温室照顾能源系统'),{repairScore:repair,careScore:care});decisionEl.classList.add('show');decisionEl.innerHTML=`<b>自主目标：${actor.autoGoal==='repair'?'修复旧桥':'照顾温室'}</b><br>修桥 ${repair.toFixed(2)} · 温室 ${care.toFixed(2)}<br>${actor.bridgeInspected?'证据：玩家曾主动检查公共设施。':'证据：玩家优先完成了当前送货责任。'}`;setMission('化身已作出决定',actor.autoGoal==='repair'?'它正在返回暴雨中的旧桥。':'它决定先稳定刚刚恢复供能的温室。')}
+if(actor.autoPhase==='travel'){if(actor.autoGoal==='repair'){actor.x-=5*dt;actor.heading=-Math.PI/2;if(actor.x<=1){actor.x=1;actor.autoPhase='acting';actor.autoTimer=0;logEvent('repair_started','化身抵达旧桥并开始修复')}}else{actor.side-=3*dt;actor.heading=Math.PI;if(actor.side<=-2.5){actor.side=-2.5;actor.autoPhase='acting';actor.autoTimer=0;logEvent('care_started','化身开始检查温室能源与培育床')}}}
+if(actor.autoPhase==='acting'&&actor.autoTimer>3){if(actor.autoGoal==='repair'){meshes.bridgeBreak.material.color.setHex(0xb18b55);meshes.bridgeBreak.material.emissive.setHex(0x000000);meshes.bridgeBreak.material.emissiveIntensity=0;logEvent('bridge_repaired','化身自主完成旧桥临时修复');setMission('自主行动完成','旧桥重新稳定。角色把玩家对公共设施的关心延续成了自己的行动。');document.getElementById('focus').innerHTML='<b>它修好了桥</b><span>这不是刚才下达的命令，但来自玩家留下的行为证据。</span>'}else{logEvent('greenhouse_stabilized','化身自主完成温室能源检查');setMission('自主行动完成','温室的能源与培育床已经稳定。角色延续了玩家完成当前责任的倾向。');document.getElementById('focus').innerHTML='<b>它留在了温室</b><span>它认为刚恢复供能的生命系统比尚可通行的桥更紧迫。</span>'}actor.autoPhase='complete';actor.autonomous=false;scene.fog.density=.012;sun.intensity=1.08}
+placeAvatar();avatar.position.y+=Math.abs(Math.sin(t*.012))*(actor.autoPhase==='travel'?.08:0);target.lerp(avatar.position.clone().add(new THREE.Vector3(0,1,0)),.055);theta=.9;phi=.95;camR=17
+}else if(!drag)theta+=.00012;camera.position.set(target.x+camR*Math.sin(phi)*Math.cos(theta),target.y+camR*Math.cos(phi),target.z+camR*Math.sin(phi)*Math.sin(theta));camera.lookAt(target);const pulse=.28+Math.sin(t*.003)*.12;if(meshes.coreLight)meshes.coreLight.material.emissiveIntensity=pulse;updateTags();renderer.render(scene,camera)}
+addEventListener('resize',resize);resize();selectPlace('valley');document.getElementById('loadstate').className='loadstate done';animate(0);
+</script>
+</body>
+</html>
