@@ -66,6 +66,41 @@
     }
   ];
 
+  const MINE_STEPS = [
+    {
+      title: '先说明你从哪里学会维护',
+      text: '矿城技师岚不信任外来规则修改。澄会先检索旧桥经历，并区分“修好一次”与“建立维护方法”。',
+      action: '让澄回答岚的问题',
+      evidence: '检索：我们一起修复的旧桥 · 4 条来源事件',
+      event: ['memory_recalled', '澄向岚准确说明旧桥的检查、加固与验证经历'],
+      health: '技师信任 31% · 正在核对来源'
+    },
+    {
+      title: '示范完整诊断，而不是按键',
+      text: '记录当前感知、目标、动作、结果与修正；候选技能必须由你确认名称和目的。',
+      action: '示范：扫描—隔离—重同步—验证',
+      evidence: '候选 SkillGraph：4 步 · 2 条安全约束',
+      event: ['skill_demonstrated', '玩家示范旧主时钟诊断并命名为“脉冲诊断”'],
+      health: '主时钟相位漂移 18° · 示范录制中'
+    },
+    {
+      title: '第一次执行保持监督',
+      text: '澄按技能图执行；若前置条件失败会停在 blocked，而不是跳过隔离或安全验证。',
+      action: '监督澄完成旧主时钟修复',
+      evidence: '监督结果：4/4 步通过 · 安全验证保留',
+      event: ['skill_supervised', '澄在监督模式完成旧主时钟脉冲诊断'],
+      health: '主时钟相位漂移 18° → 1°'
+    },
+    {
+      title: '新坐标、新故障，同一种方法',
+      text: '东侧支路发生不同相位故障。系统只替换目标节点和相位参数，不允许删除隔离与验证。',
+      action: '放手进行技能迁移考试',
+      evidence: '迁移：NODE-17 → NODE-42 · 18° → −11°',
+      event: ['skill_transferred', '澄在 NODE-42 独立完成不同相位的诊断修复'],
+      health: '东侧支路等待自主诊断'
+    }
+  ];
+
   function createInitialState() {
     return {
       version: 2,
@@ -83,6 +118,13 @@
       },
       events: [eventAt(1038, 'world_entered', '与澄抵达断桥谷', 'verified')],
       memories: [],
+      skills: [],
+      relationships: {
+        artisan: { name: '南岸工匠', trust: 54 },
+        healer: { name: '北岸医者', trust: 48 },
+        technician: { name: '矿城技师 · 岚', trust: 31 },
+        watcher: { name: '花园守望者', trust: 18 }
+      },
       commitments: [{ id: 'com-bridge-open', text: '让南北两岸保持通行', status: 'active', sourceEventId: 'evt-1038' }]
     };
   }
@@ -92,9 +134,9 @@
   }
 
   function currentMission(state) {
-    if (state.activeWorld !== 'valley') return null;
-    const step = state.worlds.valley.step;
-    if (step >= VALLEY_STEPS.length) {
+    if (state.activeWorld === 'valley') {
+      const step = state.worlds.valley.step;
+      if (step < VALLEY_STEPS.length) return VALLEY_STEPS[step];
       return {
         title: '断桥谷会记住这次维护',
         text: '桥梁、作品与承诺已成为同一段经历。回声矿城现已开放。',
@@ -104,7 +146,19 @@
         health: '桥梁完整度 86% · 状态持续'
       };
     }
-    return VALLEY_STEPS[step];
+    if (state.activeWorld === 'mine') {
+      const step = state.worlds.mine.step;
+      if (step < MINE_STEPS.length) return MINE_STEPS[step];
+      return {
+        title: '方法已经跨过坐标',
+        text: '澄在新故障上独立复用了诊断框架。岚开始相信它理解方法，而不只是服从指令。',
+        action: '前往漂移花园',
+        evidence: '技能毕业：2 次成功 · 2 个情境 · 安全步骤 100% 保留',
+        complete: true,
+        health: '东侧支路恢复 · 技师信任 68%'
+      };
+    }
+    return null;
   }
 
   function advanceValley(state) {
@@ -135,6 +189,53 @@
     return state;
   }
 
+  function advanceMine(state) {
+    if (state.activeWorld !== 'mine') return state;
+    const progress = state.worlds.mine;
+    if (progress.step >= MINE_STEPS.length) return travelToWorld(state, 'garden');
+    const step = MINE_STEPS[progress.step];
+    state.tick += 9;
+    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
+    evt.worldId = 'mine';
+    state.events.push(evt);
+    progress.step += 1;
+    if (progress.step === 2) {
+      state.skills.push({
+        id: 'skill-pulse-diagnostic', name: '脉冲诊断', goalTags: ['repair', 'clockwork'],
+        parameters: { targetNode: 'NODE-17', phaseOffset: 18 },
+        preconditions: ['可读取脉冲拓扑', '支路允许隔离'],
+        steps: ['扫描', '隔离', '重同步', '验证'],
+        safetyConstraints: ['禁止带载重同步', '验证失败立即回滚'],
+        demonstrations: [evt.id], attempts: 0, successes: 0, contexts: []
+      });
+    }
+    const skill = state.skills[0];
+    if (progress.step === 3 && skill) {
+      skill.attempts = 1; skill.successes = 1; skill.contexts.push('NODE-17:+18');
+    }
+    if (progress.step === MINE_STEPS.length && skill) {
+      skill.attempts = 2; skill.successes = 2; skill.contexts.push('NODE-42:-11');
+      skill.parameters = { targetNode: 'parameterized', phaseOffset: 'observed' };
+      progress.completed = true;
+      state.worlds.garden.unlocked = true;
+      state.relationships.technician.trust = 68;
+      state.memories.push({
+        id: 'mem-mine-trust', title: '岚让我们修复东侧支路', worldId: 'mine',
+        summary: '澄保留隔离与验证步骤，在不同节点和相位上完成了诊断。',
+        eventRefs: state.events.filter(e => e.worldId === 'mine').map(e => e.id), salience: 0.9, verified: true
+      });
+      state.agent.role = '三地维护者 · 脉冲学徒';
+      state.agent.narrative = '坐标会改变，但先隔离风险、再验证结果的方法不该改变。';
+    }
+    return state;
+  }
+
+  function advanceCurrentWorld(state) {
+    if (state.activeWorld === 'valley') return advanceValley(state);
+    if (state.activeWorld === 'mine') return advanceMine(state);
+    return state;
+  }
+
   function travelToWorld(state, worldId) {
     if (!WORLD_DEFS[worldId] || !state.worlds[worldId].unlocked) return state;
     if (state.activeWorld === worldId) return state;
@@ -157,9 +258,12 @@
     WORLD_ORDER,
     WORLD_DEFS,
     VALLEY_STEPS,
+    MINE_STEPS,
     createInitialState,
     currentMission,
     advanceValley,
+    advanceMine,
+    advanceCurrentWorld,
     travelToWorld,
     continuityLabel
   };

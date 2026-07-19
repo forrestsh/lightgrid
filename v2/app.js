@@ -7,7 +7,8 @@
     'globalTick', 'worldList', 'worldCanvas', 'worldChapter', 'worldTitle', 'worldDescription',
     'worldMeta', 'weatherLabel', 'worldHealth', 'missionKicker', 'missionTitle', 'missionText',
     'stepDots', 'evidencePreview', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
-    'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore',
+    'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore', 'skillCard',
+    'skillProficiency', 'skillName', 'skillSteps', 'skillContext',
     'nextCapability', 'mapButton', 'mapOverlay', 'mapClose', 'mapWorlds'
   ].map(id => [id, document.getElementById(id)]));
 
@@ -15,6 +16,7 @@
     const world = state.worlds[id];
     if (world.completed) return 100;
     if (id === 'valley') return world.step / Core.VALLEY_STEPS.length * 100;
+    if (id === 'mine') return world.step / Core.MINE_STEPS.length * 100;
     return world.unlocked ? 8 : 0;
   }
 
@@ -53,8 +55,8 @@
     const mission = Core.currentMission(state);
     if (!mission) {
       els.missionKicker.textContent = '下一章正在连接';
-      els.missionTitle.textContent = '回声矿城将在下一个用户故事中变得可玩';
-      els.missionText.textContent = '当前外壳已经证明世界解锁与同一角色连续状态；后续将加入示范、技能图与自主考试。';
+      els.missionTitle.textContent = '漂移花园将在下一个用户故事中变得可玩';
+      els.missionText.textContent = '角色已经带着断桥谷记忆与矿城技能抵达新生态；后续将加入身体培育与价值泛化。';
       els.evidencePreview.innerHTML = '<span>身份连续</span><b>断桥谷记忆仍在 · 承诺仍然有效</b>';
       els.primaryAction.hidden = true;
       els.stepDots.innerHTML = '';
@@ -66,7 +68,9 @@
     els.missionText.textContent = mission.text;
     els.evidencePreview.innerHTML = `<span>${mission.complete ? '连续性证据' : '即将记录'}</span><b>${mission.evidence}</b>`;
     els.primaryAction.innerHTML = `<span>${mission.action}</span><i>→</i>`;
-    els.stepDots.innerHTML = Core.VALLEY_STEPS.map((_, i) => `<i class="${i < state.worlds.valley.step ? 'done' : ''}"></i>`).join('');
+    const steps = state.activeWorld === 'mine' ? Core.MINE_STEPS : Core.VALLEY_STEPS;
+    const progress = state.worlds[state.activeWorld].step;
+    els.stepDots.innerHTML = steps.map((_, i) => `<i class="${i < progress ? 'done' : ''}"></i>`).join('');
   }
 
   function renderAgent() {
@@ -78,7 +82,18 @@
     els.commitmentCount.textContent = state.commitments.filter(c => c.status === 'active').length;
     els.continuityScore.textContent = Core.continuityLabel(state);
     els.globalTick.textContent = 'TICK ' + state.tick;
-    if (state.worlds.mine.unlocked) {
+    const skill = state.skills[0];
+    els.skillCard.hidden = !skill && state.activeWorld !== 'mine';
+    if (!els.skillCard.hidden) {
+      const done = skill ? Math.min(4, skill.successes ? 4 : state.worlds.mine.step - 1) : 0;
+      els.skillName.textContent = skill ? skill.name : '等待示范';
+      els.skillProficiency.textContent = skill ? `${skill.successes}/${skill.attempts || 1} 成功` : '未录制';
+      els.skillSteps.innerHTML = ['扫描','隔离','重同步','验证'].map((label, i) => `<i class="${i < done ? 'done' : ''}" data-label="${label}"></i>`).join('');
+      els.skillContext.textContent = skill && skill.contexts.length ? `已验证情境：${skill.contexts.join(' · ')}` : '首次执行将进入监督模式。';
+    }
+    if (state.worlds.garden.unlocked) {
+      els.nextCapability.innerHTML = '<span>NEXT CAPABILITY</span><b>漂移花园已开放</b><p>带着诊断方法前往迁徙生态。</p>';
+    } else if (state.worlds.mine.unlocked) {
       els.nextCapability.innerHTML = '<span>NEXT CAPABILITY</span><b>回声矿城已开放</b><p>前往矿城，把维护经验变成可迁移技能。</p>';
     }
   }
@@ -147,7 +162,7 @@
 
   function render() { renderWorldRail(); renderStage(); renderMission(); renderAgent(); renderEvents(); renderMap(); }
 
-  els.primaryAction.addEventListener('click', () => { Core.advanceValley(state); render(); });
+  els.primaryAction.addEventListener('click', () => { Core.advanceCurrentWorld(state); render(); });
   els.mapButton.addEventListener('click', () => { els.mapOverlay.hidden = false; renderMap(); });
   els.mapClose.addEventListener('click', () => { els.mapOverlay.hidden = true; });
   els.mapOverlay.addEventListener('click', event => { if (event.target === els.mapOverlay) els.mapOverlay.hidden = true; });

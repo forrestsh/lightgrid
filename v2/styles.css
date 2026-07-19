@@ -101,7 +101,7 @@ button { font: inherit; }
 .event-strip time { display: block; color: var(--muted); font: 300 7px var(--mono); }
 .event-strip p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #b4c2bd; font-size: 9px; margin: 4px 0 0; }
 
-.agent-card, .continuity-card, .locked-preview { border: 1px solid var(--line); background: rgba(10,20,19,.74); }
+.agent-card, .continuity-card, .skill-card, .locked-preview { border: 1px solid var(--line); background: rgba(10,20,19,.74); }
 .agent-card { padding: 16px; }
 .agent-portrait { width: 66px; height: 78px; float: left; margin-right: 13px; border: 1px solid var(--line-strong); position: relative; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 38%, #2d6658, #0a1715 62%); }
 .agent-portrait::before, .agent-portrait::after { content: ""; position: absolute; width: 38px; height: 38px; border: 1px solid rgba(120,225,189,.28); transform: rotate(45deg); }
@@ -125,6 +125,14 @@ button { font: inherit; }
 .continuity-card p { color: var(--muted); font-size: 8px; line-height: 1.65; margin: 0 0 13px; }
 .value-row { padding: 7px 0; border-top: 1px solid var(--line); }
 .value-row b { color: #c4d0cc; font: 300 8px var(--mono); }
+.skill-card { margin-top: 12px; padding: 15px; }
+.skill-card h3 { font: 500 13px var(--serif); margin: 9px 0 10px; }
+.skill-card > p { color: var(--muted); font-size: 8px; line-height: 1.6; margin: 9px 0 0; }
+.skill-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.skill-steps i { height: 4px; background: rgba(255,255,255,.08); position: relative; }
+.skill-steps i.done { background: var(--blue); box-shadow: 0 0 8px rgba(114,185,255,.4); }
+.skill-steps i::after { content: attr(data-label); position: absolute; top: 7px; left: 0; color: var(--muted); font: 300 6px var(--mono); white-space: nowrap; }
+.skill-steps { margin-bottom: 23px; }
 .locked-preview { margin-top: 12px; padding: 15px; background: linear-gradient(135deg, rgba(114,185,255,.08), rgba(10,20,19,.8)); }
 .locked-preview b { display: block; margin-top: 8px; font: 500 12px var(--serif); }
 .locked-preview p { color: var(--muted); font-size: 8px; margin: 5px 0 0; }
