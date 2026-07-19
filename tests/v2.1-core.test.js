@@ -154,9 +154,10 @@ test('deployment entry is local-only and routes both /v2.1 spellings', () => {
   const html = fs.readFileSync(path.join(__dirname, '../v2.1/index.html'), 'utf8');
   const vercel = JSON.parse(fs.readFileSync(path.join(__dirname, '../vercel.json'), 'utf8'));
   assert.equal(/https?:\/\//.test(html), false);
-  assert.ok(html.indexOf('../vendor/three.min.js') < html.indexOf('./spatial.js'));
-  assert.ok(html.indexOf('./spatial.js') < html.indexOf('./core.js'));
-  assert.ok(html.indexOf('./core.js') < html.indexOf('./app.js'));
+  assert.match(html, /href="\/v2\.1\/styles\.css"/);
+  assert.ok(html.indexOf('/vendor/three.min.js') < html.indexOf('/v2.1/spatial.js'));
+  assert.ok(html.indexOf('/v2.1/spatial.js') < html.indexOf('/v2.1/core.js'));
+  assert.ok(html.indexOf('/v2.1/core.js') < html.indexOf('/v2.1/app.js'));
   const routes = Object.fromEntries(vercel.rewrites.map(item => [item.source, item.destination]));
   assert.equal(routes['/v2.1'], '/v2.1/index.html');
   assert.equal(routes['/v2.1/'], '/v2.1/index.html');
