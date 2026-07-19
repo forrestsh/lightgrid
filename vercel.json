@@ -5,6 +5,8 @@
     { "source": "/seed", "destination": "/seed_and_crystal_M2.html" },
     { "source": "/valley", "destination": "/broken_bridge_valley_v1.html" },
     { "source": "/v2", "destination": "/v2/index.html" },
-    { "source": "/v2/", "destination": "/v2/index.html" }
+    { "source": "/v2/", "destination": "/v2/index.html" },
+    { "source": "/v2.1", "destination": "/v2.1/index.html" },
+    { "source": "/v2.1/", "destination": "/v2.1/index.html" }
   ]
 }

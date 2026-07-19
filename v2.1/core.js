@@ -496,6 +496,7 @@
     const cycle = (state.releaseCount - 1) % 3;
     const candidates = [
       {
+        worldId: 'valley', regionId: 'ravine', landmarkIds: ['bridge_gap'], routeId: state.worlds.valley.completed ? 'bridge_main' : 'ravine_maintenance',
         fact: state.worlds.valley.completed ? '暴雨后旧桥北侧主梁进入复查窗口。' : '旧桥维护仍未完成。',
         reason: '“让南北两岸保持通行”的承诺仍然有效。',
         action: state.worlds.valley.completed ? '澄使用加固器完成自检，并请南岸工匠确认读数。' : '澄保持安全等待，没有独自改写桥梁规则。',
@@ -504,6 +505,7 @@
         type: 'autonomous_bridge_check'
       },
       {
+        worldId: 'mine', regionId: 'deep_core', landmarkIds: ['echo_core'], routeId: state.worlds.mine.routeId || 'cargo_spiral',
         fact: state.worlds.mine.completed ? '矿城东侧支路出现轻微相位漂移。' : '矿城技能考试尚未完成。',
         reason: '澄记得岚要求先隔离风险，再进行重同步。',
         action: state.worlds.mine.completed ? '澄复用脉冲诊断的扫描与验证步骤，未跳过安全隔离。' : '澄向岚询问，没有假装掌握未知技能。',
@@ -512,6 +514,7 @@
         type: 'autonomous_mine_diagnostic'
       },
       {
+        worldId: 'garden', regionId: 'crown_layer', landmarkIds: ['migration_crown'], routeId: state.worlds.garden.routeId || 'root_bridges',
         fact: state.worlds.garden.completed ? '迁徙群在夜间经过临时通道。' : '花园迁徙状态尚未被观察。',
         reason: '澄把生态信号与“不要把生命当障碍”的经历联系起来。',
         action: state.worlds.garden.completed ? '澄保持观察并维护最小可逆引导光，没有更改生态周期。' : '澄没有在缺少感知时生成生态判断。',
@@ -523,7 +526,7 @@
     const chosen = candidates[cycle];
     state.tick = startTick + boundary.ticks;
     const actionEvent = eventAt(state.tick - 2, chosen.type, chosen.action, 'verified', {
-      worldId: state.activeWorld, spatial: spatialContext(state, state.activeWorld, [], null, state.worlds[state.activeWorld].routeId)
+      worldId: chosen.worldId, spatial: spatialContext(state, chosen.worldId, chosen.landmarkIds, chosen.regionId, chosen.routeId)
     });
     state.events.push(actionEvent);
     const returned = eventAt(state.tick, 'player_returned', '玩家在“' + boundary.name + '”边界结束时回归', 'verified', {
@@ -535,7 +538,12 @@
       id: 'return-' + state.releaseCount, count: state.releaseCount, boundaryId,
       startTick, endTick: state.tick, fact: chosen.fact, reason: chosen.reason,
       action: chosen.action, result: chosen.result, unresolved: chosen.unresolved,
-      eventRefs: [start.id, actionEvent.id, returned.id], irreversibleActions: 0
+      eventRefs: [start.id, actionEvent.id, returned.id], irreversibleActions: 0,
+      spatialEvidence: {
+        worldId: chosen.worldId, regionId: chosen.regionId, landmarkIds: chosen.landmarkIds.slice(),
+        routeId: chosen.routeId, phaseId: state.spatial[chosen.worldId].phaseId,
+        identityCommitmentId: 'com-bridge-open'
+      }
     };
     state.returnSummaries.push(summary);
     return summary;
