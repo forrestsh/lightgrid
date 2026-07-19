@@ -201,7 +201,7 @@
       ],
       landmarks: gardenLandmarks,
       routes: [
-        route({ id: 'root_bridges', name: '固定根桥', anchors: [[-32,-18,-8],[0,0,-14],[22,-20,2]], baseCost: 1.8, allowedBodies: ['base','sensor','feet'], dynamicEdgeRefs: ['garden_phase'], fallbackRouteIds: ['wind_stream'] }),
+        route({ id: 'root_bridges', name: '固定根桥', anchors: [[-32,-18,-8],[0,0,-14],[22,-20,2],[8,8,14],[24,18,30]], baseCost: 1.8, allowedBodies: ['base','sensor','feet'], dynamicEdgeRefs: ['garden_phase'], fallbackRouteIds: ['wind_stream'] }),
         route({ id: 'wind_stream', name: '风门上升流', anchors: [[-32,-18,-8],[-8,24,14],[24,18,30]], baseCost: 1, allowedBodies: ['bladder'], dynamicEdgeRefs: ['garden_phase','flow_field'], fallbackRouteIds: ['surface_anchor_chain'] }),
         route({ id: 'surface_anchor_chain', name: '岛面抓附链', anchors: [[-32,-18,-8],[0,0,-14],[-8,24,14],[-20,14,24],[24,18,30]], baseCost: 1.3, allowedBodies: ['feet'], dynamicEdgeRefs: ['garden_phase'], fallbackRouteIds: ['root_bridges'] })
       ],
@@ -224,10 +224,107 @@
     return scene ? scene.routes.find(item => item.id === routeId) || null : null;
   }
 
+  const GARDEN_PHASES = Object.freeze({
+    phase_a: { id: 'phase_a', enabledRoutes: ['root_bridges', 'surface_anchor_chain'], safetyAnchor: 'entry_reef', flow: 'root-to-crown', warningTicks: 16 },
+    phase_b: { id: 'phase_b', enabledRoutes: ['root_bridges', 'wind_stream'], safetyAnchor: 'root_basin', flow: 'west-updraft', warningTicks: 12 },
+    phase_c: { id: 'phase_c', enabledRoutes: ['surface_anchor_chain', 'wind_stream'], safetyAnchor: 'observer_nest', flow: 'crown-return', warningTicks: 18 }
+  });
+
+  function createSpatialState() {
+    return {
+      revision: 1,
+      valley: {
+        phaseId: 'bridge_broken',
+        fields: { bridgeState: 'broken', forestOvergrown: false, ravineAccess: true },
+        dirtyRoutes: ['bridge_main']
+      },
+      mine: {
+        phaseId: 'fault_node_17',
+        fields: { blockedRouteId: null, reflectorAligned: false, sourceNode: 'NODE-17', phaseOffset: 18 },
+        dirtyRoutes: []
+      },
+      garden: {
+        phaseId: 'phase_a',
+        fields: { flow: GARDEN_PHASES.phase_a.flow, transitionPending: false },
+        dirtyRoutes: []
+      }
+    };
+  }
+
+  function bump(worldState, dirtyRoutes) {
+    worldState.dirtyRoutes = dirtyRoutes.slice();
+    return worldState;
+  }
+
+  function setValleyBridgeState(spatialState, bridgeState) {
+    if (!['broken', 'temporary', 'stable'].includes(bridgeState)) throw new TypeError('未知桥梁状态');
+    spatialState.revision += 1;
+    spatialState.valley.phaseId = 'bridge_' + bridgeState;
+    spatialState.valley.fields.bridgeState = bridgeState;
+    return bump(spatialState.valley, ['bridge_main']);
+  }
+
+  function setMineFault(spatialState, fault) {
+    spatialState.revision += 1;
+    const fields = spatialState.mine.fields;
+    fields.sourceNode = fault.sourceNode;
+    fields.phaseOffset = fault.phaseOffset;
+    fields.blockedRouteId = fault.blockedRouteId || null;
+    spatialState.mine.phaseId = 'fault_' + String(fault.sourceNode).toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    return bump(spatialState.mine, fields.blockedRouteId ? [fields.blockedRouteId] : []);
+  }
+
+  function setGardenPhase(spatialState, phaseId) {
+    const phase = GARDEN_PHASES[phaseId];
+    if (!phase) throw new TypeError('未知 GraphPhase');
+    spatialState.revision += 1;
+    spatialState.garden.phaseId = phaseId;
+    spatialState.garden.fields.flow = phase.flow;
+    spatialState.garden.fields.transitionPending = false;
+    return bump(spatialState.garden, getManifest('garden').routes.filter(item => !phase.enabledRoutes.includes(item.id)).map(item => item.id));
+  }
+
+  function routeStatus(worldId, routeId, bodyProfile, spatialState) {
+    const spec = getRoute(worldId, routeId), profile = bodyProfile || 'base';
+    if (!spec) return { open: false, reason: 'unknown-route' };
+    if (!spec.allowedBodies.includes(profile)) return { open: false, reason: 'body-incompatible' };
+    const world = spatialState[worldId];
+    if (worldId === 'valley') {
+      if (routeId === 'bridge_main' && world.fields.bridgeState === 'broken') return { open: false, reason: 'bridge-gap' };
+      if (routeId === 'forest_bypass' && world.fields.forestOvergrown && profile === 'base') return { open: false, reason: 'forest-clearance' };
+      if (routeId === 'ravine_maintenance' && !world.fields.ravineAccess) return { open: false, reason: 'ravine-closed' };
+    }
+    if (worldId === 'mine') {
+      if (world.fields.blockedRouteId === routeId) return { open: false, reason: 'dynamic-blocked-edge' };
+      if (routeId === 'reflector_crossing' && !world.fields.reflectorAligned) return { open: false, reason: 'reflector-unaligned' };
+    }
+    if (worldId === 'garden') {
+      const phase = GARDEN_PHASES[world.phaseId];
+      if (!phase.enabledRoutes.includes(routeId)) return { open: false, reason: 'graph-phase' };
+    }
+    return { open: true, reason: 'available' };
+  }
+
+  function selectRoute(worldId, candidateRouteIds, bodyProfile, spatialState) {
+    const world = spatialState[worldId], phaseId = world && world.phaseId;
+    const candidates = candidateRouteIds.map(routeId => {
+      const spec = getRoute(worldId, routeId), status = routeStatus(worldId, routeId, bodyProfile, spatialState);
+      return spec && status.open ? { routeId, cost: spec.baseCost, cells: spec.cells, reason: status.reason, phaseId } : null;
+    }).filter(Boolean).sort((a, b) => a.cost - b.cost || a.routeId.localeCompare(b.routeId));
+    return candidates[0] || null;
+  }
+
+  function graphPhase(worldId, spatialState) {
+    if (worldId !== 'garden') return { id: spatialState[worldId].phaseId };
+    return GARDEN_PHASES[spatialState.garden.phaseId];
+  }
+
   return {
-    FCC_SCALE, FCC_DIRECTIONS, SCENE_MANIFESTS,
+    FCC_SCALE, FCC_DIRECTIONS, SCENE_MANIFESTS, GARDEN_PHASES,
     isFCCCoord, assertFCCCoord, coordKey, parseCoordKey, toWorld,
     graphDistance, isNeighbor, neighbors, pathBetween, expandAnchors,
-    validateManifest, getManifest, getLandmark, getRoute
+    validateManifest, getManifest, getLandmark, getRoute,
+    createSpatialState, setValleyBridgeState, setMineFault, setGardenPhase,
+    routeStatus, selectRoute, graphPhase
   };
 });
