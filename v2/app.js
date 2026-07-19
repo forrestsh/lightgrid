@@ -19,12 +19,17 @@
   ].map(id => [id, document.getElementById(id)]));
 
   function loadState() {
-    try { return Core.hydrateState(JSON.parse(localStorage.getItem(STORAGE_KEY))); }
+    try {
+      const candidate = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      const restored = Core.hydrateState(candidate);
+      if (candidate && candidate.lastSavedAtEpoch) Core.catchUpOffline(restored, Date.now() - candidate.lastSavedAtEpoch);
+      return restored;
+    }
     catch (_) { return Core.createInitialState(); }
   }
 
   function persistState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    try { state.lastSavedAtEpoch = Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
     catch (_) { /* The demo remains playable when storage is unavailable. */ }
   }
 

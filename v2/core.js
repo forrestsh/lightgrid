@@ -447,6 +447,18 @@
     return summary;
   }
 
+  function catchUpOffline(state, elapsedMs) {
+    const minimum = 5 * 60 * 1000;
+    if (!Number.isFinite(elapsedMs) || elapsedMs < minimum) return null;
+    const cappedMs = Math.min(elapsedMs, 24 * 60 * 60 * 1000);
+    const summary = releaseAgent(state, 'schedule');
+    summary.offline = true;
+    summary.offlineCapped = elapsedMs > cappedMs;
+    summary.elapsedHours = Math.max(0.1, +(cappedMs / 3600000).toFixed(1));
+    summary.fact = '应用关闭期间按计划事件与资源模型安全推进 ' + summary.elapsedHours + ' 小时。' + (summary.offlineCapped ? ' 超出部分已封顶。' : '');
+    return summary;
+  }
+
   function hydrateState(candidate) {
     if (!candidate || candidate.version !== 2 || !candidate.worlds || !candidate.agent || !Array.isArray(candidate.events)) return createInitialState();
     const base = createInitialState();
@@ -486,6 +498,7 @@
     continuityLabel
     ,memorySources
     ,releaseAgent
+    ,catchUpOffline
     ,hydrateState
     ,exportBundle
   };
