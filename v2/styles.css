@@ -65,17 +65,21 @@ button { font: inherit; }
 
 .main-stage { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(280px, 1fr) auto auto; overflow: auto; }
 .world-stage { min-height: 300px; position: relative; overflow: hidden; border-bottom: 1px solid var(--line); background: #07110f; }
-#worldCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#worldCanvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+#worldCanvas.dragging { cursor: grabbing; }
 .stage-vignette { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(3,9,8,.88) 0, rgba(3,9,8,.28) 48%, rgba(3,9,8,.1)), linear-gradient(0deg, rgba(3,8,8,.75), transparent 50%); pointer-events: none; }
-.stage-copy { position: absolute; left: 42px; bottom: 46px; max-width: 520px; }
+.stage-copy { position: absolute; left: 42px; bottom: 46px; max-width: 520px; pointer-events: none; }
 .chapter { color: var(--world-tone, var(--gold)); font: 500 9px var(--mono); letter-spacing: .2em; }
 .stage-copy h1 { margin: 10px 0 8px; font: 600 clamp(38px, 5vw, 67px)/1.05 var(--serif); letter-spacing: .04em; text-shadow: 0 5px 28px #000; }
 .stage-copy p { margin: 0; color: #c3d0cb; font-size: 13px; font-weight: 300; }
 .world-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 17px; }
 .world-meta span { border: 1px solid rgba(255,255,255,.17); padding: 5px 8px; color: #aebeb8; background: rgba(5,13,12,.42); font: 300 8px var(--mono); }
-.stage-status { position: absolute; right: 24px; top: 22px; display: grid; text-align: right; gap: 5px; }
+.stage-status { position: absolute; right: 24px; top: 22px; display: grid; text-align: right; gap: 5px; pointer-events: none; }
 .stage-status span { color: var(--muted); font: 300 8px var(--mono); }
 .stage-status b { font: 400 10px var(--mono); color: #d8e3df; }
+.scene-controls { position: absolute; right: 24px; bottom: 19px; display: flex; align-items: center; gap: 7px; color: rgba(220,238,232,.62); font: 400 7px var(--mono); letter-spacing: .13em; pointer-events: none; }
+.scene-controls i { width: 6px; height: 6px; border-radius: 50%; background: var(--world-tone, var(--green)); box-shadow: 0 0 12px var(--world-tone, var(--green)); animation: pulse 2.4s ease-in-out infinite; }
+.webgl-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 10px var(--mono); background: #07110f; }
 
 .mission-card { position: relative; padding: 24px 34px 26px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(12,25,23,.97), rgba(8,17,16,.97)); }
 .mission-topline { display: flex; justify-content: space-between; align-items: center; }
