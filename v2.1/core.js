@@ -161,9 +161,9 @@
       tick: 1042,
       activeWorld: 'valley',
       worlds: {
-        valley: { unlocked: true, completed: false, step: 0, visits: 1 },
-        mine: { unlocked: false, completed: false, step: 0, visits: 0 },
-        garden: { unlocked: false, completed: false, step: 0, visits: 0 }
+        valley: { unlocked: true, completed: false, step: 0, visits: 1, routeId: 'forest_bypass', planHistory: [] },
+        mine: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] },
+        garden: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] }
       },
       agent: {
         id: 'agent-cheng', name: '澄', role: '桥梁维护者 · 仍在形成',
@@ -171,6 +171,7 @@
         narrative: '我先学会照看我们共同走过的路。'
       },
       events: [eventAt(1038, 'world_entered', '与澄抵达断桥谷', 'verified')],
+      spatial: Spatial.createSpatialState(),
       memories: [],
       skills: [],
       artifacts: [],
@@ -241,11 +242,20 @@
     const progress = state.worlds.valley;
     if (progress.step >= VALLEY_STEPS.length) return travelToWorld(state, 'mine');
     const step = VALLEY_STEPS[progress.step];
+    const candidateRoutes = progress.step === 0 ? ['ravine_maintenance', 'forest_bypass'] : ['bridge_main', 'forest_bypass'];
+    const plan = Spatial.selectRoute('valley', candidateRoutes, state.agent.bodyPart || 'base', state.spatial);
+    if (plan) { progress.routeId = plan.routeId; progress.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId }); }
     state.tick += 7;
     const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
     evt.worldId = 'valley';
     state.events.push(evt);
     progress.step += 1;
+    if (progress.step === 2) Spatial.setValleyBridgeState(state.spatial, 'temporary');
+    if (progress.step === 3) {
+      Spatial.setValleyBridgeState(state.spatial, 'stable');
+      progress.routeId = 'bridge_main';
+      progress.planHistory.push({ tick: state.tick, routeId: 'bridge_main', phaseId: state.spatial.valley.phaseId });
+    }
     if (progress.step === VALLEY_STEPS.length) {
       progress.completed = true;
       state.worlds.mine.unlocked = true;
@@ -278,6 +288,15 @@
     const progress = state.worlds.mine;
     if (progress.step >= MINE_STEPS.length) return travelToWorld(state, 'garden');
     const step = MINE_STEPS[progress.step];
+    if (progress.step === 0) {
+      const plan = Spatial.selectRoute('mine', ['service_spiral', 'cargo_spiral'], 'base', state.spatial);
+      if (plan) { progress.routeId = plan.routeId; progress.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId }); }
+    }
+    if (progress.step === 3) {
+      Spatial.setMineFault(state.spatial, { sourceNode: 'NODE-42', phaseOffset: -11, blockedRouteId: 'service_spiral' });
+      const replan = Spatial.selectRoute('mine', ['service_spiral', 'cargo_spiral'], 'base', state.spatial);
+      if (replan) { progress.routeId = replan.routeId; progress.planHistory.push({ tick: state.tick, routeId: replan.routeId, phaseId: replan.phaseId, reason: 'dynamic-blocked-edge' }); }
+    }
     state.tick += 9;
     const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
     evt.worldId = 'mine';
@@ -310,6 +329,7 @@
       });
       state.agent.role = '三地维护者 · 脉冲学徒';
       state.agent.narrative = '坐标会改变，但先隔离风险、再验证结果的方法不该改变。';
+      Spatial.setMineFault(state.spatial, { sourceNode: 'NONE', phaseOffset: 0, blockedRouteId: null });
     }
     return state;
   }
@@ -323,6 +343,7 @@
     state.tick += 11;
     const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
     evt.worldId = 'garden'; state.events.push(evt); progress.step += 1;
+    if (progress.step === 1) Spatial.setGardenPhase(state.spatial, 'phase_b');
     return state;
   }
 
@@ -336,6 +357,13 @@
     const evt = eventAt(state.tick, 'body_cultivated', '澄培育' + part.name + '；能力：' + part.ability + '；代价：' + part.cost, 'verified');
     evt.worldId = 'garden'; state.events.push(evt);
     state.worlds.garden.step = 2;
+    if (partId === 'feet') Spatial.setGardenPhase(state.spatial, 'phase_c');
+    const candidates = partId === 'bladder' ? ['wind_stream', 'root_bridges'] : partId === 'feet' ? ['surface_anchor_chain', 'root_bridges'] : ['root_bridges'];
+    let plan = Spatial.selectRoute('garden', candidates, partId, state.spatial);
+    if (plan) {
+      state.worlds.garden.routeId = plan.routeId;
+      state.worlds.garden.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId, bodyPart: partId });
+    }
     state.agent.narrative = '身体改变了我能注意到什么，但旧桥、岚和我的承诺仍属于我。';
     return state;
   }
@@ -350,6 +378,7 @@
     const evt = eventAt(state.tick, 'ecology_choice', '澄选择“' + choice.name + '”：' + choice.detail, 'verified');
     evt.worldId = 'garden'; state.events.push(evt);
     state.worlds.garden.step = 4; state.worlds.garden.completed = true;
+    Spatial.setGardenPhase(state.spatial, choiceId === 'escort' ? 'phase_c' : 'phase_a');
     if (choiceId === 'sample') state.relationships.watcher.trust = 12;
     else state.relationships.watcher.trust = choiceId === 'escort' ? 61 : 48;
     state.memories.push({
