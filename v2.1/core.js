@@ -157,7 +157,7 @@
 
   function createInitialState() {
     return {
-      version: 2,
+      version: '2.1',
       tick: 1042,
       activeWorld: 'valley',
       worlds: {
@@ -170,7 +170,10 @@
         body: '初生晶体框架', bodyPart: null, energy: 82,
         narrative: '我先学会照看我们共同走过的路。'
       },
-      events: [eventAt(1038, 'world_entered', '与澄抵达断桥谷', 'verified')],
+      events: [eventAt(1038, 'world_entered', '与澄抵达断桥谷', 'verified', {
+        worldId: 'valley',
+        spatial: { regionId: 'south_bank', landmarkIds: ['workshop'], routeId: null, phaseId: 'bridge_broken', entityIds: ['agent-cheng'] }
+      })],
       spatial: Spatial.createSpatialState(),
       memories: [],
       skills: [],
@@ -193,8 +196,19 @@
     };
   }
 
-  function eventAt(tick, type, summary, source) {
-    return { id: 'evt-' + tick + '-' + type, tick, type, summary, source: source || 'verified', worldId: null };
+  function eventAt(tick, type, summary, source, details) {
+    return Object.assign({ id: 'evt-' + tick + '-' + type, tick, type, summary, source: source || 'verified', worldId: null, spatial: null }, details || {});
+  }
+
+  function spatialContext(state, worldId, landmarkIds, regionId, routeId, entityIds) {
+    const worldSpatial = state.spatial && state.spatial[worldId];
+    return {
+      regionId: regionId || null,
+      landmarkIds: (landmarkIds || []).slice(),
+      routeId: routeId == null && state.worlds[worldId] ? state.worlds[worldId].routeId : routeId,
+      phaseId: worldSpatial ? worldSpatial.phaseId : null,
+      entityIds: (entityIds || ['agent-cheng']).slice()
+    };
   }
 
   function currentMission(state) {
@@ -246,8 +260,16 @@
     const plan = Spatial.selectRoute('valley', candidateRoutes, state.agent.bodyPart || 'base', state.spatial);
     if (plan) { progress.routeId = plan.routeId; progress.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId }); }
     state.tick += 7;
-    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
-    evt.worldId = 'valley';
+    const valleyPlaces = [
+      { regionId: 'ravine', landmarkIds: ['bridge_gap'] },
+      { regionId: 'south_bank', landmarkIds: ['workshop'] },
+      { regionId: 'ravine', landmarkIds: ['bridge_gap'] },
+      { regionId: 'ravine', landmarkIds: ['bridge_gap', 'south_junction'] }
+    ];
+    const place = valleyPlaces[progress.step];
+    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified', {
+      worldId: 'valley', spatial: spatialContext(state, 'valley', place.landmarkIds, place.regionId, progress.routeId)
+    });
     state.events.push(evt);
     progress.step += 1;
     if (progress.step === 2) Spatial.setValleyBridgeState(state.spatial, 'temporary');
@@ -263,6 +285,8 @@
         id: 'mem-valley-bridge', title: '我们一起修复的旧桥', worldId: 'valley',
         summary: '先检查应力，再制作可维护构件，最后留下暴雨后的复查承诺。',
         eventRefs: state.events.filter(e => e.worldId === 'valley').map(e => e.id),
+        locationIds: ['south_bank', 'ravine', 'north_bank'], landmarkIds: ['workshop', 'bridge_gap', 'greenhouse'],
+        routeIds: Array.from(new Set(progress.planHistory.map(item => item.routeId))), phaseIds: ['bridge_broken', 'bridge_temporary', 'bridge_stable'],
         salience: 0.92, verified: true
       });
       state.agent.role = '三地维护者 · 断桥谷';
@@ -298,8 +322,16 @@
       if (replan) { progress.routeId = replan.routeId; progress.planHistory.push({ tick: state.tick, routeId: replan.routeId, phaseId: replan.phaseId, reason: 'dynamic-blocked-edge' }); }
     }
     state.tick += 9;
-    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
-    evt.worldId = 'mine';
+    const minePlaces = [
+      { regionId: 'lower_ring', landmarkIds: ['mechanic_nest'] },
+      { regionId: 'middle_ring', landmarkIds: ['clock_atrium'] },
+      { regionId: 'middle_ring', landmarkIds: ['clock_atrium'] },
+      { regionId: 'deep_core', landmarkIds: ['echo_core'] }
+    ];
+    const place = minePlaces[progress.step];
+    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified', {
+      worldId: 'mine', spatial: spatialContext(state, 'mine', place.landmarkIds, place.regionId, progress.routeId, ['agent-cheng', 'npc-technician-lan'])
+    });
     state.events.push(evt);
     progress.step += 1;
     if (progress.step === 2) {
@@ -325,7 +357,10 @@
       state.memories.push({
         id: 'mem-mine-trust', title: '岚让我们修复东侧支路', worldId: 'mine',
         summary: '澄保留隔离与验证步骤，在不同节点和相位上完成了诊断。',
-        eventRefs: state.events.filter(e => e.worldId === 'mine').map(e => e.id), salience: 0.9, verified: true
+        eventRefs: state.events.filter(e => e.worldId === 'mine').map(e => e.id),
+        locationIds: ['middle_ring', 'lower_ring', 'deep_core'], landmarkIds: ['clock_atrium', 'mechanic_nest', 'echo_core'],
+        routeIds: Array.from(new Set(progress.planHistory.map(item => item.routeId))), phaseIds: Array.from(new Set(progress.planHistory.map(item => item.phaseId))),
+        salience: 0.9, verified: true
       });
       state.agent.role = '三地维护者 · 脉冲学徒';
       state.agent.narrative = '坐标会改变，但先隔离风险、再验证结果的方法不该改变。';
@@ -341,8 +376,10 @@
     const step = GARDEN_STEPS[progress.step];
     if (step.options) return state;
     state.tick += 11;
-    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
-    evt.worldId = 'garden'; state.events.push(evt); progress.step += 1;
+    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified', {
+      worldId: 'garden', spatial: spatialContext(state, 'garden', ['observer_nest', 'migration_crown'], 'crown_layer', progress.routeId)
+    });
+    state.events.push(evt); progress.step += 1;
     if (progress.step === 1) Spatial.setGardenPhase(state.spatial, 'phase_b');
     return state;
   }
@@ -354,8 +391,6 @@
     state.agent.bodyPart = partId;
     state.agent.body = '适应性晶体框架 · ' + part.name;
     state.agent.energy = Math.max(0, state.agent.energy + part.energy);
-    const evt = eventAt(state.tick, 'body_cultivated', '澄培育' + part.name + '；能力：' + part.ability + '；代价：' + part.cost, 'verified');
-    evt.worldId = 'garden'; state.events.push(evt);
     state.worlds.garden.step = 2;
     if (partId === 'feet') Spatial.setGardenPhase(state.spatial, 'phase_c');
     const candidates = partId === 'bladder' ? ['wind_stream', 'root_bridges'] : partId === 'feet' ? ['surface_anchor_chain', 'root_bridges'] : ['root_bridges'];
@@ -364,6 +399,10 @@
       state.worlds.garden.routeId = plan.routeId;
       state.worlds.garden.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId, bodyPart: partId });
     }
+    const evt = eventAt(state.tick, 'body_cultivated', '澄培育' + part.name + '；能力：' + part.ability + '；代价：' + part.cost, 'verified', {
+      worldId: 'garden', spatial: spatialContext(state, 'garden', ['nursery'], 'middle_layer', state.worlds.garden.routeId)
+    });
+    state.events.push(evt);
     state.agent.narrative = '身体改变了我能注意到什么，但旧桥、岚和我的承诺仍属于我。';
     return state;
   }
@@ -375,8 +414,10 @@
     value.mean = Math.min(1, +(value.mean + choice.delta).toFixed(2));
     value.confidence = Math.min(1, +(value.confidence + 0.08).toFixed(2));
     value.label = value.mean >= 0.66 ? '明确倾向' : value.mean >= 0.55 ? '温和倾向' : '仍在形成';
-    const evt = eventAt(state.tick, 'ecology_choice', '澄选择“' + choice.name + '”：' + choice.detail, 'verified');
-    evt.worldId = 'garden'; state.events.push(evt);
+    const evt = eventAt(state.tick, 'ecology_choice', '澄选择“' + choice.name + '”：' + choice.detail, 'verified', {
+      worldId: 'garden', spatial: spatialContext(state, 'garden', ['migration_crown'], 'crown_layer', state.worlds.garden.routeId, ['agent-cheng', 'migration-flock'])
+    });
+    state.events.push(evt);
     state.worlds.garden.step = 4; state.worlds.garden.completed = true;
     Spatial.setGardenPhase(state.spatial, choiceId === 'escort' ? 'phase_c' : 'phase_a');
     if (choiceId === 'sample') state.relationships.watcher.trust = 12;
@@ -384,7 +425,10 @@
     state.memories.push({
       id: 'mem-garden-migration', title: '我们如何穿过迁徙季', worldId: 'garden',
       summary: '澄用' + BODY_PARTS[state.agent.bodyPart].name + '理解迁徙信号，并选择' + choice.name + '。',
-      eventRefs: state.events.filter(e => e.worldId === 'garden').map(e => e.id), salience: 0.94, verified: true
+      eventRefs: state.events.filter(e => e.worldId === 'garden').map(e => e.id),
+      locationIds: ['middle_layer', 'crown_layer'], landmarkIds: ['nursery', 'observer_nest', 'migration_crown'],
+      routeIds: [state.worlds.garden.routeId], phaseIds: Array.from(new Set(state.worlds.garden.planHistory.map(item => item.phaseId).concat(state.spatial.garden.phaseId))),
+      salience: 0.94, verified: true
     });
     state.agent.role = '三地维护者 · 迁徙见证者';
     state.agent.narrative = choiceId === 'escort'
@@ -408,8 +452,11 @@
     state.activeWorld = worldId;
     state.worlds[worldId].visits += 1;
     state.tick += 3;
-    const evt = eventAt(state.tick, 'world_entered', '澄前往' + WORLD_DEFS[worldId].name, 'verified');
-    evt.worldId = worldId;
+    const spawn = Spatial.getManifest(worldId).spawnPoints[0];
+    const spawnLandmark = Spatial.getManifest(worldId).landmarks.find(item => Spatial.coordKey(item.anchor) === Spatial.coordKey(spawn.coord));
+    const evt = eventAt(state.tick, 'world_entered', '澄前往' + WORLD_DEFS[worldId].name, 'verified', {
+      worldId, spatial: spatialContext(state, worldId, spawnLandmark ? [spawnLandmark.id] : [], spawnLandmark ? spawnLandmark.regionId : null, null)
+    });
     state.events.push(evt);
     return state;
   }
@@ -427,14 +474,25 @@
     return state.events.filter(event => refs.has(event.id));
   }
 
+  function memorySpatialRefs(state, memoryId) {
+    const seen = new Set();
+    return memorySources(state, memoryId).map(event => event.spatial).filter(Boolean).filter(ref => {
+      const key = [ref.regionId, ref.routeId, ref.phaseId, (ref.landmarkIds || []).join(',')].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  }
+
   function releaseAgent(state, boundaryId) {
     const boundary = RELEASE_BOUNDARIES[boundaryId];
     if (!boundary) return null;
     const startTick = state.tick;
     state.releaseCount += 1;
     state.scheduler.mode = 'summary'; state.scheduler.lastBoundary = boundaryId;
-    const start = eventAt(++state.tick, 'release_started', '玩家选择“' + boundary.name + '”并退出直接控制', 'verified');
-    start.worldId = state.activeWorld; state.events.push(start);
+    const start = eventAt(++state.tick, 'release_started', '玩家选择“' + boundary.name + '”并退出直接控制', 'verified', {
+      worldId: state.activeWorld, spatial: spatialContext(state, state.activeWorld, [], null, state.worlds[state.activeWorld].routeId)
+    });
+    state.events.push(start);
     const cycle = (state.releaseCount - 1) % 3;
     const candidates = [
       {
@@ -464,10 +522,14 @@
     ];
     const chosen = candidates[cycle];
     state.tick = startTick + boundary.ticks;
-    const actionEvent = eventAt(state.tick - 2, chosen.type, chosen.action, 'verified');
-    actionEvent.worldId = state.activeWorld; state.events.push(actionEvent);
-    const returned = eventAt(state.tick, 'player_returned', '玩家在“' + boundary.name + '”边界结束时回归', 'verified');
-    returned.worldId = state.activeWorld; state.events.push(returned);
+    const actionEvent = eventAt(state.tick - 2, chosen.type, chosen.action, 'verified', {
+      worldId: state.activeWorld, spatial: spatialContext(state, state.activeWorld, [], null, state.worlds[state.activeWorld].routeId)
+    });
+    state.events.push(actionEvent);
+    const returned = eventAt(state.tick, 'player_returned', '玩家在“' + boundary.name + '”边界结束时回归', 'verified', {
+      worldId: state.activeWorld, spatial: spatialContext(state, state.activeWorld, [], null, state.worlds[state.activeWorld].routeId)
+    });
+    state.events.push(returned);
     state.scheduler.mode = 'active';
     const summary = {
       id: 'return-' + state.releaseCount, count: state.releaseCount, boundaryId,
@@ -492,19 +554,28 @@
   }
 
   function hydrateState(candidate) {
-    if (!candidate || candidate.version !== 2 || !candidate.worlds || !candidate.agent || !Array.isArray(candidate.events)) return createInitialState();
+    if (!candidate || !candidate.worlds || !candidate.agent || !Array.isArray(candidate.events) || ![2, '2.1'].includes(candidate.version)) return createInitialState();
     const base = createInitialState();
-    return Object.assign(base, candidate, {
+    const migrated = Object.assign({}, candidate, { version: '2.1' });
+    const result = Object.assign(base, migrated, {
       agent: Object.assign(base.agent, candidate.agent),
-      worlds: Object.assign(base.worlds, candidate.worlds),
-      scheduler: Object.assign(base.scheduler, candidate.scheduler || {})
+      worlds: Object.fromEntries(WORLD_ORDER.map(id => [id, Object.assign(base.worlds[id], candidate.worlds[id] || {})])),
+      scheduler: Object.assign(base.scheduler, candidate.scheduler || {}),
+      spatial: Object.assign(base.spatial, candidate.spatial || {}, {
+        valley: Object.assign(base.spatial.valley, candidate.spatial && candidate.spatial.valley || {}),
+        mine: Object.assign(base.spatial.mine, candidate.spatial && candidate.spatial.mine || {}),
+        garden: Object.assign(base.spatial.garden, candidate.spatial && candidate.spatial.garden || {})
+      })
     });
+    result.events = result.events.map(event => Object.assign({ spatial: event.worldId ? spatialContext(result, event.worldId, [], null, result.worlds[event.worldId] && result.worlds[event.worldId].routeId) : null }, event));
+    result.memories = (result.memories || []).map(memory => Object.assign({ locationIds: [], landmarkIds: [], routeIds: [], phaseIds: [] }, memory));
+    return result;
   }
 
   function exportBundle(state) {
     return {
-      exportedAt: new Date().toISOString(), format: 'lightgrid-v2-demo-save',
-      versionManifest: { simulationVersion: 2, contentVersion: 2, eventSchemaVersion: 1, memoryPolicyVersion: 1, skillSchemaVersion: 1, modelPolicyVersion: 'offline-rules-v1' },
+      exportedAt: new Date().toISOString(), format: 'lightgrid-v2.1-alpha-save',
+      versionManifest: { simulationVersion: '2.1', sceneSchemaVersion: 1, contentVersion: '2.1', eventSchemaVersion: 2, memoryPolicyVersion: 2, skillSchemaVersion: 1, modelPolicyVersion: 'offline-rules-v1' },
       state
     };
   }
@@ -531,6 +602,7 @@
     travelToWorld,
     continuityLabel
     ,memorySources
+    ,memorySpatialRefs
     ,releaseAgent
     ,catchUpOffline
     ,hydrateState

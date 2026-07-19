@@ -2,6 +2,7 @@
   'use strict';
   const Core = window.LightgridV21Core;
   const STORAGE_KEY = 'lightgrid.v2.1.alpha.save';
+  const LEGACY_STORAGE_KEY = 'lightgrid.v2.demo.save';
   let state = loadState();
   let selectedBoundary = 'short';
   const world3d = {
@@ -26,7 +27,7 @@
 
   function loadState() {
     try {
-      const candidate = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      const candidate = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
       const restored = Core.hydrateState(candidate);
       if (candidate && candidate.lastSavedAtEpoch) Core.catchUpOffline(restored, Date.now() - candidate.lastSavedAtEpoch);
       return restored;
@@ -192,7 +193,7 @@
 
   function downloadExport() {
     const blob = new Blob([JSON.stringify(Core.exportBundle(state), null, 2)], { type: 'application/json' });
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'lightgrid-cheng-save.json'; link.click(); URL.revokeObjectURL(link.href);
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'lightgrid-v2.1-cheng-save.json'; link.click(); URL.revokeObjectURL(link.href);
   }
 
   function drawWorld(id) {
