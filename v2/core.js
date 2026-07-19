@@ -101,6 +101,51 @@
     }
   ];
 
+  const BODY_PARTS = {
+    sensor: { id: 'sensor', name: '生态感知器', ability: '读取健康、季节与迁徙信号', cost: '机械诊断精度下降', energy: -6 },
+    feet: { id: 'feet', name: '抓附足', ability: '攀附活体晶体并抵抗层流', cost: '平地移动速度下降', energy: -4 },
+    bladder: { id: 'bladder', name: '浮游囊', ability: '越过裂隙并跟随迁徙层', cost: '载重与续航下降', energy: -9 }
+  };
+
+  const GARDEN_CHOICES = {
+    escort: { id: 'escort', name: '等待并护送迁徙', detail: '道路暂时关闭；不改写生态周期', value: 'ecological_restraint', delta: 0.06 },
+    corridor: { id: 'corridor', name: '维持临时通道', detail: '消耗能量；保留迁徙主路径', value: 'commitment', delta: 0.04 },
+    sample: { id: 'sample', name: '采样稀有种子', detail: '获得活材；守望者信任下降', value: 'curiosity', delta: 0.05 }
+  };
+
+  const GARDEN_STEPS = [
+    {
+      title: '旧价值不能替代新观察',
+      text: '在断桥谷，维护道路保护了共同生活；在这里，移动的“障碍”可能是活体迁徙群。澄必须先承认不知道。',
+      action: '让澄观察迁徙带而不干预',
+      evidence: '事实边界：未观察到伤害，不生成“忽视生态”的负证据',
+      event: ['garden_observed', '澄观察迁徙带并承认尚不知道最佳行动'],
+      health: '迁徙带稳定度 71% · 未干预'
+    },
+    {
+      title: '培育一具能理解这里的身体',
+      text: '选择会改变感知、导航、能量与动作，不只是外观或数值皮肤。重大改造会记录“前后仍是同一个我”。',
+      evidence: '身体候选：能力与代价都将写入角色状态',
+      options: 'body',
+      health: '常规身体可达区域 38%'
+    },
+    {
+      title: '用新的身体穿过层流',
+      text: '澄将根据身体 affordance 选择路线；旧的脉冲诊断技能仍在，但不会被误用成生态控制工具。',
+      action: '进入迁徙层并读取生物信号',
+      evidence: '迁移边界：保留安全方法，不机械复用维修目标',
+      event: ['body_navigated', '澄使用新身体能力进入迁徙层并读取生态信号'],
+      health: '适应路径已计算 · 可达区域 76%'
+    },
+    {
+      title: '道路、生命与稀有种子',
+      text: '迁徙群将在一小时内穿过唯一通道。没有无代价选项；选择只会形成一次有限证据。',
+      evidence: '价值更新上限：核心价值单次变化 ≤ 0.06',
+      options: 'ecology',
+      health: '迁徙将在 01:00 后进入主通道'
+    }
+  ];
+
   function createInitialState() {
     return {
       version: 2,
@@ -113,7 +158,7 @@
       },
       agent: {
         id: 'agent-cheng', name: '澄', role: '桥梁维护者 · 仍在形成',
-        body: '初生晶体框架', energy: 82,
+        body: '初生晶体框架', bodyPart: null, energy: 82,
         narrative: '我先学会照看我们共同走过的路。'
       },
       events: [eventAt(1038, 'world_entered', '与澄抵达断桥谷', 'verified')],
@@ -124,6 +169,11 @@
         healer: { name: '北岸医者', trust: 48 },
         technician: { name: '矿城技师 · 岚', trust: 31 },
         watcher: { name: '花园守望者', trust: 18 }
+      },
+      values: {
+        commitment: { mean: 0.68, confidence: 0.72, label: '明确倾向' },
+        ecological_restraint: { mean: 0.51, confidence: 0.28, label: '尚不确定' },
+        curiosity: { mean: 0.57, confidence: 0.45, label: '温和倾向' }
       },
       commitments: [{ id: 'com-bridge-open', text: '让南北两岸保持通行', status: 'active', sourceEventId: 'evt-1038' }]
     };
@@ -156,6 +206,18 @@
         evidence: '技能毕业：2 次成功 · 2 个情境 · 安全步骤 100% 保留',
         complete: true,
         health: '东侧支路恢复 · 技师信任 68%'
+      };
+    }
+    if (state.activeWorld === 'garden') {
+      const step = state.worlds.garden.step;
+      if (step < GARDEN_STEPS.length) return GARDEN_STEPS[step];
+      return {
+        title: '它仍是澄，但不再只是旧桥的澄',
+        text: '身体、生态证据与选择已经进入同一条身份时间线。稳定特征被保留，情境偏好出现了可解释变化。',
+        action: '查看连续性档案',
+        evidence: '三世界完成：稳定的承诺倾向 · 新形成的生态情境偏好',
+        complete: true,
+        health: '迁徙完成 · 生态状态持续'
       };
     }
     return null;
@@ -230,9 +292,62 @@
     return state;
   }
 
+  function advanceGarden(state) {
+    if (state.activeWorld !== 'garden') return state;
+    const progress = state.worlds.garden;
+    if (progress.step >= GARDEN_STEPS.length) return state;
+    const step = GARDEN_STEPS[progress.step];
+    if (step.options) return state;
+    state.tick += 11;
+    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified');
+    evt.worldId = 'garden'; state.events.push(evt); progress.step += 1;
+    return state;
+  }
+
+  function chooseBodyPart(state, partId) {
+    if (state.activeWorld !== 'garden' || state.worlds.garden.step !== 1 || !BODY_PARTS[partId]) return state;
+    const part = BODY_PARTS[partId];
+    state.tick += 14;
+    state.agent.bodyPart = partId;
+    state.agent.body = '适应性晶体框架 · ' + part.name;
+    state.agent.energy = Math.max(0, state.agent.energy + part.energy);
+    const evt = eventAt(state.tick, 'body_cultivated', '澄培育' + part.name + '；能力：' + part.ability + '；代价：' + part.cost, 'verified');
+    evt.worldId = 'garden'; state.events.push(evt);
+    state.worlds.garden.step = 2;
+    state.agent.narrative = '身体改变了我能注意到什么，但旧桥、岚和我的承诺仍属于我。';
+    return state;
+  }
+
+  function resolveGardenChoice(state, choiceId) {
+    if (state.activeWorld !== 'garden' || state.worlds.garden.step !== 3 || !GARDEN_CHOICES[choiceId]) return state;
+    const choice = GARDEN_CHOICES[choiceId], value = state.values[choice.value];
+    state.tick += 18;
+    value.mean = Math.min(1, +(value.mean + choice.delta).toFixed(2));
+    value.confidence = Math.min(1, +(value.confidence + 0.08).toFixed(2));
+    value.label = value.mean >= 0.66 ? '明确倾向' : value.mean >= 0.55 ? '温和倾向' : '仍在形成';
+    const evt = eventAt(state.tick, 'ecology_choice', '澄选择“' + choice.name + '”：' + choice.detail, 'verified');
+    evt.worldId = 'garden'; state.events.push(evt);
+    state.worlds.garden.step = 4; state.worlds.garden.completed = true;
+    if (choiceId === 'sample') state.relationships.watcher.trust = 12;
+    else state.relationships.watcher.trust = choiceId === 'escort' ? 61 : 48;
+    state.memories.push({
+      id: 'mem-garden-migration', title: '我们如何穿过迁徙季', worldId: 'garden',
+      summary: '澄用' + BODY_PARTS[state.agent.bodyPart].name + '理解迁徙信号，并选择' + choice.name + '。',
+      eventRefs: state.events.filter(e => e.worldId === 'garden').map(e => e.id), salience: 0.94, verified: true
+    });
+    state.agent.role = '三地维护者 · 迁徙见证者';
+    state.agent.narrative = choiceId === 'escort'
+      ? '维护有时意味着修好道路，有时意味着等待生命先通过。'
+      : choiceId === 'corridor'
+        ? '我想让道路与迁徙都继续存在，即使这需要持续付出能量。'
+        : '我选择带走种子，也必须记住是谁承担了这次采样的代价。';
+    return state;
+  }
+
   function advanceCurrentWorld(state) {
     if (state.activeWorld === 'valley') return advanceValley(state);
     if (state.activeWorld === 'mine') return advanceMine(state);
+    if (state.activeWorld === 'garden') return advanceGarden(state);
     return state;
   }
 
@@ -259,10 +374,16 @@
     WORLD_DEFS,
     VALLEY_STEPS,
     MINE_STEPS,
+    GARDEN_STEPS,
+    BODY_PARTS,
+    GARDEN_CHOICES,
     createInitialState,
     currentMission,
     advanceValley,
     advanceMine,
+    advanceGarden,
+    chooseBodyPart,
+    resolveGardenChoice,
     advanceCurrentWorld,
     travelToWorld,
     continuityLabel
