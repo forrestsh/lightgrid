@@ -4,6 +4,12 @@
   const STORAGE_KEY = 'lightgrid.v2.demo.save';
   let state = loadState();
   let selectedBoundary = 'short';
+  const world3d = {
+    ready: false, failed: false, renderer: null, scene: null, camera: null, root: null,
+    cellGeometry: null, signature: '', animationFrame: 0, theta: .76, phi: 1.05,
+    radius: 19, target: null, dragging: false, lastX: 0, lastY: 0, lastTime: 0,
+    animated: [], pulses: [], migrants: [], prefersReducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches
+  };
 
   const els = Object.fromEntries([
     'globalTick', 'worldList', 'worldCanvas', 'worldChapter', 'worldTitle', 'worldDescription',
@@ -190,53 +196,287 @@
   }
 
   function drawWorld(id) {
-    const canvas = els.worldCanvas, rect = canvas.getBoundingClientRect();
-    const ratio = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = Math.max(1, Math.floor(rect.width * ratio));
-    canvas.height = Math.max(1, Math.floor(rect.height * ratio));
-    const ctx = canvas.getContext('2d');
-    ctx.scale(ratio, ratio);
-    const w = rect.width, h = rect.height, def = Core.WORLD_DEFS[id];
-    const bg = ctx.createRadialGradient(w * .68, h * .35, 10, w * .68, h * .35, w * .72);
-    bg.addColorStop(0, hexAlpha(def.tone, .18)); bg.addColorStop(.5, '#0a1715'); bg.addColorStop(1, '#040a09');
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
-    ctx.save(); ctx.translate(w * .66, h * .54);
-    const cell = Math.max(14, Math.min(27, w / 32));
-    for (let y = -8; y <= 8; y++) for (let x = -12; x <= 12; x++) {
-      const px = (x - y) * cell * .82, py = (x + y) * cell * .32;
-      const d = Math.hypot(x / 1.2, y);
-      if (d > 12 || noise(x, y, id.length) < .27) continue;
-      let lift = Math.max(0, 4.5 - d) * cell * .18;
-      if (id === 'valley') lift += Math.abs(x + y) < 2 ? -cell * 1.4 : 0;
-      if (id === 'mine') lift += ((x + y + 20) % 4 === 0) ? cell * .55 : 0;
-      if (id === 'garden') lift += Math.sin(x * .7 + y) * cell * .6;
-      drawDiamond(ctx, px, py - lift, cell * .76, def.tone, .12 + Math.max(0, 1 - d / 13) * .3);
+    if (!initWorld3d()) return;
+    const progress = state.worlds[id];
+    const signature = [id, progress.step, progress.completed, state.agent.bodyPart || 'base', state.values.ecological_restraint.score].join(':');
+    if (world3d.signature !== signature) rebuildWorld3d(id, signature);
+    resizeWorld3d();
+  }
+
+  function initWorld3d() {
+    if (world3d.ready) return true;
+    if (world3d.failed) return false;
+    if (!window.THREE) return failWorld3d('Three.js 未能加载，请刷新页面。');
+    try {
+      const T = window.THREE;
+      world3d.renderer = new T.WebGLRenderer({ canvas: els.worldCanvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+      world3d.renderer.setPixelRatio(Math.min(devicePixelRatio || 1, innerWidth < 760 ? 1.25 : 1.75));
+      if (T.sRGBEncoding) world3d.renderer.outputEncoding = T.sRGBEncoding;
+      world3d.scene = new T.Scene();
+      world3d.scene.background = new T.Color(0x06100f);
+      world3d.scene.fog = new T.FogExp2(0x06100f, .035);
+      world3d.camera = new T.PerspectiveCamera(42, 1, .1, 120);
+      world3d.target = new T.Vector3(1.2, -.2, 0);
+      world3d.cellGeometry = rhombicDodecahedron(.43);
+      world3d.scene.add(new T.HemisphereLight(0x9debd5, 0x07100e, 1.15));
+      const key = new T.DirectionalLight(0xffe5ab, 1.35); key.position.set(-8, 14, 8); world3d.scene.add(key);
+      const rim = new T.PointLight(0x5ac9ff, 1.3, 34); rim.position.set(8, 5, -8); world3d.scene.add(rim);
+      bindWorld3dControls();
+      world3d.ready = true;
+      window.__lightgrid3d = { ready: true, renderer: 'WebGL', revision: T.REVISION, world: null, objects: 0 };
+      world3d.animationFrame = requestAnimationFrame(animateWorld3d);
+      return true;
+    } catch (error) {
+      return failWorld3d('当前浏览器无法启动 WebGL 3D 场景。');
     }
-    drawLandmark(ctx, id, cell, def);
-    ctx.restore();
   }
 
-  function drawDiamond(ctx, x, y, size, color, alpha) {
-    ctx.beginPath(); ctx.moveTo(x, y - size * .52); ctx.lineTo(x + size, y); ctx.lineTo(x, y + size * .52); ctx.lineTo(x - size, y); ctx.closePath();
-    ctx.fillStyle = hexAlpha(color, alpha); ctx.fill(); ctx.strokeStyle = hexAlpha(color, alpha + .16); ctx.lineWidth = .65; ctx.stroke();
+  function failWorld3d(message) {
+    world3d.failed = true;
+    const notice = document.createElement('div'); notice.className = 'webgl-fallback'; notice.textContent = message;
+    els.worldCanvas.insertAdjacentElement('afterend', notice);
+    window.__lightgrid3d = { ready: false, error: message };
+    return false;
   }
 
-  function drawLandmark(ctx, id, cell, def) {
-    ctx.save(); ctx.shadowColor = def.tone; ctx.shadowBlur = 22; ctx.strokeStyle = def.tone; ctx.fillStyle = hexAlpha(def.tone, .18); ctx.lineWidth = 1.2;
-    if (id === 'valley') {
-      ctx.beginPath(); ctx.moveTo(-cell * 5, -cell * .1); ctx.lineTo(cell * 5, -cell * .1); ctx.stroke();
-      for (let i = -5; i <= 5; i++) drawDiamond(ctx, i * cell, -Math.abs(i) * 1.2, cell * .48, def.tone, i === 0 ? .7 : .35);
-    } else if (id === 'mine') {
-      for (let r = 1; r < 5; r++) { ctx.beginPath(); ctx.arc(0, 0, cell * r, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); }
-      ctx.beginPath(); ctx.moveTo(-cell * 5, 0); ctx.lineTo(cell * 5, 0); ctx.stroke();
-    } else {
-      for (let i = 0; i < 10; i++) { const a = i * .86, r = cell * (1.4 + i * .32); drawDiamond(ctx, Math.cos(a) * r, Math.sin(a) * r * .45, cell * (.42 + i * .025), def.tone, .28); }
+  function rhombicDodecahedron(scale) {
+    const T = window.THREE, cube = [];
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) cube.push([x, y, z]);
+    const vertices = cube.concat([[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]]), directions = [];
+    for (const a of [-1, 1]) for (const b of [-1, 1]) directions.push([a,b,0], [a,0,b], [0,a,b]);
+    const positions = [];
+    directions.forEach(direction => {
+      const face = vertices.filter(v => v[0] * direction[0] + v[1] * direction[1] + v[2] * direction[2] === 2);
+      const axial = face.filter(v => v.some(n => Math.abs(n) === 2)), corners = face.filter(v => v.every(n => Math.abs(n) !== 2));
+      let quad = [axial[0], corners[0], axial[1], corners[1]].map(v => v.map(n => n * scale));
+      const u = quad[1].map((n, i) => n - quad[0][i]), v = quad[2].map((n, i) => n - quad[0][i]);
+      const normal = [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]];
+      if (normal[0]*direction[0] + normal[1]*direction[1] + normal[2]*direction[2] < 0) quad = [quad[0], quad[3], quad[2], quad[1]];
+      [[0,1,2],[0,2,3]].forEach(triangle => triangle.forEach(index => positions.push(...quad[index])));
+    });
+    const geometry = new T.BufferGeometry();
+    geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
+  function cellCloud(parent, cells, options) {
+    if (!cells.length) return null;
+    const T = window.THREE, material = new T.MeshStandardMaterial({
+      color: options.color, roughness: options.roughness == null ? .68 : options.roughness,
+      metalness: options.metalness || .04, transparent: !!options.transparent,
+      opacity: options.opacity == null ? 1 : options.opacity,
+      emissive: options.emissive || 0x000000, emissiveIntensity: options.emissiveIntensity || 0
+    });
+    const mesh = new T.InstancedMesh(world3d.cellGeometry, material, cells.length), dummy = new T.Object3D();
+    cells.forEach((cell, index) => {
+      dummy.position.set(cell[0], cell[1], cell[2]);
+      dummy.rotation.set(0, (cell[0] * 1.73 + cell[2] * .91) % .45, 0);
+      dummy.scale.setScalar(cell[3] || 1); dummy.updateMatrix(); mesh.setMatrixAt(index, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true; mesh.name = options.name || 'fcc-cells'; parent.add(mesh); return mesh;
+  }
+
+  function standardMesh(geometry, color, options) {
+    const T = window.THREE, material = new T.MeshStandardMaterial({
+      color, roughness: options && options.roughness == null ? .55 : (options && options.roughness) || .55,
+      metalness: options && options.metalness || 0, transparent: options && options.opacity < 1,
+      opacity: options && options.opacity == null ? 1 : (options && options.opacity) || 1,
+      emissive: options && options.emissive || 0, emissiveIntensity: options && options.emissiveIntensity || 0,
+      side: options && options.doubleSide ? T.DoubleSide : T.FrontSide
+    });
+    return new T.Mesh(geometry, material);
+  }
+
+  function rebuildWorld3d(id, signature) {
+    const T = window.THREE;
+    if (world3d.root) {
+      world3d.root.traverse(object => {
+        if (object.geometry && object.geometry !== world3d.cellGeometry) object.geometry.dispose();
+        if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach(material => material.dispose());
+      });
+      world3d.scene.remove(world3d.root);
     }
-    ctx.restore();
+    world3d.root = new T.Group(); world3d.root.name = id + '-world'; world3d.scene.add(world3d.root);
+    world3d.animated = []; world3d.pulses = []; world3d.migrants = [];
+    addStarField(world3d.root, Core.WORLD_DEFS[id].tone);
+    if (id === 'valley') buildValley(world3d.root);
+    if (id === 'mine') buildMine(world3d.root);
+    if (id === 'garden') buildGarden(world3d.root);
+    world3d.signature = signature;
+    window.__lightgrid3d = { ready: true, renderer: 'WebGL', revision: T.REVISION, world: id, signature, objects: countObjects(world3d.root) };
   }
 
-  function noise(x, y, seed) { const v = Math.sin(x * 91.7 + y * 37.3 + seed * 11.1) * 43758.5453; return v - Math.floor(v); }
-  function hexAlpha(hex, alpha) { const value = hex.replace('#', ''); const n = parseInt(value, 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alpha})`; }
+  function addStarField(parent, tone) {
+    const T = window.THREE, positions = [];
+    for (let i = 0; i < 180; i++) {
+      const angle = noise(i, 3, 8) * Math.PI * 2, radius = 13 + noise(i, 7, 2) * 24;
+      positions.push(Math.cos(angle) * radius, -3 + noise(i, 5, 1) * 17, Math.sin(angle) * radius);
+    }
+    const geometry = new T.BufferGeometry(); geometry.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+    const points = new T.Points(geometry, new T.PointsMaterial({ color: tone, size: .055, transparent: true, opacity: .48, depthWrite: false }));
+    parent.add(points);
+  }
+
+  function buildValley(parent) {
+    const T = window.THREE, step = state.worlds.valley.step, ground = [], cliffs = [], bridge = [], fracture = [], crystals = [];
+    for (let x = -11; x <= 11; x++) for (let z = -7; z <= 7; z++) {
+      const distance = Math.hypot(x / 1.45, z), n = noise(x, z, 11);
+      if (distance > 11.6 || n < .12 || Math.abs(x) < 1.65) continue;
+      const y = -2.1 + Math.max(0, 5.2 - Math.abs(x)) * .17 + n * .36;
+      (Math.abs(x) < 3.2 ? cliffs : ground).push([x * .72, y, z * .72, .92]);
+      if (Math.abs(x) < 2.9) cliffs.push([x * .72, y - .78, z * .72, .92], [x * .72, y - 1.52, z * .72, .92]);
+    }
+    for (let i = -8; i <= 8; i++) {
+      const damaged = Math.abs(i) <= 1 && step < 3;
+      if (!damaged) bridge.push([i * .66, -.34 - Math.abs(i) * .018, 0, .72]);
+      else fracture.push([i * .66, -.72 + Math.abs(i) * .16, 0, .58]);
+      if (i % 2 === 0) bridge.push([i * .66, .23, -.72, .34], [i * .66, .23, .72, .34]);
+    }
+    for (let side of [-1, 1]) for (let i = 0; i < 22; i++) {
+      const x = side * (4.5 + noise(i, side, 5) * 3.2), z = -5.4 + noise(i, side, 9) * 10.8;
+      const height = 1 + Math.floor(noise(i, side, 13) * 4);
+      for (let y = 0; y < height; y++) crystals.push([x, -1.45 + y * .62, z, .44 + y * .04]);
+    }
+    cellCloud(parent, ground, { name: 'valley-ground', color: 0x43564f });
+    cellCloud(parent, cliffs, { name: 'ravine-cliffs', color: 0x263d3a });
+    const water = standardMesh(new T.PlaneGeometry(2.2, 13), 0x356e83, { opacity: .48, roughness: .15, metalness: .15, doubleSide: true });
+    water.rotation.x = -Math.PI / 2; water.position.set(0, -3.72, 0); parent.add(water); world3d.animated.push({ object: water, kind: 'water' });
+    cellCloud(parent, bridge, { name: step >= 3 ? 'repaired-bridge' : 'damaged-bridge', color: step >= 3 ? 0xd9b45d : 0x9b7548, metalness: .18 });
+    const breakMesh = cellCloud(parent, fracture, { name: 'bridge-fracture', color: 0xff665e, emissive: 0xff2118, emissiveIntensity: 1.1 });
+    if (breakMesh) world3d.animated.push({ object: breakMesh, kind: 'fracture' });
+    const crystalMesh = cellCloud(parent, crystals, { name: 'crystal-forest', color: 0x55d7b6, emissive: 0x1f9d7e, emissiveIntensity: .34, transparent: true, opacity: .9 });
+    world3d.animated.push({ object: crystalMesh, kind: 'crystals' });
+    addSettlement(parent, -7.1, -3.7, 0xe1b85d); addSettlement(parent, 7.2, 3.6, 0x7edbc0);
+    addAvatar(parent, [-5.2, -.55, 1.35]);
+    world3d.scene.background.setHex(0x07110f); world3d.scene.fog.color.setHex(0x07110f); world3d.radius = 19; world3d.target.set(1.2, -.5, 0);
+  }
+
+  function addSettlement(parent, x, z, color) {
+    const cells = [];
+    for (let y = 0; y < 4; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (y === 0 || Math.abs(dx) + Math.abs(dz) > 0) cells.push([x + dx * .58, -1.45 + y * .58, z + dz * .58, .62]);
+    cellCloud(parent, cells, { name: 'settlement', color, emissive: color, emissiveIntensity: .08 });
+  }
+
+  function buildMine(parent) {
+    const T = window.THREE, step = state.worlds.mine.step, tunnel = [], floor = [];
+    for (let z = -8; z <= 8; z++) {
+      for (let a = 0; a <= 12; a++) {
+        const angle = Math.PI * a / 12, x = Math.cos(angle) * 7.2, y = Math.sin(angle) * 5.2 - 2.35;
+        if ((a + z + 20) % 2 === 0) tunnel.push([x, y, z * .72, .72]);
+      }
+      for (let x = -7; x <= 7; x += 2) floor.push([x, -2.5, z * .72, .72]);
+    }
+    cellCloud(parent, tunnel, { name: 'mine-vault', color: 0x263952, metalness: .22 });
+    cellCloud(parent, floor, { name: 'mine-floor', color: 0x34475b, metalness: .15 });
+    for (const x of [-1.18, 1.18]) {
+      const rail = standardMesh(new T.BoxGeometry(.09, .09, 13), 0x9ab0bd, { metalness: .75, roughness: .25 }); rail.position.set(x, -1.95, 0); parent.add(rail);
+    }
+    for (let i = 0; i < 3; i++) {
+      const ring = standardMesh(new T.TorusGeometry(2.1 + i * 1.05, .08 + i * .025, 10, 64), i === 1 ? 0xf0a35e : 0x73b8ff, { emissive: i === 1 ? 0xb94716 : 0x256eb7, emissiveIntensity: .8, metalness: .45, roughness: .25 });
+      ring.position.set(0, .25, -2.2 + i * .12); ring.rotation.z = i * .36; parent.add(ring); world3d.animated.push({ object: ring, kind: 'clock', speed: (i % 2 ? -1 : 1) * (.16 + i * .05) });
+    }
+    const nodeColor = step >= 3 ? 0x6df0c8 : 0xff765e;
+    const node = standardMesh(new T.IcosahedronGeometry(.72, 1), nodeColor, { emissive: nodeColor, emissiveIntensity: 1.05, metalness: .25, roughness: .2 });
+    node.name = step >= 3 ? 'synchronized-node' : 'fault-node'; node.position.set(0, .25, -2.05); parent.add(node); world3d.animated.push({ object: node, kind: 'node' });
+    for (let i = 0; i < 7; i++) {
+      const pulse = standardMesh(new T.SphereGeometry(.12, 12, 8), 0x8fd4ff, { emissive: 0x4fa9ff, emissiveIntensity: 1.4, roughness: .2 });
+      pulse.position.set(i % 2 ? -1.18 : 1.18, -1.8, -7 + i * 2.1); parent.add(pulse); world3d.pulses.push({ object: pulse, offset: i * 2.1 });
+    }
+    addAvatar(parent, [-3.8, -1.6, 2.5]);
+    world3d.scene.background.setHex(0x050b13); world3d.scene.fog.color.setHex(0x050b13); world3d.radius = 18; world3d.target.set(.8, -.25, -1);
+  }
+
+  function buildGarden(parent) {
+    const T = window.THREE, islands = [], roots = [], part = state.agent.bodyPart;
+    for (let cluster = 0; cluster < 9; cluster++) {
+      const angle = cluster * .83, radius = 2.5 + cluster * .58, cx = Math.cos(angle) * radius, cz = Math.sin(angle) * radius, cy = -1 + Math.sin(cluster * 1.7) * 2.1;
+      for (let i = 0; i < 18; i++) {
+        const a = i * 2.39, r = Math.sqrt(i) * .36;
+        islands.push([cx + Math.cos(a) * r, cy - r * .14, cz + Math.sin(a) * r, .55 + noise(i, cluster, 4) * .22]);
+      }
+      for (let y = 1; y <= 4; y++) roots.push([cx + Math.sin(y) * .12, cy - y * .58, cz + Math.cos(y) * .12, .38]);
+    }
+    const islandMesh = cellCloud(parent, islands, { name: 'living-islands', color: 0x866fd0, emissive: 0x3e278b, emissiveIntensity: .22, metalness: .1 });
+    cellCloud(parent, roots, { name: 'living-roots', color: 0x65d6b0, emissive: 0x1d795e, emissiveIntensity: .3 });
+    world3d.animated.push({ object: islandMesh, kind: 'islands' });
+    const migrationCurve = new T.CatmullRomCurve3([new T.Vector3(-8,2,-4), new T.Vector3(-3,3,1), new T.Vector3(1,.5,3), new T.Vector3(5,2,0), new T.Vector3(8,0,-3)]);
+    const path = standardMesh(new T.TubeGeometry(migrationCurve, 80, .045, 6, false), 0x6df0c8, { emissive: 0x6df0c8, emissiveIntensity: .85, opacity: .55, roughness: .25 }); parent.add(path);
+    for (let i = 0; i < 34; i++) {
+      const migrant = standardMesh(world3d.cellGeometry, i % 4 === 0 ? 0xf2c96d : 0x8ef6d1, { emissive: i % 4 === 0 ? 0xc98322 : 0x38b88d, emissiveIntensity: .75, opacity: .92, roughness: .3 });
+      migrant.scale.setScalar(.22 + noise(i, 4, 9) * .16); parent.add(migrant); world3d.migrants.push({ object: migrant, offset: i / 34, lane: noise(i, 5, 2) - .5, curve: migrationCurve });
+    }
+    const avatar = addAvatar(parent, [-2.2, 1.8, .9]);
+    if (part === 'sensor') {
+      const sensor = standardMesh(new T.TorusGeometry(.68, .065, 8, 32), 0x6df0c8, { emissive: 0x6df0c8, emissiveIntensity: 1 }); sensor.rotation.x = Math.PI / 2; sensor.position.y = 1.52; avatar.add(sensor); world3d.animated.push({ object: sensor, kind: 'sensor' });
+    } else if (part === 'feet') {
+      cellCloud(avatar, [[-.4,-.58,0,.5],[.4,-.58,0,.5],[-.62,-.78,.2,.3],[.62,-.78,.2,.3]], { name: 'gripping-feet', color: 0xf2c96d, emissive: 0xb36a20, emissiveIntensity: .55 });
+    } else if (part === 'bladder') {
+      const bladder = standardMesh(new T.SphereGeometry(.78, 24, 14), 0x9dc9ff, { emissive: 0x5c8fd9, emissiveIntensity: .38, opacity: .42, roughness: .15 }); bladder.scale.y = 1.25; bladder.position.y = 1.2; avatar.add(bladder); world3d.animated.push({ object: bladder, kind: 'bladder' });
+    }
+    world3d.scene.background.setHex(0x0b0817); world3d.scene.fog.color.setHex(0x0b0817); world3d.radius = 20; world3d.target.set(1.6, .4, 0);
+  }
+
+  function addAvatar(parent, position) {
+    const T = window.THREE, avatar = new T.Group(), cells = [[0,0,0,.62],[0,.68,0,.58],[-.48,.22,0,.42],[.48,.22,0,.42],[0,1.38,0,.48]];
+    cellCloud(avatar, cells.slice(0, 4), { name: 'avatar-body', color: 0xeaf7f2, emissive: 0x28584e, emissiveIntensity: .25, metalness: .1 });
+    const core = standardMesh(world3d.cellGeometry, 0x6df0c8, { emissive: 0x6df0c8, emissiveIntensity: 1.1, roughness: .25 }); core.scale.setScalar(cells[4][3]); core.position.set(0, cells[4][1], 0); avatar.add(core);
+    avatar.position.set(position[0], position[1], position[2]); avatar.name = 'cheng-avatar'; parent.add(avatar); world3d.animated.push({ object: avatar, kind: 'avatar' }); return avatar;
+  }
+
+  function bindWorld3dControls() {
+    const canvas = els.worldCanvas;
+    canvas.addEventListener('pointerdown', event => { world3d.dragging = true; world3d.lastX = event.clientX; world3d.lastY = event.clientY; canvas.classList.add('dragging'); canvas.setPointerCapture(event.pointerId); });
+    canvas.addEventListener('pointermove', event => {
+      if (!world3d.dragging) return;
+      world3d.theta -= (event.clientX - world3d.lastX) * .007;
+      world3d.phi = Math.max(.28, Math.min(1.46, world3d.phi + (event.clientY - world3d.lastY) * .006));
+      world3d.lastX = event.clientX; world3d.lastY = event.clientY;
+    });
+    const stopDrag = () => { world3d.dragging = false; canvas.classList.remove('dragging'); };
+    canvas.addEventListener('pointerup', stopDrag); canvas.addEventListener('pointercancel', stopDrag);
+    canvas.addEventListener('wheel', event => { event.preventDefault(); world3d.radius = Math.max(8, Math.min(34, world3d.radius * Math.exp(event.deltaY * .001))); }, { passive: false });
+  }
+
+  function animateWorld3d(time) {
+    world3d.animationFrame = requestAnimationFrame(animateWorld3d);
+    if (!world3d.ready || !world3d.root) return;
+    const dt = Math.min(48, time - (world3d.lastTime || time)); world3d.lastTime = time;
+    if (!world3d.dragging && !world3d.prefersReducedMotion) world3d.theta += dt * .000025;
+    world3d.animated.forEach(item => {
+      if (!item.object) return;
+      if (item.kind === 'clock') item.object.rotation.z += dt * .001 * item.speed;
+      if (item.kind === 'node') item.object.scale.setScalar(1 + Math.sin(time * .004) * .09);
+      if (item.kind === 'fracture') item.object.material.emissiveIntensity = .75 + Math.sin(time * .006) * .4;
+      if (item.kind === 'crystals') item.object.material.emissiveIntensity = .25 + Math.sin(time * .002) * .12;
+      if (item.kind === 'avatar') item.object.position.y += Math.sin(time * .0022) * .0006 * dt;
+      if (item.kind === 'water') item.object.material.opacity = .42 + Math.sin(time * .0015) * .08;
+      if (item.kind === 'islands') item.object.rotation.y = Math.sin(time * .00025) * .035;
+      if (item.kind === 'sensor') item.object.rotation.z += dt * .0012;
+      if (item.kind === 'bladder') item.object.scale.setScalar(1 + Math.sin(time * .002) * .035);
+    });
+    world3d.pulses.forEach(pulse => { pulse.object.position.z = -7 + ((time * .004 + pulse.offset) % 14); pulse.object.material.emissiveIntensity = .8 + Math.sin(time * .006 + pulse.offset) * .5; });
+    world3d.migrants.forEach(migrant => {
+      const t = (migrant.offset + time * .000025) % 1, point = migrant.curve.getPoint(t);
+      migrant.object.position.copy(point); migrant.object.position.y += Math.sin(time * .002 + migrant.offset * 30) * .3; migrant.object.position.z += migrant.lane * .8;
+      migrant.object.rotation.y += dt * .001;
+    });
+    const r = world3d.radius, phi = world3d.phi, theta = world3d.theta;
+    world3d.camera.position.set(world3d.target.x + r * Math.sin(phi) * Math.cos(theta), world3d.target.y + r * Math.cos(phi), world3d.target.z + r * Math.sin(phi) * Math.sin(theta));
+    world3d.camera.lookAt(world3d.target); resizeWorld3d(); world3d.renderer.render(world3d.scene, world3d.camera);
+  }
+
+  function resizeWorld3d() {
+    if (!world3d.ready) return;
+    const width = Math.max(1, els.worldCanvas.clientWidth), height = Math.max(1, els.worldCanvas.clientHeight);
+    const drawing = world3d.renderer.getDrawingBufferSize(new window.THREE.Vector2());
+    const ratio = world3d.renderer.getPixelRatio();
+    if (drawing.x !== Math.floor(width * ratio) || drawing.y !== Math.floor(height * ratio)) world3d.renderer.setSize(width, height, false);
+    world3d.camera.aspect = width / height; world3d.camera.updateProjectionMatrix();
+  }
+
+  function countObjects(root) { let count = 0; root.traverse(() => count++); return count; }
+  function noise(x, y, seed) { const value = Math.sin(x * 91.7 + y * 37.3 + seed * 11.1) * 43758.5453; return value - Math.floor(value); }
 
   function render() { renderWorldRail(); renderStage(); renderMission(); renderAgent(); renderEvents(); renderMap(); persistState(); }
 

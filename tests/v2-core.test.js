@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const Core = require('../v2/core.js');
 
 function finishValley(state) {
@@ -114,4 +116,12 @@ test('export bundle declares offline model policy and stable version matrix', ()
   assert.equal(bundle.format, 'lightgrid-v2-demo-save');
   assert.equal(bundle.versionManifest.modelPolicyVersion, 'offline-rules-v1');
   assert.equal(bundle.state.agent.id, 'agent-cheng');
+});
+
+test('v2 entry loads the local Three.js runtime and exposes WebGL diagnostics', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../v2/index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../v2/app.js'), 'utf8');
+  assert.ok(html.indexOf('../vendor/three.min.js') < html.indexOf('./app.js'));
+  assert.match(app, /new T\.WebGLRenderer/);
+  assert.match(app, /window\.__lightgrid3d/);
 });

@@ -43,7 +43,7 @@
 
     <main class="main-stage">
       <section class="world-stage" aria-labelledby="worldTitle">
-        <canvas id="worldCanvas" aria-label="当前世界的抽象 FCC 场景"></canvas>
+        <canvas id="worldCanvas" aria-label="当前世界的可交互三维 FCC 场景"></canvas>
         <div class="stage-vignette"></div>
         <div class="stage-copy">
           <span class="chapter" id="worldChapter">CHAPTER I · CONTINUITY</span>
@@ -55,6 +55,7 @@
           <span id="weatherLabel">薄雾 · 维护窗口 06:40</span>
           <b id="worldHealth">桥梁完整度 42%</b>
         </div>
+        <div class="scene-controls" aria-hidden="true"><i></i>3D LIVE · 拖动旋转 · 滚轮缩放</div>
       </section>
 
       <section class="mission-card" aria-labelledby="missionTitle">
@@ -185,6 +186,7 @@
     </div>
   </div>
 
+  <script src="../vendor/three.min.js"></script>
   <script src="./core.js"></script>
   <script src="./app.js"></script>
 </body>
