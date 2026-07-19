@@ -1,7 +1,9 @@
 (function () {
   'use strict';
   const Core = window.LightgridV2Core;
-  let state = Core.createInitialState();
+  const STORAGE_KEY = 'lightgrid.v2.demo.save';
+  let state = loadState();
+  let selectedBoundary = 'short';
 
   const els = Object.fromEntries([
     'globalTick', 'worldList', 'worldCanvas', 'worldChapter', 'worldTitle', 'worldDescription',
@@ -11,8 +13,20 @@
     'skillProficiency', 'skillName', 'skillSteps', 'skillContext',
     'nextCapability', 'mapButton', 'mapOverlay', 'mapClose', 'mapWorlds', 'archiveButton',
     'archiveOverlay', 'archiveClose', 'archiveMemoryCount', 'memoryMap', 'memoryInspector',
-    'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList'
+    'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList',
+    'releaseButton', 'releaseOverlay', 'releaseClose', 'boundaryOptions', 'runReleaseButton',
+    'returnPanel', 'exportButton', 'deleteButton'
   ].map(id => [id, document.getElementById(id)]));
+
+  function loadState() {
+    try { return Core.hydrateState(JSON.parse(localStorage.getItem(STORAGE_KEY))); }
+    catch (_) { return Core.createInitialState(); }
+  }
+
+  function persistState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (_) { /* The demo remains playable when storage is unavailable. */ }
+  }
 
   function worldProgress(id) {
     const world = state.worlds[id];
@@ -152,6 +166,24 @@
 
   function openArchive() { els.archiveOverlay.hidden = false; renderArchive(); }
 
+  function renderRelease(summary) {
+    els.boundaryOptions.innerHTML = Object.values(Core.RELEASE_BOUNDARIES).map(boundary => `<button class="boundary-option ${boundary.id === selectedBoundary ? 'on' : ''}" data-boundary="${boundary.id}"><b>${boundary.name}</b><span>${boundary.detail}</span><em>+${boundary.ticks} TICKS</em></button>`).join('');
+    els.boundaryOptions.querySelectorAll('[data-boundary]').forEach(button => button.addEventListener('click', () => { selectedBoundary = button.dataset.boundary; renderRelease(summary); }));
+    const current = summary || state.returnSummaries[state.returnSummaries.length - 1];
+    if (!current) {
+      els.returnPanel.innerHTML = '<span>RETURN SUMMARY</span><h3>等待第一次放手</h3><p>回来后，这里会按“事实—理由—行动—结果—未决”展示，而不是生成一段无法核验的故事。</p>';
+      return;
+    }
+    els.returnPanel.innerHTML = `<span>RETURN ${current.count} · ${current.startTick}—${current.endTick}</span><h3>澄独自生活了一段时间</h3><div class="summary-flow"><div class="summary-item"><span>发生了什么 · FACT</span><b>${current.fact}</b></div><div class="summary-item"><span>为什么关注 · MEMORY / VALUE</span><b>${current.reason}</b></div><div class="summary-item"><span>做了什么 · ACTION</span><b>${current.action}</b></div><div class="summary-item"><span>世界怎样改变 · RESULT</span><b>${current.result}</b></div><div class="summary-item"><span>仍未解决 · COMMITMENT</span><b>${current.unresolved}</b></div></div><div class="replay-refs">${current.eventRefs.join('<br>')}<br>IRREVERSIBLE ACTIONS: ${current.irreversibleActions}</div>`;
+  }
+
+  function openRelease() { els.releaseOverlay.hidden = false; renderRelease(); }
+
+  function downloadExport() {
+    const blob = new Blob([JSON.stringify(Core.exportBundle(state), null, 2)], { type: 'application/json' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'lightgrid-cheng-save.json'; link.click(); URL.revokeObjectURL(link.href);
+  }
+
   function drawWorld(id) {
     const canvas = els.worldCanvas, rect = canvas.getBoundingClientRect();
     const ratio = Math.min(devicePixelRatio || 1, 2);
@@ -201,7 +233,7 @@
   function noise(x, y, seed) { const v = Math.sin(x * 91.7 + y * 37.3 + seed * 11.1) * 43758.5453; return v - Math.floor(v); }
   function hexAlpha(hex, alpha) { const value = hex.replace('#', ''); const n = parseInt(value, 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alpha})`; }
 
-  function render() { renderWorldRail(); renderStage(); renderMission(); renderAgent(); renderEvents(); renderMap(); }
+  function render() { renderWorldRail(); renderStage(); renderMission(); renderAgent(); renderEvents(); renderMap(); persistState(); }
 
   els.primaryAction.addEventListener('click', () => {
     if (state.activeWorld === 'garden' && state.worlds.garden.completed) { openArchive(); return; }
@@ -209,13 +241,22 @@
   });
   els.archiveButton.addEventListener('click', openArchive);
   els.archiveClose.addEventListener('click', () => { els.archiveOverlay.hidden = true; });
+  els.releaseButton.addEventListener('click', openRelease);
+  els.releaseClose.addEventListener('click', () => { els.releaseOverlay.hidden = true; });
+  els.runReleaseButton.addEventListener('click', () => { const summary = Core.releaseAgent(state, selectedBoundary); render(); renderRelease(summary); });
+  els.exportButton.addEventListener('click', downloadExport);
+  els.deleteButton.addEventListener('click', () => {
+    if (!els.deleteButton.classList.contains('confirming')) { els.deleteButton.classList.add('confirming'); els.deleteButton.textContent = '再次点击确认清除'; return; }
+    localStorage.removeItem(STORAGE_KEY); state = Core.createInitialState(); els.deleteButton.classList.remove('confirming'); els.deleteButton.textContent = '彻底清除本地角色'; els.archiveOverlay.hidden = true; render();
+  });
   els.mapButton.addEventListener('click', () => { els.mapOverlay.hidden = false; renderMap(); });
   els.mapClose.addEventListener('click', () => { els.mapOverlay.hidden = true; });
   els.mapOverlay.addEventListener('click', event => { if (event.target === els.mapOverlay) els.mapOverlay.hidden = true; });
   window.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); els.mapOverlay.hidden = !els.mapOverlay.hidden; }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') { event.preventDefault(); els.archiveOverlay.hidden = !els.archiveOverlay.hidden; if (!els.archiveOverlay.hidden) renderArchive(); }
-    if (event.key === 'Escape') { els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); els.releaseOverlay.hidden = !els.releaseOverlay.hidden; if (!els.releaseOverlay.hidden) renderRelease(); }
+    if (event.key === 'Escape') { els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; els.releaseOverlay.hidden = true; }
   });
   window.addEventListener('resize', () => drawWorld(state.activeWorld));
   render();

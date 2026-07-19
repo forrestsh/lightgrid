@@ -21,6 +21,7 @@
       <strong id="globalTick">TICK 1042</strong>
     </div>
     <div class="top-actions">
+      <button class="quiet-button" id="releaseButton" type="button">放手计划 <span>⌘L</span></button>
       <button class="quiet-button" id="archiveButton" type="button">连续性档案 <span>⌘J</span></button>
       <button class="quiet-button" id="mapButton" type="button">世界地图 <span>⌘K</span></button>
     </div>
@@ -153,6 +154,33 @@
       <section class="archive-panel artifact-panel">
         <div class="archive-title"><span>CREATION LIBRARY</span><b id="artifactCount">0 ARTIFACTS</b></div>
         <div id="artifactList" class="artifact-list"></div>
+      </section>
+    </div>
+    <section class="data-controls">
+      <div><span>PLAYER DATA CONTROL</span><b>本地存档与可移植数据</b><p>遥测与存档分离；本演示不上传对话、记忆正文或自由文本。</p></div>
+      <button id="exportButton" type="button">导出角色 JSON</button>
+      <button class="danger-button" id="deleteButton" type="button">彻底清除本地角色</button>
+    </section>
+  </div>
+
+  <div class="release-overlay" id="releaseOverlay" hidden>
+    <button class="overlay-close" id="releaseClose" type="button" aria-label="关闭放手计划">×</button>
+    <div class="release-layout">
+      <section class="release-planner">
+        <span>INTERRUPTIBLE LIFE PLAN</span>
+        <h2>放手，不是下达一串命令</h2>
+        <p>你只定义离开边界。澄会用承诺、关系、技能和当前世界事实选择可中断计划。</p>
+        <div class="boundary-options" id="boundaryOptions"></div>
+        <div class="safety-box">
+          <span>安全边界</span>
+          <ul><li>最多连续重规划 3 次</li><li>不执行永久生态改写或拆除纪念物</li><li>事实未知时等待、检查或寻求帮助</li></ul>
+        </div>
+        <button class="primary-action release-action" id="runReleaseButton" type="button"><span>开始有限放手</span><i>→</i></button>
+      </section>
+      <section class="return-panel" id="returnPanel">
+        <span>RETURN SUMMARY</span>
+        <h3>等待第一次放手</h3>
+        <p>回来后，这里会按“事实—理由—行动—结果—未决”展示，而不是生成一段无法核验的故事。</p>
       </section>
     </div>
   </div>
