@@ -80,6 +80,22 @@ button { font: inherit; }
 .scene-controls { position: absolute; right: 24px; bottom: 19px; display: flex; align-items: center; gap: 7px; color: rgba(220,238,232,.62); font: 400 7px var(--mono); letter-spacing: .13em; pointer-events: none; }
 .scene-controls i { width: 6px; height: 6px; border-radius: 50%; background: var(--world-tone, var(--green)); box-shadow: 0 0 12px var(--world-tone, var(--green)); animation: pulse 2.4s ease-in-out infinite; }
 .webgl-fallback { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font: 10px var(--mono); background: #07110f; }
+.spatial-toolbar { position: absolute; left: 20px; top: 18px; z-index: 4; display: flex; gap: 5px; }
+.spatial-toolbar button { border: 1px solid rgba(255,255,255,.18); background: rgba(4,12,11,.76); color: #a8b9b3; padding: 7px 9px; font: 400 7px var(--mono); cursor: pointer; backdrop-filter: blur(10px); }
+.spatial-toolbar button:hover, .spatial-toolbar button.on { color: var(--green); border-color: var(--green); background: rgba(27,67,55,.68); }
+.landmark-layer { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
+.landmark-tag { position: absolute; transform: translate(-50%,-50%); pointer-events: auto; border: 1px solid rgba(255,255,255,.2); background: rgba(4,11,11,.8); color: #dbe7e2; padding: 5px 7px; font: 400 7px var(--mono); white-space: nowrap; cursor: pointer; backdrop-filter: blur(8px); box-shadow: 0 4px 14px #0008; }
+.landmark-tag::before { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 5px; background: var(--world-tone); box-shadow: 0 0 10px var(--world-tone); }
+.landmark-tag:hover, .landmark-tag.on { color: var(--world-tone); border-color: var(--world-tone); }
+.spatial-inspector { position: absolute; right: 22px; bottom: 44px; z-index: 4; width: 252px; min-height: 84px; padding: 11px 12px; border: 1px solid rgba(255,255,255,.15); background: rgba(4,12,11,.78); backdrop-filter: blur(13px); pointer-events: none; }
+.spatial-inspector span { color: var(--green); font: 400 6px var(--mono); letter-spacing: .14em; }
+.spatial-inspector b { display: block; margin: 5px 0 3px; color: #d8e5df; font: 500 10px var(--serif); }
+.spatial-inspector p { margin: 0; color: var(--muted); font: 300 7px/1.55 var(--mono); }
+.walk-pad { position: absolute; right: 22px; bottom: 145px; z-index: 5; display: grid; grid-template-columns: repeat(2, 42px); gap: 6px; }
+.walk-pad[hidden] { display: none; }
+.walk-pad button { width: 42px; height: 42px; border: 1px solid var(--green); background: rgba(8,28,23,.82); color: var(--green); cursor: pointer; touch-action: manipulation; }
+.world-stage.embodied .stage-copy { opacity: .42; }
+.world-stage.embodied .landmark-tag { opacity: .58; }
 
 .mission-card { position: relative; padding: 24px 34px 26px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(12,25,23,.97), rgba(8,17,16,.97)); }
 .mission-topline { display: flex; justify-content: space-between; align-items: center; }
@@ -273,6 +289,12 @@ button { font: inherit; }
   .stage-copy p { font-size: 11px; }
   .stage-status { right: 14px; top: 15px; }
   .stage-status b { font-size: 8px; }
+  .spatial-toolbar { left: 10px; top: 10px; }
+  .spatial-toolbar button { padding: 6px; font-size: 6px; }
+  .spatial-inspector { left: 10px; right: 10px; top: 52px; bottom: auto; width: auto; min-height: 0; }
+  .scene-controls { display: none; }
+  .walk-pad { right: 10px; bottom: 105px; }
+  .landmark-tag { font-size: 6px; padding: 4px 5px; }
   .mission-card { padding: 20px 18px 90px; }
   .mission-card h2 { font-size: 19px; }
   .primary-action { left: 18px; right: 18px; bottom: 20px; }
