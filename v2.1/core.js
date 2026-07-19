@@ -1,9 +1,12 @@
 (function (root, factory) {
-  const api = factory();
+  const spatial = typeof module === 'object' && module.exports ? require('./spatial.js') : root.LightgridSpatial;
+  const api = factory(spatial);
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.LightgridV21Core = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (Spatial) {
   'use strict';
+
+  if (!Spatial) throw new Error('Lightgrid V2.1 spatial contract is required');
 
   const WORLD_ORDER = ['valley', 'mine', 'garden'];
 
@@ -478,6 +481,8 @@
   }
 
   return {
+    Spatial,
+    SCENE_MANIFESTS: Spatial.SCENE_MANIFESTS,
     WORLD_ORDER,
     WORLD_DEFS,
     VALLEY_STEPS,
