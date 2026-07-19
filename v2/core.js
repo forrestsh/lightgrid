@@ -146,6 +146,12 @@
     }
   ];
 
+  const RELEASE_BOUNDARIES = {
+    short: { id: 'short', name: '短观察', detail: '留在当前世界，完成一个可中断目标', ticks: 36 },
+    schedule: { id: 'schedule', name: '一段日程', detail: '推进维护、关系与休息，不超过一个日程周期', ticks: 84 },
+    crossworld: { id: 'crossworld', name: '前往另一世界', detail: '仅推进目标相关区域，其余世界保持 Cold', ticks: 128 }
+  };
+
   function createInitialState() {
     return {
       version: 2,
@@ -176,6 +182,9 @@
         ecological_restraint: { mean: 0.51, confidence: 0.28, label: '尚不确定' },
         curiosity: { mean: 0.57, confidence: 0.45, label: '温和倾向' }
       },
+      releaseCount: 0,
+      returnSummaries: [],
+      scheduler: { mode: 'active', lastBoundary: null, pendingIrreversible: [] },
       commitments: [{ id: 'com-bridge-open', text: '让南北两岸保持通行', status: 'active', sourceEventId: 'evt-1038' }]
     };
   }
@@ -386,6 +395,76 @@
     return state.events.filter(event => refs.has(event.id));
   }
 
+  function releaseAgent(state, boundaryId) {
+    const boundary = RELEASE_BOUNDARIES[boundaryId];
+    if (!boundary) return null;
+    const startTick = state.tick;
+    state.releaseCount += 1;
+    state.scheduler.mode = 'summary'; state.scheduler.lastBoundary = boundaryId;
+    const start = eventAt(++state.tick, 'release_started', '玩家选择“' + boundary.name + '”并退出直接控制', 'verified');
+    start.worldId = state.activeWorld; state.events.push(start);
+    const cycle = (state.releaseCount - 1) % 3;
+    const candidates = [
+      {
+        fact: state.worlds.valley.completed ? '暴雨后旧桥北侧主梁进入复查窗口。' : '旧桥维护仍未完成。',
+        reason: '“让南北两岸保持通行”的承诺仍然有效。',
+        action: state.worlds.valley.completed ? '澄使用加固器完成自检，并请南岸工匠确认读数。' : '澄保持安全等待，没有独自改写桥梁规则。',
+        result: state.worlds.valley.completed ? '负载读数稳定；加固器可靠性证据增加。' : '世界未发生不可逆变化。',
+        unresolved: '下一次大规模维护仍需要玩家共同确认。',
+        type: 'autonomous_bridge_check'
+      },
+      {
+        fact: state.worlds.mine.completed ? '矿城东侧支路出现轻微相位漂移。' : '矿城技能考试尚未完成。',
+        reason: '澄记得岚要求先隔离风险，再进行重同步。',
+        action: state.worlds.mine.completed ? '澄复用脉冲诊断的扫描与验证步骤，未跳过安全隔离。' : '澄向岚询问，没有假装掌握未知技能。',
+        result: state.worlds.mine.completed ? '漂移在可逆范围内被校正；岚的信任保持。' : '事实边界得到保留。',
+        unresolved: '更换老化锁存器需要新的矿城构件。',
+        type: 'autonomous_mine_diagnostic'
+      },
+      {
+        fact: state.worlds.garden.completed ? '迁徙群在夜间经过临时通道。' : '花园迁徙状态尚未被观察。',
+        reason: '澄把生态信号与“不要把生命当障碍”的经历联系起来。',
+        action: state.worlds.garden.completed ? '澄保持观察并维护最小可逆引导光，没有更改生态周期。' : '澄没有在缺少感知时生成生态判断。',
+        result: state.worlds.garden.completed ? '迁徙完成，通道在群体离开后恢复。' : '没有生成虚构负面证据。',
+        unresolved: '下一季是否需要永久通道仍未决定。',
+        type: 'autonomous_garden_watch'
+      }
+    ];
+    const chosen = candidates[cycle];
+    state.tick = startTick + boundary.ticks;
+    const actionEvent = eventAt(state.tick - 2, chosen.type, chosen.action, 'verified');
+    actionEvent.worldId = state.activeWorld; state.events.push(actionEvent);
+    const returned = eventAt(state.tick, 'player_returned', '玩家在“' + boundary.name + '”边界结束时回归', 'verified');
+    returned.worldId = state.activeWorld; state.events.push(returned);
+    state.scheduler.mode = 'active';
+    const summary = {
+      id: 'return-' + state.releaseCount, count: state.releaseCount, boundaryId,
+      startTick, endTick: state.tick, fact: chosen.fact, reason: chosen.reason,
+      action: chosen.action, result: chosen.result, unresolved: chosen.unresolved,
+      eventRefs: [start.id, actionEvent.id, returned.id], irreversibleActions: 0
+    };
+    state.returnSummaries.push(summary);
+    return summary;
+  }
+
+  function hydrateState(candidate) {
+    if (!candidate || candidate.version !== 2 || !candidate.worlds || !candidate.agent || !Array.isArray(candidate.events)) return createInitialState();
+    const base = createInitialState();
+    return Object.assign(base, candidate, {
+      agent: Object.assign(base.agent, candidate.agent),
+      worlds: Object.assign(base.worlds, candidate.worlds),
+      scheduler: Object.assign(base.scheduler, candidate.scheduler || {})
+    });
+  }
+
+  function exportBundle(state) {
+    return {
+      exportedAt: new Date().toISOString(), format: 'lightgrid-v2-demo-save',
+      versionManifest: { simulationVersion: 2, contentVersion: 2, eventSchemaVersion: 1, memoryPolicyVersion: 1, skillSchemaVersion: 1, modelPolicyVersion: 'offline-rules-v1' },
+      state
+    };
+  }
+
   return {
     WORLD_ORDER,
     WORLD_DEFS,
@@ -394,6 +473,7 @@
     GARDEN_STEPS,
     BODY_PARTS,
     GARDEN_CHOICES,
+    RELEASE_BOUNDARIES,
     createInitialState,
     currentMission,
     advanceValley,
@@ -405,5 +485,8 @@
     travelToWorld,
     continuityLabel
     ,memorySources
+    ,releaseAgent
+    ,hydrateState
+    ,exportBundle
   };
 });

@@ -206,6 +206,38 @@ button { font: inherit; }
 .artifact-facts div { border-top: 1px solid var(--line); padding-top: 6px; }
 .artifact-facts small { display: block; color: var(--muted); font-size: 6px; }
 .artifact-facts b { color: #bac8c3; font: 400 8px var(--mono); }
+.data-controls { max-width: 1360px; margin-top: 12px; border: 1px solid var(--line); padding: 16px 18px; display: flex; align-items: center; gap: 9px; background: rgba(9,19,18,.78); }
+.data-controls > div { margin-right: auto; }
+.data-controls span { color: var(--green); font: 300 7px var(--mono); letter-spacing: .15em; }
+.data-controls b { display: block; font: 500 12px var(--serif); margin-top: 3px; }
+.data-controls p { color: var(--muted); font-size: 7px; margin: 3px 0 0; }
+.data-controls button { border: 1px solid var(--line-strong); background: transparent; color: #c7d3ce; padding: 9px 11px; cursor: pointer; font: 300 8px var(--mono); }
+.data-controls button:hover { border-color: var(--green); color: var(--green); }
+.data-controls .danger-button:hover, .data-controls .danger-button.confirming { border-color: var(--danger); color: var(--danger); }
+
+.release-overlay { position: fixed; inset: 72px 0 0; z-index: 17; overflow: auto; background: rgba(3,8,8,.97); backdrop-filter: blur(22px); padding: clamp(28px, 5vw, 70px); }
+.release-overlay[hidden] { display: none; }
+.release-layout { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(310px, .72fr); gap: 12px; }
+.release-planner, .return-panel { border: 1px solid var(--line); background: rgba(9,19,18,.82); padding: clamp(20px, 3vw, 34px); position: relative; }
+.release-planner > span, .return-panel > span { color: var(--green); font: 400 8px var(--mono); letter-spacing: .18em; }
+.release-planner h2 { font: 500 clamp(28px, 4vw, 48px) var(--serif); margin: 9px 0; }
+.release-planner > p, .return-panel > p { color: var(--muted); font-size: 10px; line-height: 1.7; }
+.boundary-options { display: grid; gap: 7px; margin: 24px 0 18px; }
+.boundary-option { width: 100%; border: 1px solid var(--line); background: rgba(255,255,255,.02); color: var(--text); padding: 12px 13px; text-align: left; cursor: pointer; display: grid; grid-template-columns: 116px 1fr auto; align-items: center; gap: 10px; }
+.boundary-option.on { border-color: var(--green); background: rgba(120,225,189,.07); }
+.boundary-option b { font: 500 10px var(--serif); }
+.boundary-option span { color: var(--muted); font-size: 8px; }
+.boundary-option em { color: var(--green); font: 300 7px var(--mono); font-style: normal; }
+.safety-box { border-left: 2px solid var(--gold); padding: 10px 12px; background: rgba(228,189,104,.04); }
+.safety-box > span { color: var(--gold); font: 300 7px var(--mono); letter-spacing: .12em; }
+.safety-box ul { margin: 7px 0 0; padding-left: 16px; color: #9eaea8; font-size: 8px; line-height: 1.8; }
+.release-action { position: static; margin-top: 20px; width: 100%; }
+.return-panel h3 { font: 500 20px var(--serif); margin: 12px 0 7px; }
+.summary-flow { display: grid; gap: 7px; margin-top: 16px; }
+.summary-item { border-left: 1px solid var(--line-strong); padding: 5px 0 5px 11px; }
+.summary-item span { display: block; color: var(--muted); font: 300 6px var(--mono); letter-spacing: .12em; }
+.summary-item b { color: #c7d4cf; font-size: 9px; font-weight: 400; line-height: 1.55; }
+.replay-refs { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font: 300 7px/1.8 var(--mono); }
 
 @media (max-width: 1120px) {
   .app-shell { grid-template-columns: 230px 1fr; }
@@ -222,6 +254,7 @@ button { font: inherit; }
   .top-actions .quiet-button::before { font-size: 11px; }
   #archiveButton::before { content: "档案"; }
   #mapButton::before { content: "地图"; }
+  #releaseButton::before { content: "放手"; }
   .app-shell { height: auto; min-height: calc(100vh - 60px); display: flex; flex-direction: column; }
   .world-rail { order: 2; border: 0; border-top: 1px solid var(--line); padding: 18px 14px 22px; }
   .rail-heading, .dependency-card { display: none; }
@@ -256,6 +289,11 @@ button { font: inherit; }
   .memory-map { height: 310px; }
   .memory-node { width: 105px; }
   .identity-columns { grid-template-columns: 1fr; }
+  .data-controls { align-items: stretch; flex-direction: column; }
+  .release-overlay { inset: 60px 0 0; padding: 20px 12px 36px; }
+  .release-layout { grid-template-columns: 1fr; }
+  .boundary-option { grid-template-columns: 95px 1fr; }
+  .boundary-option em { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
