@@ -89,7 +89,15 @@ button { font: inherit; }
 .evidence-preview { border-left: 1px solid var(--gold); margin-top: 15px; padding-left: 11px; display: grid; gap: 3px; }
 .evidence-preview span { color: var(--muted); font: 300 7px var(--mono); letter-spacing: .14em; }
 .evidence-preview b { color: #c7d1cd; font: 400 9px var(--mono); }
+.choice-panel { margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; padding-right: 250px; }
+.choice-panel[hidden] { display: none; }
+.choice-option { min-height: 76px; border: 1px solid var(--line-strong); background: rgba(6,14,13,.6); color: var(--text); text-align: left; padding: 10px; cursor: pointer; }
+.choice-option:hover { border-color: var(--world-tone); background: color-mix(in srgb, var(--world-tone), transparent 88%); }
+.choice-option b { display: block; font: 500 10px var(--serif); }
+.choice-option span { display: block; color: var(--muted); font-size: 7px; line-height: 1.45; margin-top: 5px; }
+.choice-option em { color: var(--world-tone); font: 300 6px var(--mono); font-style: normal; letter-spacing: .08em; }
 .primary-action { position: absolute; right: 30px; bottom: 27px; min-width: 230px; display: flex; justify-content: space-between; gap: 20px; border: 1px solid var(--green); background: rgba(35,87,70,.26); color: var(--text); padding: 13px 15px; cursor: pointer; font-size: 10px; }
+.primary-action[hidden] { display: none; }
 .primary-action i { color: var(--green); font-style: normal; }
 .primary-action:hover { background: var(--green); color: #04100c; }
 .primary-action:hover i { color: #04100c; }
@@ -180,6 +188,8 @@ button { font: inherit; }
   .mission-card { padding: 20px 18px 90px; }
   .mission-card h2 { font-size: 19px; }
   .primary-action { left: 18px; right: 18px; bottom: 20px; }
+  .choice-panel { padding-right: 0; grid-template-columns: 1fr; }
+  .mission-card:has(.choice-panel:not([hidden])) { padding-bottom: 22px; }
   .event-strip { padding: 15px 18px 20px; }
   .event-strip ol { grid-template-columns: 1fr; }
   .event-strip li:nth-child(n+3) { display: none; }

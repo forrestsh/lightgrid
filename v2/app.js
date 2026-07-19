@@ -6,8 +6,8 @@
   const els = Object.fromEntries([
     'globalTick', 'worldList', 'worldCanvas', 'worldChapter', 'worldTitle', 'worldDescription',
     'worldMeta', 'weatherLabel', 'worldHealth', 'missionKicker', 'missionTitle', 'missionText',
-    'stepDots', 'evidencePreview', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
-    'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore', 'skillCard',
+    'stepDots', 'evidencePreview', 'choicePanel', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
+    'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore', 'commitmentValue', 'ecologyValue', 'skillCard',
     'skillProficiency', 'skillName', 'skillSteps', 'skillContext',
     'nextCapability', 'mapButton', 'mapOverlay', 'mapClose', 'mapWorlds'
   ].map(id => [id, document.getElementById(id)]));
@@ -17,6 +17,7 @@
     if (world.completed) return 100;
     if (id === 'valley') return world.step / Core.VALLEY_STEPS.length * 100;
     if (id === 'mine') return world.step / Core.MINE_STEPS.length * 100;
+    if (id === 'garden') return world.step / Core.GARDEN_STEPS.length * 100;
     return world.unlocked ? 8 : 0;
   }
 
@@ -62,13 +63,23 @@
       els.stepDots.innerHTML = '';
       return;
     }
-    els.primaryAction.hidden = false;
+    els.choicePanel.hidden = !mission.options;
+    els.primaryAction.hidden = !!mission.options;
     els.missionKicker.textContent = mission.complete ? '章节毕业' : '当前生活';
     els.missionTitle.textContent = mission.title;
     els.missionText.textContent = mission.text;
     els.evidencePreview.innerHTML = `<span>${mission.complete ? '连续性证据' : '即将记录'}</span><b>${mission.evidence}</b>`;
-    els.primaryAction.innerHTML = `<span>${mission.action}</span><i>→</i>`;
-    const steps = state.activeWorld === 'mine' ? Core.MINE_STEPS : Core.VALLEY_STEPS;
+    els.primaryAction.innerHTML = mission.action ? `<span>${mission.action}</span><i>→</i>` : '';
+    if (mission.options === 'body') {
+      els.choicePanel.innerHTML = Object.values(Core.BODY_PARTS).map(part => `<button class="choice-option" data-body="${part.id}"><em>BODY ORGAN</em><b>${part.name}</b><span>${part.ability}<br>代价：${part.cost}</span></button>`).join('');
+      els.choicePanel.querySelectorAll('[data-body]').forEach(button => button.addEventListener('click', () => { Core.chooseBodyPart(state, button.dataset.body); render(); }));
+    } else if (mission.options === 'ecology') {
+      els.choicePanel.innerHTML = Object.values(Core.GARDEN_CHOICES).map(choice => `<button class="choice-option" data-ecology="${choice.id}"><em>VALUE EVIDENCE +${choice.delta.toFixed(2)}</em><b>${choice.name}</b><span>${choice.detail}</span></button>`).join('');
+      els.choicePanel.querySelectorAll('[data-ecology]').forEach(button => button.addEventListener('click', () => { Core.resolveGardenChoice(state, button.dataset.ecology); render(); }));
+    } else {
+      els.choicePanel.innerHTML = '';
+    }
+    const steps = state.activeWorld === 'mine' ? Core.MINE_STEPS : state.activeWorld === 'garden' ? Core.GARDEN_STEPS : Core.VALLEY_STEPS;
     const progress = state.worlds[state.activeWorld].step;
     els.stepDots.innerHTML = steps.map((_, i) => `<i class="${i < progress ? 'done' : ''}"></i>`).join('');
   }
@@ -81,6 +92,8 @@
     els.memoryCount.textContent = state.memories.length;
     els.commitmentCount.textContent = state.commitments.filter(c => c.status === 'active').length;
     els.continuityScore.textContent = Core.continuityLabel(state);
+    els.commitmentValue.textContent = state.values.commitment.label;
+    els.ecologyValue.textContent = state.values.ecological_restraint.label;
     els.globalTick.textContent = 'TICK ' + state.tick;
     const skill = state.skills[0];
     els.skillCard.hidden = !skill && state.activeWorld !== 'mine';
@@ -92,7 +105,9 @@
       els.skillContext.textContent = skill && skill.contexts.length ? `已验证情境：${skill.contexts.join(' · ')}` : '首次执行将进入监督模式。';
     }
     if (state.worlds.garden.unlocked) {
-      els.nextCapability.innerHTML = '<span>NEXT CAPABILITY</span><b>漂移花园已开放</b><p>带着诊断方法前往迁徙生态。</p>';
+      els.nextCapability.innerHTML = state.worlds.garden.completed
+        ? '<span>THREE WORLDS CONNECTED</span><b>连续性档案已就绪</b><p>查看身体、技能、价值与记忆如何形成同一个澄。</p>'
+        : '<span>NEXT CAPABILITY</span><b>漂移花园已开放</b><p>带着诊断方法前往迁徙生态。</p>';
     } else if (state.worlds.mine.unlocked) {
       els.nextCapability.innerHTML = '<span>NEXT CAPABILITY</span><b>回声矿城已开放</b><p>前往矿城，把维护经验变成可迁移技能。</p>';
     }
