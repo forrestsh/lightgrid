@@ -3,13 +3,16 @@
   const Core = window.LightgridV21Core;
   const STORAGE_KEY = 'lightgrid.v2.1.alpha.save';
   const LEGACY_STORAGE_KEY = 'lightgrid.v2.demo.save';
+  const MIGRATION_MARKER = 'lightgrid.v2.1.legacy-migration-complete';
   let state = loadState();
   let selectedBoundary = 'short';
   const world3d = {
     ready: false, failed: false, renderer: null, scene: null, camera: null, root: null,
     cellGeometry: null, signature: '', animationFrame: 0, theta: .76, phi: 1.05,
     radius: 19, target: null, dragging: false, lastX: 0, lastY: 0, lastTime: 0,
-    animated: [], pulses: [], migrants: [], prefersReducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches
+    animated: [], pulses: [], migrants: [], avatar: null, routeOverlay: null, activeRoute: null,
+    routeIndex: 0, mode: 'observer', showRoutes: true, overviewRadius: 19, focusLandmarkId: null,
+    landmarkObjects: [], prefersReducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches
   };
 
   const els = Object.fromEntries([
@@ -22,12 +25,14 @@
     'archiveOverlay', 'archiveClose', 'archiveMemoryCount', 'memoryMap', 'memoryInspector',
     'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList',
     'releaseButton', 'releaseOverlay', 'releaseClose', 'boundaryOptions', 'runReleaseButton',
-    'returnPanel', 'exportButton', 'deleteButton'
+    'returnPanel', 'exportButton', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
+    'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad'
   ].map(id => [id, document.getElementById(id)]));
 
   function loadState() {
     try {
-      const candidate = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY));
+      const legacy = localStorage.getItem(MIGRATION_MARKER) ? null : localStorage.getItem(LEGACY_STORAGE_KEY);
+      const candidate = JSON.parse(localStorage.getItem(STORAGE_KEY) || legacy);
       const restored = Core.hydrateState(candidate);
       if (candidate && candidate.lastSavedAtEpoch) Core.catchUpOffline(restored, Date.now() - candidate.lastSavedAtEpoch);
       return restored;
@@ -36,7 +41,7 @@
   }
 
   function persistState() {
-    try { state.lastSavedAtEpoch = Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    try { state.lastSavedAtEpoch = Date.now(); localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(MIGRATION_MARKER, '1'); }
     catch (_) { /* The demo remains playable when storage is unavailable. */ }
   }
 
@@ -62,23 +67,53 @@
     els.worldList.querySelectorAll('[data-world]').forEach(button => {
       button.addEventListener('click', () => {
         Core.travelToWorld(state, button.dataset.world);
+        world3d.mode = 'observer'; world3d.routeIndex = 0; world3d.focusLandmarkId = null;
         render();
       });
     });
   }
 
   function renderStage() {
-    const def = Core.WORLD_DEFS[state.activeWorld];
+    const def = Core.WORLD_DEFS[state.activeWorld], manifest = Core.Spatial.getManifest(state.activeWorld);
     document.documentElement.style.setProperty('--world-tone', def.tone);
     els.worldChapter.textContent = def.chapter;
     els.worldTitle.textContent = def.name;
     els.worldDescription.textContent = def.description;
-    els.worldMeta.innerHTML = def.meta.map(item => `<span>${item}</span>`).join('');
+    els.worldMeta.innerHTML = def.meta.concat([manifest.landmarks.length + ' 地标', manifest.routes.length + ' 路线']).map(item => `<span>${item}</span>`).join('');
     els.weatherLabel.textContent = def.weather;
     const mission = Core.currentMission(state);
     els.worldHealth.textContent = mission && mission.health ? mission.health : def.health;
     drawWorld(state.activeWorld);
+    renderSpatialUI();
   }
+
+  function currentSpatialRoute() {
+    const worldId = state.activeWorld, manifest = Core.Spatial.getManifest(worldId), body = state.agent.bodyPart || 'base';
+    const preferred = state.worlds[worldId].routeId;
+    if (preferred && Core.Spatial.routeStatus(worldId, preferred, body, state.spatial).open) return Core.Spatial.getRoute(worldId, preferred);
+    const plan = Core.Spatial.selectRoute(worldId, manifest.routes.map(item => item.id), body, state.spatial);
+    return plan ? Core.Spatial.getRoute(worldId, plan.routeId) : null;
+  }
+
+  function renderSpatialUI() {
+    const worldId = state.activeWorld, manifest = Core.Spatial.getManifest(worldId), spatial = state.spatial[worldId];
+    const route = currentSpatialRoute(), savedCell = state.worlds[worldId].currentCell;
+    const currentCell = savedCell || (route && route.cells[world3d.routeIndex]) || manifest.spawnPoints[0].coord;
+    const phase = Core.Spatial.graphPhase(worldId, state.spatial);
+    els.observerMode.classList.toggle('on', world3d.mode === 'observer');
+    els.embodiedMode.classList.toggle('on', world3d.mode === 'embodied');
+    els.routeToggle.classList.toggle('on', world3d.showRoutes);
+    els.routeToggle.textContent = world3d.showRoutes ? '路线可见' : '路线隐藏';
+    els.worldStage.classList.toggle('embodied', world3d.mode === 'embodied');
+    els.walkPad.hidden = world3d.mode !== 'embodied';
+    const routeLabel = route ? `${route.name} · ${route.cells.length} FCC cells` : '当前身体与相位无合法路线';
+    const anchorLabel = phase.safetyAnchor ? `安全锚点 ${phase.safetyAnchor} · ` : '';
+    els.spatialInspector.innerHTML = `<span>${world3d.mode === 'embodied' ? 'EMBODIED ROUTE' : 'FCC SPATIAL CONTRACT'}</span><b>${routeLabel}</b><p>${anchorLabel}${spatial.phaseId} · ${formatCoord(currentCell)} · parity ${Core.Spatial.isFCCCoord(currentCell) ? 'EVEN' : 'INVALID'}</p>`;
+    if (world3d.routeOverlay) world3d.routeOverlay.visible = world3d.showRoutes;
+    updateDiagnostics();
+  }
+
+  function formatCoord(point) { return `(${point[0]}, ${point[1]}, ${point[2]})`; }
 
   function renderMission() {
     const mission = Core.currentMission(state);
@@ -166,8 +201,9 @@
     els.memoryMap.querySelectorAll('[data-memory]').forEach(button => button.addEventListener('click', () => renderArchive(button.dataset.memory)));
     const memory = state.memories.find(item => item.id === selectedMemoryId) || state.memories[state.memories.length - 1];
     if (memory) {
-      const sources = Core.memorySources(state, memory.id);
-      els.memoryInspector.innerHTML = `<div class="memory-meta">SALIENCE ${memory.salience.toFixed(2)} · ${memory.verified ? 'WORLD VERIFIED' : 'MODEL INFERENCE'} · ${sources.length} SOURCES</div><h3>${memory.title}</h3><span>${memory.summary}</span><ol class="source-list">${sources.map(event => `<li><code>${event.id}</code><span>${event.summary}</span></li>`).join('')}</ol>`;
+      const sources = Core.memorySources(state, memory.id), spatialRefs = Core.memorySpatialRefs(state, memory.id);
+      const spatialTrail = spatialRefs.map(ref => [ref.regionId, (ref.landmarkIds || []).join('/'), ref.routeId, ref.phaseId].filter(Boolean).join(' · ')).join(' → ');
+      els.memoryInspector.innerHTML = `<div class="memory-meta">SALIENCE ${memory.salience.toFixed(2)} · ${memory.verified ? 'WORLD VERIFIED' : 'MODEL INFERENCE'} · ${sources.length} SOURCES</div><h3>${memory.title}</h3><span>${memory.summary}<br><b>空间来源：</b>${spatialTrail || '等待空间事件'}</span><ol class="source-list">${sources.map(event => `<li><code>${event.id}</code><span>${event.summary}${event.spatial && event.spatial.routeId ? ` · ${event.spatial.routeId} / ${event.spatial.phaseId}` : ''}</span></li>`).join('')}</ol>`;
     } else {
       els.memoryInspector.innerHTML = '<p>完成一个章节或选择记忆节点，查看来源链。</p>';
     }
@@ -199,7 +235,7 @@
   function drawWorld(id) {
     if (!initWorld3d()) return;
     const progress = state.worlds[id];
-    const signature = [id, progress.step, progress.completed, state.agent.bodyPart || 'base', state.values.ecological_restraint.score].join(':');
+    const signature = [id, progress.step, progress.completed, state.agent.bodyPart || 'base', state.spatial.revision, state.spatial[id].phaseId, progress.routeId].join(':');
     if (world3d.signature !== signature) rebuildWorld3d(id, signature);
     resizeWorld3d();
   }
@@ -299,13 +335,115 @@
       world3d.scene.remove(world3d.root);
     }
     world3d.root = new T.Group(); world3d.root.name = id + '-world'; world3d.scene.add(world3d.root);
-    world3d.animated = []; world3d.pulses = []; world3d.migrants = [];
+    world3d.animated = []; world3d.pulses = []; world3d.migrants = []; world3d.avatar = null; world3d.landmarkObjects = []; world3d.routeOverlay = null;
     addStarField(world3d.root, Core.WORLD_DEFS[id].tone);
     if (id === 'valley') buildValley(world3d.root);
     if (id === 'mine') buildMine(world3d.root);
     if (id === 'garden') buildGarden(world3d.root);
+    world3d.overviewRadius = world3d.radius;
+    addSpatialScaffold(world3d.root, id);
+    world3d.activeRoute = currentSpatialRoute();
+    const savedCell = state.worlds[id].currentCell;
+    if (world3d.mode === 'embodied' && world3d.activeRoute) {
+      const savedKey = savedCell && Core.Spatial.isFCCCoord(savedCell) ? Core.Spatial.coordKey(savedCell) : null;
+      world3d.routeIndex = savedKey ? Math.max(0, world3d.activeRoute.cells.findIndex(cell => Core.Spatial.coordKey(cell) === savedKey)) : 0;
+      positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]);
+      world3d.radius = 6.8;
+    }
     world3d.signature = signature;
-    window.__lightgrid3d = { ready: true, renderer: 'WebGL', revision: T.REVISION, world: id, signature, objects: countObjects(world3d.root) };
+    updateDiagnostics();
+  }
+
+  function manifestPosition(coord) {
+    const point = Core.Spatial.toWorld(coord), scale = state.activeWorld === 'mine' ? .27 : state.activeWorld === 'garden' ? .28 : .32;
+    return new window.THREE.Vector3(point[0] * scale, point[1] * scale, point[2] * scale);
+  }
+
+  function addSpatialScaffold(parent, worldId) {
+    const T = window.THREE, manifest = Core.Spatial.getManifest(worldId), routeGroup = new T.Group();
+    routeGroup.name = 'manifest-routes'; parent.add(routeGroup); world3d.routeOverlay = routeGroup;
+    manifest.routes.forEach(spec => {
+      const status = Core.Spatial.routeStatus(worldId, spec.id, state.agent.bodyPart || 'base', state.spatial);
+      const points = spec.cells.map(manifestPosition), geometry = new T.BufferGeometry().setFromPoints(points);
+      const material = new T.LineBasicMaterial({ color: status.open ? Core.WORLD_DEFS[worldId].tone : 0xff625d, transparent: true, opacity: status.open ? (spec.id === state.worlds[worldId].routeId ? .9 : .34) : .18, depthWrite: false });
+      const line = new T.Line(geometry, material); line.name = `route:${spec.id}:${status.reason}`; routeGroup.add(line);
+    });
+    manifest.landmarks.forEach(item => {
+      const beacon = standardMesh(world3d.cellGeometry, Number(Core.WORLD_DEFS[worldId].tone.replace('#', '0x')), { emissive: Number(Core.WORLD_DEFS[worldId].tone.replace('#', '0x')), emissiveIntensity: .9, opacity: .8, roughness: .3 });
+      beacon.scale.setScalar(.38); beacon.position.copy(manifestPosition(item.anchor)); beacon.name = 'landmark:' + item.id; parent.add(beacon);
+      world3d.landmarkObjects.push({ definition: item, object: beacon });
+    });
+    els.landmarkLayer.innerHTML = manifest.landmarks.map(item => `<button type="button" class="landmark-tag" data-landmark="${item.id}">${item.name}</button>`).join('');
+    els.landmarkLayer.querySelectorAll('[data-landmark]').forEach(button => button.addEventListener('click', () => focusLandmark(button.dataset.landmark)));
+    routeGroup.visible = world3d.showRoutes;
+  }
+
+  function focusLandmark(landmarkId) {
+    const entry = world3d.landmarkObjects.find(item => item.definition.id === landmarkId);
+    if (!entry) return;
+    world3d.mode = 'observer'; world3d.focusLandmarkId = landmarkId; world3d.target.copy(entry.object.position); world3d.radius = 7.5;
+    els.landmarkLayer.querySelectorAll('[data-landmark]').forEach(button => button.classList.toggle('on', button.dataset.landmark === landmarkId));
+    renderSpatialUI();
+  }
+
+  function enterObserverMode() {
+    world3d.mode = 'observer'; world3d.focusLandmarkId = null; world3d.radius = world3d.overviewRadius;
+    const defaults = { valley: [1.2,-.5,0], mine: [.8,-.25,-1], garden: [1.6,.4,0] };
+    world3d.target.fromArray(defaults[state.activeWorld]);
+    renderSpatialUI();
+  }
+
+  function enterEmbodiedMode() {
+    world3d.activeRoute = currentSpatialRoute();
+    if (!world3d.activeRoute || !world3d.avatar) { renderSpatialUI(); return; }
+    world3d.mode = 'embodied'; world3d.focusLandmarkId = null; world3d.radius = 6.8;
+    const savedCell = state.worlds[state.activeWorld].currentCell;
+    const savedKey = savedCell && Core.Spatial.isFCCCoord(savedCell) ? Core.Spatial.coordKey(savedCell) : null;
+    world3d.routeIndex = savedKey ? Math.max(0, world3d.activeRoute.cells.findIndex(cell => Core.Spatial.coordKey(cell) === savedKey)) : 0;
+    positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); renderSpatialUI();
+  }
+
+  function positionAvatarAtCell(cell) {
+    if (!world3d.avatar || !cell) return;
+    const point = manifestPosition(cell); world3d.avatar.position.copy(point); world3d.target.copy(point);
+    state.worlds[state.activeWorld].currentCell = cell.slice();
+  }
+
+  function stepEmbodied(delta) {
+    if (world3d.mode !== 'embodied' || !world3d.activeRoute) return;
+    world3d.routeIndex = Math.max(0, Math.min(world3d.activeRoute.cells.length - 1, world3d.routeIndex + delta));
+    positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); persistState(); renderSpatialUI();
+  }
+
+  function updateLandmarkTags() {
+    if (!world3d.ready || !world3d.camera) return;
+    const rect = els.worldCanvas.getBoundingClientRect(), T = window.THREE;
+    world3d.landmarkObjects.forEach(entry => {
+      const tag = els.landmarkLayer.querySelector(`[data-landmark="${entry.definition.id}"]`);
+      if (!tag) return;
+      const projected = entry.object.getWorldPosition(new T.Vector3()).project(world3d.camera), visible = projected.z > -1 && projected.z < 1;
+      tag.hidden = !visible;
+      if (visible) { tag.style.left = ((projected.x + 1) * .5 * rect.width) + 'px'; tag.style.top = ((1 - projected.y) * .5 * rect.height) + 'px'; }
+    });
+  }
+
+  function updateDiagnostics() {
+    if (!world3d.ready) return;
+    const manifest = Core.Spatial.getManifest(state.activeWorld), route = currentSpatialRoute();
+    window.__lightgrid3d = {
+      ready: true, renderer: 'WebGL', revision: window.THREE.REVISION, world: state.activeWorld,
+      signature: world3d.signature, objects: world3d.root ? countObjects(world3d.root) : 0,
+      manifestVersion: manifest.version, parityValid: Core.Spatial.validateManifest(manifest),
+      mode: world3d.mode, phaseId: state.spatial[state.activeWorld].phaseId,
+      routeId: route && route.id, landmarkCount: manifest.landmarks.length, routeCount: manifest.routes.length
+    };
+    Object.assign(els.worldCanvas.dataset, {
+      manifestVersion: manifest.version,
+      phaseId: state.spatial[state.activeWorld].phaseId,
+      routeId: route && route.id || '',
+      mode: world3d.mode,
+      parityValid: 'true'
+    });
   }
 
   function addStarField(parent, tone) {
@@ -422,7 +560,7 @@
     const T = window.THREE, avatar = new T.Group(), cells = [[0,0,0,.62],[0,.68,0,.58],[-.48,.22,0,.42],[.48,.22,0,.42],[0,1.38,0,.48]];
     cellCloud(avatar, cells.slice(0, 4), { name: 'avatar-body', color: 0xeaf7f2, emissive: 0x28584e, emissiveIntensity: .25, metalness: .1 });
     const core = standardMesh(world3d.cellGeometry, 0x6df0c8, { emissive: 0x6df0c8, emissiveIntensity: 1.1, roughness: .25 }); core.scale.setScalar(cells[4][3]); core.position.set(0, cells[4][1], 0); avatar.add(core);
-    avatar.position.set(position[0], position[1], position[2]); avatar.name = 'cheng-avatar'; parent.add(avatar); world3d.animated.push({ object: avatar, kind: 'avatar' }); return avatar;
+    avatar.position.set(position[0], position[1], position[2]); avatar.name = 'cheng-avatar'; parent.add(avatar); world3d.avatar = avatar; world3d.animated.push({ object: avatar, kind: 'avatar' }); return avatar;
   }
 
   function bindWorld3dControls() {
@@ -464,7 +602,7 @@
     });
     const r = world3d.radius, phi = world3d.phi, theta = world3d.theta;
     world3d.camera.position.set(world3d.target.x + r * Math.sin(phi) * Math.cos(theta), world3d.target.y + r * Math.cos(phi), world3d.target.z + r * Math.sin(phi) * Math.sin(theta));
-    world3d.camera.lookAt(world3d.target); resizeWorld3d(); world3d.renderer.render(world3d.scene, world3d.camera);
+    world3d.camera.lookAt(world3d.target); resizeWorld3d(); world3d.renderer.render(world3d.scene, world3d.camera); updateLandmarkTags();
   }
 
   function resizeWorld3d() {
@@ -485,6 +623,10 @@
     if (state.activeWorld === 'garden' && state.worlds.garden.completed) { openArchive(); return; }
     Core.advanceCurrentWorld(state); render();
   });
+  els.observerMode.addEventListener('click', enterObserverMode);
+  els.embodiedMode.addEventListener('click', enterEmbodiedMode);
+  els.routeToggle.addEventListener('click', () => { world3d.showRoutes = !world3d.showRoutes; renderSpatialUI(); });
+  els.walkPad.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => stepEmbodied(Number(button.dataset.step))));
   els.archiveButton.addEventListener('click', openArchive);
   els.archiveClose.addEventListener('click', () => { els.archiveOverlay.hidden = true; });
   els.releaseButton.addEventListener('click', openRelease);
@@ -493,7 +635,7 @@
   els.exportButton.addEventListener('click', downloadExport);
   els.deleteButton.addEventListener('click', () => {
     if (!els.deleteButton.classList.contains('confirming')) { els.deleteButton.classList.add('confirming'); els.deleteButton.textContent = '再次点击确认清除'; return; }
-    localStorage.removeItem(STORAGE_KEY); state = Core.createInitialState(); els.deleteButton.classList.remove('confirming'); els.deleteButton.textContent = '彻底清除本地角色'; els.archiveOverlay.hidden = true; render();
+    localStorage.removeItem(STORAGE_KEY); localStorage.setItem(MIGRATION_MARKER, '1'); state = Core.createInitialState(); els.deleteButton.classList.remove('confirming'); els.deleteButton.textContent = '彻底清除本地角色'; els.archiveOverlay.hidden = true; render();
   });
   els.mapButton.addEventListener('click', () => { els.mapOverlay.hidden = false; renderMap(); });
   els.mapClose.addEventListener('click', () => { els.mapOverlay.hidden = true; });
@@ -503,6 +645,11 @@
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') { event.preventDefault(); els.archiveOverlay.hidden = !els.archiveOverlay.hidden; if (!els.archiveOverlay.hidden) renderArchive(); }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); els.releaseOverlay.hidden = !els.releaseOverlay.hidden; if (!els.releaseOverlay.hidden) renderRelease(); }
     if (event.key === 'Escape') { els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; els.releaseOverlay.hidden = true; }
+    if (!els.mapOverlay.hidden || !els.archiveOverlay.hidden || !els.releaseOverlay.hidden) return;
+    if (['ArrowUp','w','W'].includes(event.key)) { event.preventDefault(); stepEmbodied(1); }
+    if (['ArrowDown','s','S'].includes(event.key)) { event.preventDefault(); stepEmbodied(-1); }
+    if (event.key.toLowerCase() === 'e') enterEmbodiedMode();
+    if (event.key.toLowerCase() === 'o') enterObserverMode();
   });
   window.addEventListener('resize', () => drawWorld(state.activeWorld));
   render();

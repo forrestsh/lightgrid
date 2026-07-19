@@ -42,9 +42,24 @@
     </nav>
 
     <main class="main-stage">
-      <section class="world-stage" aria-labelledby="worldTitle">
+      <section class="world-stage" id="worldStage" aria-labelledby="worldTitle">
         <canvas id="worldCanvas" aria-label="当前世界的可交互三维 FCC 场景"></canvas>
         <div class="stage-vignette"></div>
+        <div class="spatial-toolbar" aria-label="空间观察模式">
+          <button id="observerMode" class="on" type="button">观察者</button>
+          <button id="embodiedMode" type="button">进入化身</button>
+          <button id="routeToggle" class="on" type="button">路线可见</button>
+        </div>
+        <div id="landmarkLayer" class="landmark-layer" aria-label="语义地标"></div>
+        <aside class="spatial-inspector" id="spatialInspector" aria-live="polite">
+          <span>FCC SPATIAL CONTRACT</span>
+          <b>正在读取 SceneManifest</b>
+          <p>偶宇称 · 12 邻接 · S = 0.58</p>
+        </aside>
+        <div class="walk-pad" id="walkPad" aria-label="化身路线移动" hidden>
+          <button type="button" data-step="-1" aria-label="沿路线后退">↓</button>
+          <button type="button" data-step="1" aria-label="沿路线前进">↑</button>
+        </div>
         <div class="stage-copy">
           <span class="chapter" id="worldChapter">CHAPTER I · CONTINUITY</span>
           <h1 id="worldTitle">断桥谷</h1>
