@@ -20,7 +20,10 @@
       <span>同一意识在线</span>
       <strong id="globalTick">TICK 1042</strong>
     </div>
-    <button class="quiet-button" id="mapButton" type="button">世界地图 <span>⌘K</span></button>
+    <div class="top-actions">
+      <button class="quiet-button" id="archiveButton" type="button">连续性档案 <span>⌘J</span></button>
+      <button class="quiet-button" id="mapButton" type="button">世界地图 <span>⌘K</span></button>
+    </div>
   </header>
 
   <div class="app-shell">
@@ -120,6 +123,38 @@
     <button class="overlay-close" id="mapClose" type="button" aria-label="关闭世界地图">×</button>
     <div class="map-copy"><span>WORLD DEPENDENCY MAP</span><h2>每个世界都改变下一个世界</h2></div>
     <div id="mapWorlds" class="map-worlds"></div>
+  </div>
+
+  <div class="archive-overlay" id="archiveOverlay" hidden>
+    <button class="overlay-close" id="archiveClose" type="button" aria-label="关闭连续性档案">×</button>
+    <header class="archive-heading">
+      <span>AGENT CONTINUITY ARCHIVE · CHENG</span>
+      <h2>它如何在时间中成为同一个自己</h2>
+      <p>不是聊天记录。每个结论都回到世界事实、共同作品与关系事件。</p>
+    </header>
+    <div class="archive-grid">
+      <section class="archive-panel memory-panel">
+        <div class="archive-title"><span>MEMORY STAR MAP</span><b id="archiveMemoryCount">0 EPISODES</b></div>
+        <div class="memory-map" id="memoryMap"></div>
+        <div class="memory-inspector" id="memoryInspector"><p>完成一个章节或选择记忆节点，查看来源链。</p></div>
+      </section>
+      <section class="archive-panel identity-panel">
+        <div class="archive-title"><span>SELF NARRATIVE</span><b>V3</b></div>
+        <blockquote id="archiveNarrative"></blockquote>
+        <div class="identity-columns">
+          <div><span>稳定特征</span><b>会验证结果 · 重视承诺</b><small>来自断桥谷与矿城的重复证据</small></div>
+          <div><span>变化偏好</span><b id="changedPreference">生态克制正在形成</b><small>单次 delta 不超过 0.06</small></div>
+        </div>
+      </section>
+      <section class="archive-panel relationship-panel">
+        <div class="archive-title"><span>PERSISTENT RELATIONSHIPS</span><b>4 NPC</b></div>
+        <div id="relationshipList" class="relationship-list"></div>
+      </section>
+      <section class="archive-panel artifact-panel">
+        <div class="archive-title"><span>CREATION LIBRARY</span><b id="artifactCount">0 ARTIFACTS</b></div>
+        <div id="artifactList" class="artifact-list"></div>
+      </section>
+    </div>
   </div>
 
   <script src="./core.js"></script>
