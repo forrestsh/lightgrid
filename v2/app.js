@@ -9,7 +9,9 @@
     'stepDots', 'evidencePreview', 'choicePanel', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
     'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore', 'commitmentValue', 'ecologyValue', 'skillCard',
     'skillProficiency', 'skillName', 'skillSteps', 'skillContext',
-    'nextCapability', 'mapButton', 'mapOverlay', 'mapClose', 'mapWorlds'
+    'nextCapability', 'mapButton', 'mapOverlay', 'mapClose', 'mapWorlds', 'archiveButton',
+    'archiveOverlay', 'archiveClose', 'archiveMemoryCount', 'memoryMap', 'memoryInspector',
+    'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList'
   ].map(id => [id, document.getElementById(id)]));
 
   function worldProgress(id) {
@@ -126,6 +128,30 @@
     }).join('');
   }
 
+  function renderArchive(selectedMemoryId) {
+    els.archiveMemoryCount.textContent = state.memories.length + ' EPISODES';
+    els.archiveNarrative.textContent = '“' + state.agent.narrative + '”';
+    els.changedPreference.textContent = '生态克制 · ' + state.values.ecological_restraint.label;
+    const positions = [[22,66],[51,30],[79,64]];
+    els.memoryMap.innerHTML = state.memories.length ? state.memories.map((memory, index) => {
+      const def = Core.WORLD_DEFS[memory.worldId], pos = positions[index] || [50,50];
+      return `<button class="memory-node ${memory.id === selectedMemoryId ? 'on' : ''}" data-memory="${memory.id}" style="--tone:${def.tone};left:${pos[0]}%;top:${pos[1]}%"><em>${def.name} · ${memory.verified ? 'VERIFIED' : 'INFERENCE'}</em><b>${memory.title}</b></button>`;
+    }).join('') : '<p class="artifact-empty">完成章节后，情景记忆会在这里形成星图。</p>';
+    els.memoryMap.querySelectorAll('[data-memory]').forEach(button => button.addEventListener('click', () => renderArchive(button.dataset.memory)));
+    const memory = state.memories.find(item => item.id === selectedMemoryId) || state.memories[state.memories.length - 1];
+    if (memory) {
+      const sources = Core.memorySources(state, memory.id);
+      els.memoryInspector.innerHTML = `<div class="memory-meta">SALIENCE ${memory.salience.toFixed(2)} · ${memory.verified ? 'WORLD VERIFIED' : 'MODEL INFERENCE'} · ${sources.length} SOURCES</div><h3>${memory.title}</h3><span>${memory.summary}</span><ol class="source-list">${sources.map(event => `<li><code>${event.id}</code><span>${event.summary}</span></li>`).join('')}</ol>`;
+    } else {
+      els.memoryInspector.innerHTML = '<p>完成一个章节或选择记忆节点，查看来源链。</p>';
+    }
+    els.relationshipList.innerHTML = Object.values(state.relationships).map(relation => `<div class="relationship-row"><span>${relation.name}</span><div class="trust-track"><i style="width:${relation.trust}%"></i></div><b>${relation.trust}%</b></div>`).join('');
+    els.artifactCount.textContent = state.artifacts.length + ' ARTIFACTS';
+    els.artifactList.innerHTML = state.artifacts.length ? state.artifacts.map(artifact => `<article class="artifact-card"><span>${artifact.semanticClass} · V${artifact.version}</span><h3>${artifact.name}</h3><div class="artifact-facts"><div><small>功能</small><b>${artifact.affordances.join(' · ')}</b></div><div><small>可靠性</small><b>${artifact.reliability}</b></div><div><small>共同作者</small><b>玩家 · 澄 · 南岸工匠</b></div><div><small>来源事件</small><b>${artifact.provenance.creatorEvents[0]}</b></div></div></article>`).join('') : '<p class="artifact-empty">尚无保存的共同作品。</p>';
+  }
+
+  function openArchive() { els.archiveOverlay.hidden = false; renderArchive(); }
+
   function drawWorld(id) {
     const canvas = els.worldCanvas, rect = canvas.getBoundingClientRect();
     const ratio = Math.min(devicePixelRatio || 1, 2);
@@ -177,13 +203,19 @@
 
   function render() { renderWorldRail(); renderStage(); renderMission(); renderAgent(); renderEvents(); renderMap(); }
 
-  els.primaryAction.addEventListener('click', () => { Core.advanceCurrentWorld(state); render(); });
+  els.primaryAction.addEventListener('click', () => {
+    if (state.activeWorld === 'garden' && state.worlds.garden.completed) { openArchive(); return; }
+    Core.advanceCurrentWorld(state); render();
+  });
+  els.archiveButton.addEventListener('click', openArchive);
+  els.archiveClose.addEventListener('click', () => { els.archiveOverlay.hidden = true; });
   els.mapButton.addEventListener('click', () => { els.mapOverlay.hidden = false; renderMap(); });
   els.mapClose.addEventListener('click', () => { els.mapOverlay.hidden = true; });
   els.mapOverlay.addEventListener('click', event => { if (event.target === els.mapOverlay) els.mapOverlay.hidden = true; });
   window.addEventListener('keydown', event => {
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); els.mapOverlay.hidden = !els.mapOverlay.hidden; }
-    if (event.key === 'Escape') els.mapOverlay.hidden = true;
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') { event.preventDefault(); els.archiveOverlay.hidden = !els.archiveOverlay.hidden; if (!els.archiveOverlay.hidden) renderArchive(); }
+    if (event.key === 'Escape') { els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; }
   });
   window.addEventListener('resize', () => drawWorld(state.activeWorld));
   render();

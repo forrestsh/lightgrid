@@ -164,6 +164,7 @@
       events: [eventAt(1038, 'world_entered', '与澄抵达断桥谷', 'verified')],
       memories: [],
       skills: [],
+      artifacts: [],
       relationships: {
         artisan: { name: '南岸工匠', trust: 54 },
         healer: { name: '北岸医者', trust: 48 },
@@ -246,6 +247,15 @@
       state.agent.narrative = '我不是只修好一次桥；我会回来确认它仍然安全。';
       state.commitments.push({
         id: 'com-bridge-storm', text: '下一场暴雨后检查北侧主梁', status: 'active', sourceEventId: evt.id
+      });
+    }
+    if (progress.step === 2 && !state.artifacts.length) {
+      state.artifacts.push({
+        artifactId: 'artifact-bridge-brace-v1', name: '共同桥梁加固器', version: 1,
+        semanticClass: 'public-infrastructure-tool', geometryRef: 'fcc:brace:rhombic-v1',
+        affordances: ['读取应力', '加固主梁', '暴雨后自检'], reliability: '3/3 负载测试通过',
+        provenance: { creators: ['agent-cheng', 'npc-south-artisan', 'player'], sourceArtifacts: [], creatorEvents: [evt.id] },
+        memoryTags: ['old-bridge', 'shared-work', 'maintenance']
       });
     }
     return state;
@@ -369,6 +379,13 @@
     return '正在形成';
   }
 
+  function memorySources(state, memoryId) {
+    const memory = state.memories.find(item => item.id === memoryId);
+    if (!memory) return [];
+    const refs = new Set(memory.eventRefs);
+    return state.events.filter(event => refs.has(event.id));
+  }
+
   return {
     WORLD_ORDER,
     WORLD_DEFS,
@@ -387,5 +404,6 @@
     advanceCurrentWorld,
     travelToWorld,
     continuityLabel
+    ,memorySources
   };
 });
