@@ -207,7 +207,7 @@ test('LIG-42 embodied HUD explains direction, distance and the contextual inspec
   assert.match(html, /<span>后退<\/span><kbd>S \/ ↓<\/kbd>/);
   assert.match(html, /<span>前进<\/span><kbd>W \/ ↑<\/kbd>/);
   assert.match(app, /还需\$\{status\.direction\} \$\{status\.remainingSteps\} 步/);
-  assert.match(app, /els\.primaryAction\.disabled = !objective\.ready/);
+  assert.match(app, /els\.primaryAction\.disabled = !interactionObjective\.ready/);
   assert.match(app, /event\.code === 'Space'/);
   assert.match(css, /\.landmark-tag\.mission-target/);
   assert.match(css, /\.walk-pad button\.recommended/);
@@ -240,4 +240,48 @@ test('LIG-43 release starts a skippable 3D playback before showing the return su
   assert.match(app, /els\.runReleaseButton\.addEventListener\('click', startReleasePlayback\)/);
   assert.match(app, /els\.skipReleasePlayback\.addEventListener\('click', finishReleasePlayback\)/);
   assert.match(css, /body\.release-playing/);
+});
+
+test('LIG-44 every valley interaction offers three non-dead-end approaches', () => {
+  const baseline = Core.createInitialState();
+  Core.VALLEY_STEPS.forEach((_, stepIndex) => {
+    const mission = Core.currentMission(baseline), choices = mission.interaction.choices;
+    assert.equal(choices.length, 3);
+    assert.equal(new Set(choices.map(choice => choice.id)).size, 3);
+    choices.forEach(choice => {
+      const candidate = Core.hydrateState(JSON.parse(JSON.stringify(baseline)));
+      Core.advanceCurrentWorld(candidate, choice.id);
+      assert.equal(candidate.worlds.valley.step, stepIndex + 1);
+      assert.equal(candidate.worlds.valley.choices.at(-1).choiceId, choice.id);
+    });
+    Core.advanceCurrentWorld(baseline, choices[0].id);
+  });
+  assert.equal(baseline.worlds.valley.completed, true);
+});
+
+test('LIG-44 alternative choices change resources, ownership, trust and commitment evidence', () => {
+  const state = Core.createInitialState();
+  ['inspect_together', 'borrow_standard', 'delegate_and_verify', 'shared_roster'].forEach(choice => Core.advanceCurrentWorld(state, choice));
+  assert.equal(state.worlds.valley.completed, true);
+  assert.deepEqual(state.worlds.valley.choices.map(item => item.choiceId), ['inspect_together', 'borrow_standard', 'delegate_and_verify', 'shared_roster']);
+  assert.equal(state.agent.energy, 80);
+  assert.equal(state.relationships.artisan.trust, 69);
+  assert.equal(state.artifacts[0].ownership, 'borrowed');
+  assert.deepEqual(state.artifacts[0].provenance.creators, ['npc-south-artisan']);
+  assert.equal(state.artifacts[0].reliability, '3/3 监督验收通过');
+  assert.match(state.commitments.at(-1).text, /共同复查/);
+  assert.match(state.memories[0].summary, /不制作，借用标准构件/);
+});
+
+test('LIG-44 embodied choice UI supports click, A-D, number keys and space confirmation', () => {
+  const app = fs.readFileSync(path.join(__dirname, '../v2.2/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../v2.2/styles.css'), 'utf8');
+  assert.match(app, /function cycleInteractionChoice\(delta\)/);
+  assert.match(app, /data-interaction-choice/);
+  assert.match(app, /\['ArrowLeft','a','A'\]/);
+  assert.match(app, /\['ArrowRight','d','D'\]/);
+  assert.match(app, /\/\^\[1-3\]\$\//);
+  assert.match(app, /Core\.advanceCurrentWorld\(state, choice && choice\.id\)/);
+  assert.match(css, /\.mission-card\.has-interaction-choices/);
+  assert.match(css, /\.choice-option\.on/);
 });

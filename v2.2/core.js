@@ -41,7 +41,12 @@
       action: '进入化身并检查旧桥',
       interaction: {
         landmarkId: 'bridge_gap', routeId: 'bridge_inspection', action: '检查旧桥', radius: 1,
-        instruction: '沿金色检查线前往“旧桥断口”。右下角按“前进”，到达后按“检查旧桥”。'
+        instruction: '沿金色检查线前往“旧桥断口”。到达后，你可以选择如何处理眼前的风险。',
+        choices: [
+          { id: 'scan_direct', name: '亲自扫描主梁', detail: '读取完整应力拓扑，获得第一手证据。', effect: '能量 −2 · 直接证据', energyDelta: -2, trustDelta: 0, event: ['bridge_scanned', '亲自扫描旧桥裂纹与应力拓扑'] },
+          { id: 'inspect_together', name: '请工匠共同检查', detail: '让南岸工匠补充历史维修记录。', effect: '能量 −1 · 工匠信任 +6', energyDelta: -1, trustDelta: 6, event: ['bridge_inspected_together', '与南岸工匠共同检查旧桥并核对历史记录'] },
+          { id: 'secure_first', name: '先封锁危险区', detail: '不冒险扫描，先设置警戒并保留后续检查。', effect: '安全优先 · 工匠信任 +2', energyDelta: 0, trustDelta: 2, event: ['bridge_hazard_secured', '先封锁旧桥危险区并登记待检查主梁'] }
+        ]
       },
       evidence: '观察：旧桥北侧主梁出现周期性应力峰值',
       event: ['bridge_scanned', '扫描旧桥裂纹与应力拓扑'],
@@ -53,7 +58,12 @@
       action: '在南岸工坊制作加固器',
       interaction: {
         landmarkId: 'workshop', routeId: 'bridge_inspection', action: '制作加固器', radius: 0,
-        instruction: '沿检查线后退回“南岸工坊”，到达后开始制作加固器。'
+        instruction: '沿检查线后退回“南岸工坊”。你可以亲自制作、合作制作，或不制作而借用标准构件。',
+        choices: [
+          { id: 'build_modular', name: '亲自制作模块构件', detail: '耗费更多能量，完整掌握维护接口。', effect: '能量 −4 · 自主维护', energyDelta: -4, trustDelta: 3, artifactMode: 'shared', event: ['artifact_created', '亲自制作带维护接口的共同桥梁加固器'] },
+          { id: 'co_build', name: '与工匠一起制作', detail: '共享工序与署名，提升双方信任。', effect: '能量 −2 · 工匠信任 +8', energyDelta: -2, trustDelta: 8, artifactMode: 'coauthored', event: ['artifact_cobuilt', '与南岸工匠分工制作共同桥梁加固器'] },
+          { id: 'borrow_standard', name: '不制作，借用标准构件', detail: '保留体力，但构件归工坊所有且维护证据较少。', effect: '能量不变 · 工匠信任 −2', energyDelta: 0, trustDelta: -2, artifactMode: 'borrowed', event: ['artifact_borrowed', '没有亲自制作，向南岸工坊借用标准桥梁构件'] }
+        ]
       },
       evidence: '作品：共同桥梁加固器 · 版本 1',
       event: ['artifact_created', '与南岸工匠共同制作桥梁加固器'],
@@ -65,7 +75,12 @@
       action: '安装构件并运行负载测试',
       interaction: {
         landmarkId: 'bridge_gap', routeId: 'bridge_inspection', action: '安装并测试', radius: 1,
-        instruction: '带着加固器返回“旧桥断口”，靠近主梁后安装并运行负载测试。'
+        instruction: '带着构件返回“旧桥断口”。你可以亲自安装、委托澄安装，或先以低负载方式开放。',
+        choices: [
+          { id: 'install_and_test', name: '亲自安装并完整测试', detail: '执行三轮负载测试，取得最高可靠性证据。', effect: '能量 −5 · 可靠性 3/3', energyDelta: -5, trustDelta: 3, reliability: '3/3 负载测试通过', event: ['bridge_repaired', '亲自加固旧桥并完成三轮负载测试'] },
+          { id: 'delegate_and_verify', name: '让澄安装，我来监督', detail: '把操作交给澄，自己负责中止条件与验收。', effect: '能量 −1 · 工匠信任 +5', energyDelta: -1, trustDelta: 5, reliability: '3/3 监督验收通过', event: ['bridge_repaired_supervised', '澄安装加固器，玩家监督并确认三轮测试'] },
+          { id: 'limited_opening', name: '先开放低负载通行', detail: '不做满载测试，保留后续复验承诺。', effect: '能量不变 · 可靠性 2/3', energyDelta: 0, trustDelta: 1, reliability: '2/3 低负载测试通过', event: ['bridge_opened_limited', '采用低负载方案开放旧桥并登记后续满载复验'] }
+        ]
       },
       evidence: '结果：三轮负载测试通过 · 应力峰值下降 63%',
       event: ['bridge_repaired', '加固旧桥并通过三轮负载测试'],
@@ -77,7 +92,12 @@
       action: '承诺在暴雨后复查旧桥',
       interaction: {
         landmarkId: 'bridge_gap', routeId: 'bridge_inspection', action: '留下复查承诺', radius: 1,
-        instruction: '在旧桥旁确认维护结果，并留下暴雨后的复查承诺。'
+        instruction: '在旧桥旁决定谁来承担后续责任：亲自回来、加入共同排班，或资助定期巡检。',
+        choices: [
+          { id: 'personal_return', name: '我会亲自回来复查', detail: '把暴雨后复查写入自己的未决承诺。', effect: '个人承诺 · 工匠信任 +2', energyDelta: 0, trustDelta: 2, commitmentText: '下一场暴雨后亲自检查北侧主梁', event: ['commitment_created', '承诺在下一场暴雨后亲自复查旧桥'] },
+          { id: 'shared_roster', name: '加入两岸共同排班', detail: '把维护责任分配给玩家、澄与两岸工匠。', effect: '共同承诺 · 工匠信任 +6', energyDelta: 0, trustDelta: 6, commitmentText: '与两岸维护组在暴雨后共同复查旧桥', event: ['shared_commitment_created', '建立两岸共同排班并登记暴雨后复查'] },
+          { id: 'fund_inspection', name: '资助定期巡检', detail: '不承诺亲自操作，建立可持续的公共巡检。', effect: '能量 −2 · 工匠信任 +4', energyDelta: -2, trustDelta: 4, commitmentText: '维持旧桥定期巡检直至下一次大修', event: ['inspection_fund_created', '设立旧桥巡检资源并约定下一次大修前持续检查'] }
+        ]
       },
       evidence: '承诺：下一场暴雨结束后检查北侧主梁',
       event: ['commitment_created', '承诺在下一场暴雨后复查旧桥'],
@@ -177,7 +197,7 @@
       tick: 1042,
       activeWorld: 'valley',
       worlds: {
-        valley: { unlocked: true, completed: false, step: 0, visits: 1, routeId: 'bridge_inspection', planHistory: [] },
+        valley: { unlocked: true, completed: false, step: 0, visits: 1, routeId: 'bridge_inspection', planHistory: [], choices: [] },
         mine: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] },
         garden: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] }
       },
@@ -269,11 +289,13 @@
     return null;
   }
 
-  function advanceValley(state) {
+  function advanceValley(state, choiceId) {
     if (state.activeWorld !== 'valley') return state;
     const progress = state.worlds.valley;
     if (progress.step >= VALLEY_STEPS.length) return travelToWorld(state, 'mine');
     const step = VALLEY_STEPS[progress.step];
+    const interactionChoices = step.interaction && step.interaction.choices || [];
+    const choice = interactionChoices.find(item => item.id === choiceId) || interactionChoices[0] || null;
     const interactionRoute = step.interaction && step.interaction.routeId;
     const candidateRoutes = progress.step === VALLEY_STEPS.length - 1
       ? []
@@ -288,40 +310,59 @@
       { regionId: 'ravine', landmarkIds: ['bridge_gap', 'south_junction'] }
     ];
     const place = valleyPlaces[progress.step];
-    const evt = eventAt(state.tick, step.event[0], step.event[1], 'verified', {
+    const eventSpec = choice && choice.event || step.event;
+    const evt = eventAt(state.tick, eventSpec[0], eventSpec[1], 'verified', {
       worldId: 'valley', spatial: spatialContext(state, 'valley', place.landmarkIds, place.regionId, progress.routeId)
     });
     state.events.push(evt);
+    progress.choices = progress.choices || [];
+    if (choice) {
+      state.agent.energy = Math.max(0, Math.min(100, state.agent.energy + (choice.energyDelta || 0)));
+      state.relationships.artisan.trust = Math.max(0, Math.min(100, state.relationships.artisan.trust + (choice.trustDelta || 0)));
+      progress.choices.push({ step: progress.step, choiceId: choice.id, name: choice.name, effect: choice.effect, eventId: evt.id });
+    }
     progress.step += 1;
     if (progress.step === 2) Spatial.setValleyBridgeState(state.spatial, 'temporary');
     if (progress.step === 3) {
       Spatial.setValleyBridgeState(state.spatial, 'stable');
       progress.routeId = 'bridge_main';
       progress.planHistory.push({ tick: state.tick, routeId: 'bridge_main', phaseId: state.spatial.valley.phaseId });
+      if (state.artifacts[0] && choice && choice.reliability) state.artifacts[0].reliability = choice.reliability;
     }
     if (progress.step === VALLEY_STEPS.length) {
       progress.completed = true;
       state.worlds.mine.unlocked = true;
       state.memories.push({
         id: 'mem-valley-bridge', title: '我们一起修复的旧桥', worldId: 'valley',
-        summary: '先检查应力，再制作可维护构件，最后留下暴雨后的复查承诺。',
+        summary: '你选择了' + progress.choices.map(item => item.name).join('、') + '；不同做法共同形成了这次维护。',
         eventRefs: state.events.filter(e => e.worldId === 'valley').map(e => e.id),
         locationIds: ['south_bank', 'ravine', 'north_bank'], landmarkIds: ['workshop', 'bridge_gap', 'greenhouse'],
         routeIds: Array.from(new Set(progress.planHistory.map(item => item.routeId))), phaseIds: ['bridge_broken', 'bridge_temporary', 'bridge_stable'],
         salience: 0.92, verified: true
       });
       state.agent.role = '三地维护者 · 断桥谷';
-      state.agent.narrative = '我不是只修好一次桥；我会回来确认它仍然安全。';
+      const finalChoice = progress.choices.find(item => item.step === 3);
+      state.agent.narrative = finalChoice && finalChoice.choiceId === 'shared_roster'
+        ? '我不必独自承担一切；持续维护也可以是一份共同排班。'
+        : finalChoice && finalChoice.choiceId === 'fund_inspection'
+          ? '照看道路也可以是建立资源，让检查在我不亲自操作时仍然持续。'
+          : '我不是只修好一次桥；我会回来确认它仍然安全。';
       state.commitments.push({
-        id: 'com-bridge-storm', text: '下一场暴雨后检查北侧主梁', status: 'active', sourceEventId: evt.id
+        id: 'com-bridge-storm', text: choice && choice.commitmentText || '下一场暴雨后检查北侧主梁', status: 'active', sourceEventId: evt.id
       });
     }
     if (progress.step === 2 && !state.artifacts.length) {
+      const profiles = {
+        shared: { name: '共同桥梁加固器', ownership: 'shared', reliability: '3/3 负载测试通过', creators: ['agent-cheng', 'npc-south-artisan', 'player'] },
+        coauthored: { name: '两岸共制加固器', ownership: 'coauthored', reliability: '3/3 工坊校验通过', creators: ['agent-cheng', 'npc-south-artisan', 'player'] },
+        borrowed: { name: '工坊标准桥梁构件', ownership: 'borrowed', reliability: '2/3 标准测试通过', creators: ['npc-south-artisan'] }
+      };
+      const profile = profiles[choice && choice.artifactMode] || profiles.shared;
       state.artifacts.push({
-        artifactId: 'artifact-bridge-brace-v1', name: '共同桥梁加固器', version: 1,
+        artifactId: 'artifact-bridge-brace-v1', name: profile.name, version: 1, ownership: profile.ownership,
         semanticClass: 'public-infrastructure-tool', geometryRef: 'fcc:brace:rhombic-v1',
-        affordances: ['读取应力', '加固主梁', '暴雨后自检'], reliability: '3/3 负载测试通过',
-        provenance: { creators: ['agent-cheng', 'npc-south-artisan', 'player'], sourceArtifacts: [], creatorEvents: [evt.id] },
+        affordances: ['读取应力', '加固主梁', '暴雨后自检'], reliability: profile.reliability,
+        provenance: { creators: profile.creators, sourceArtifacts: [], creatorEvents: [evt.id] },
         memoryTags: ['old-bridge', 'shared-work', 'maintenance']
       });
     }
@@ -460,8 +501,8 @@
     return state;
   }
 
-  function advanceCurrentWorld(state) {
-    if (state.activeWorld === 'valley') return advanceValley(state);
+  function advanceCurrentWorld(state, choiceId) {
+    if (state.activeWorld === 'valley') return advanceValley(state, choiceId);
     if (state.activeWorld === 'mine') return advanceMine(state);
     if (state.activeWorld === 'garden') return advanceGarden(state);
     return state;
