@@ -370,7 +370,6 @@ body.debug-safe-frame .safe-frame { opacity: 1; }
 
 .landmark-layer { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 .landmark-tag { pointer-events: auto; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
-.landmark-tag:nth-child(n+4) { display: none; }
 
 .edge-drawer { position: fixed; top: 0; bottom: 0; z-index: 12; width: min(340px, calc(100vw - 24px)); padding: calc(68px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom)); overflow: auto; background: rgba(4,12,11,.92); border-color: var(--line); backdrop-filter: blur(22px); box-shadow: 0 0 64px #0009; transition: transform .25s ease; }
 .world-drawer { left: 0; border-right: 1px solid var(--line); transform: translateX(-103%); }
@@ -427,7 +426,6 @@ body.hud-release .event-strip { display: block; }
   .mission-card h2 { font-size: 15px; }
   .spatial-inspector { left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); top: calc(92px + env(safe-area-inset-top)); width: auto; }
   .scene-controls { display: none; }
-  .landmark-tag:nth-child(n+3) { display: none; }
   .walk-pad { right: 12px; bottom: 12px; }
   .modal-layer { padding: max(62px, calc(50px + env(safe-area-inset-top))) 12px max(24px, env(safe-area-inset-bottom)); }
   .archive-grid, .release-layout { grid-template-columns: 1fr; }
