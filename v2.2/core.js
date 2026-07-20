@@ -529,7 +529,7 @@
     const cycle = (state.releaseCount - 1) % 3;
     const candidates = [
       {
-        worldId: 'valley', regionId: 'ravine', landmarkIds: ['bridge_gap'], routeId: state.worlds.valley.completed ? 'bridge_main' : 'ravine_maintenance',
+        worldId: 'valley', regionId: 'ravine', landmarkIds: ['bridge_gap'], routeId: state.worlds.valley.completed ? 'bridge_main' : 'bridge_inspection',
         fact: state.worlds.valley.completed ? '暴雨后旧桥北侧主梁进入复查窗口。' : '旧桥维护仍未完成。',
         reason: '“让南北两岸保持通行”的承诺仍然有效。',
         action: state.worlds.valley.completed ? '澄使用加固器完成自检，并请南岸工匠确认读数。' : '澄保持安全等待，没有独自改写桥梁规则。',
@@ -567,6 +567,7 @@
     });
     state.events.push(returned);
     state.scheduler.mode = 'active';
+    const playbackLandmark = Spatial.getLandmark(chosen.worldId, chosen.landmarkIds[0]);
     const summary = {
       id: 'return-' + state.releaseCount, count: state.releaseCount, boundaryId,
       startTick, endTick: state.tick, fact: chosen.fact, reason: chosen.reason,
@@ -576,6 +577,15 @@
         worldId: chosen.worldId, regionId: chosen.regionId, landmarkIds: chosen.landmarkIds.slice(),
         routeId: chosen.routeId, phaseId: state.spatial[chosen.worldId].phaseId,
         identityCommitmentId: 'com-bridge-open'
+      },
+      playback: {
+        worldId: chosen.worldId, routeId: chosen.routeId,
+        targetLandmarkId: chosen.landmarkIds[0], targetName: playbackLandmark ? playbackLandmark.name : WORLD_DEFS[chosen.worldId].name,
+        stages: [
+          { id: 'travel', label: '前往目标', detail: '澄沿可验证路线自主移动', endAt: .62 },
+          { id: 'act', label: '执行行动', detail: chosen.action, endAt: .84 },
+          { id: 'verify', label: '验证结果', detail: chosen.result, endAt: 1 }
+        ]
       }
     };
     state.returnSummaries.push(summary);
