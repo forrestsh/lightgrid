@@ -93,6 +93,17 @@
         <button type="button" data-step="1" aria-label="沿路线前进"><span>前进</span><kbd>W / ↑</kbd></button>
       </div>
       <div class="scene-controls" aria-hidden="true"><i></i>3D LIVE · 拖动旋转 · 滚轮缩放</div>
+
+      <section class="release-playback" id="releasePlayback" aria-live="polite" hidden>
+        <div class="release-playback-heading">
+          <span id="releasePlaybackWorld">AUTONOMOUS ACTION · 断桥谷</span>
+          <b id="releasePlaybackTitle">澄正在前往目标</b>
+        </div>
+        <p id="releasePlaybackDetail">沿可验证路线移动</p>
+        <div class="release-playback-progress" aria-hidden="true"><i id="releasePlaybackProgress"></i></div>
+        <ol id="releasePlaybackStages" aria-label="自主行动阶段"></ol>
+        <button id="skipReleasePlayback" type="button">跳到归来摘要</button>
+      </section>
     </div>
 
     <nav class="edge-drawer world-drawer" id="worldDrawer" aria-label="三个小世界" aria-hidden="true">
@@ -151,7 +162,7 @@
     <div class="release-overlay modal-layer" id="releaseOverlay" hidden>
       <button class="overlay-close" id="releaseClose" type="button" aria-label="关闭放手计划">×</button>
       <div class="release-layout">
-        <section class="release-planner"><span>INTERRUPTIBLE LIFE PLAN</span><h2>放手，不是下达一串命令</h2><p>你只定义离开边界。澄会用承诺、关系、技能和当前世界事实选择可中断计划。</p><div class="boundary-options" id="boundaryOptions"></div><div class="safety-box"><span>安全边界</span><ul><li>最多连续重规划 3 次</li><li>不执行永久生态改写或拆除纪念物</li><li>事实未知时等待、检查或寻求帮助</li></ul></div><button class="primary-action release-action" id="runReleaseButton" type="button"><span>开始有限放手</span><i>→</i></button></section>
+        <section class="release-planner"><span>INTERRUPTIBLE LIFE PLAN</span><h2>放手，不是下达一串命令</h2><p>你只定义离开边界。澄会用承诺、关系、技能和当前世界事实选择可中断计划；开始后镜头会跟随它的行动。</p><div class="boundary-options" id="boundaryOptions"></div><div class="safety-box"><span>安全边界</span><ul><li>最多连续重规划 3 次</li><li>不执行永久生态改写或拆除纪念物</li><li>事实未知时等待、检查或寻求帮助</li></ul></div><button class="primary-action release-action" id="runReleaseButton" type="button"><span>开始并观看澄行动</span><i>→</i></button></section>
         <section class="return-panel" id="returnPanel"><span>RETURN SUMMARY</span><h3>等待第一次放手</h3><p>回来后，这里会按“事实—理由—行动—结果—未决”展示，而不是生成一段无法核验的故事。</p></section>
       </div>
     </div>
