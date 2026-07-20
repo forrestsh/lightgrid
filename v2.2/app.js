@@ -32,6 +32,7 @@
     'releaseButton', 'releaseOverlay', 'releaseClose', 'boundaryOptions', 'runReleaseButton',
     'returnPanel', 'exportButton', 'importButton', 'importFile', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
     'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad', 'contextHud', 'safeFrame',
+    'objectiveGuide', 'objectiveTitle', 'objectiveInstruction', 'objectiveProgress', 'objectiveDistance',
     'worldDrawerButton', 'agentDrawerButton', 'worldDrawer', 'agentDrawer', 'fullscreenButton', 'systemOverlay'
   ].map(id => [id, document.getElementById(id)]));
 
@@ -125,10 +126,55 @@
 
   function currentSpatialRoute() {
     const worldId = state.activeWorld, manifest = Core.Spatial.getManifest(worldId), body = state.agent.bodyPart || 'base';
+    const interaction = currentMissionInteraction();
+    if (interaction && interaction.routeId && Core.Spatial.routeStatus(worldId, interaction.routeId, body, state.spatial).open) {
+      return Core.Spatial.getRoute(worldId, interaction.routeId);
+    }
     const preferred = state.worlds[worldId].routeId;
     if (preferred && Core.Spatial.routeStatus(worldId, preferred, body, state.spatial).open) return Core.Spatial.getRoute(worldId, preferred);
     const plan = Core.Spatial.selectRoute(worldId, manifest.routes.map(item => item.id), body, state.spatial);
     return plan ? Core.Spatial.getRoute(worldId, plan.routeId) : null;
+  }
+
+  function currentMissionInteraction() {
+    const mission = Core.currentMission(state);
+    return mission && mission.interaction ? mission.interaction : null;
+  }
+
+  function objectiveStatus() {
+    const interaction = currentMissionInteraction(), route = world3d.activeRoute || currentSpatialRoute();
+    if (!interaction || !route) return null;
+    const landmark = Core.Spatial.getLandmark(state.activeWorld, interaction.landmarkId);
+    if (!landmark) return null;
+    const currentCell = state.worlds[state.activeWorld].currentCell || route.cells[world3d.routeIndex] || route.cells[0];
+    let targetIndex = 0, closestDistance = Infinity;
+    route.cells.forEach((cell, index) => {
+      const distance = Core.Spatial.graphDistance(cell, landmark.anchor);
+      if (distance < closestDistance) { closestDistance = distance; targetIndex = index; }
+    });
+    const routeIndex = Math.max(0, Math.min(route.cells.length - 1, world3d.routeIndex));
+    const remainingSteps = Math.abs(targetIndex - routeIndex);
+    const direction = targetIndex > routeIndex ? '前进' : targetIndex < routeIndex ? '后退' : '就地';
+    const distance = Core.Spatial.graphDistance(currentCell, landmark.anchor);
+    const ready = distance <= (interaction.radius == null ? 1 : interaction.radius);
+    const longestApproach = Math.max(targetIndex, route.cells.length - 1 - targetIndex, 1);
+    return {
+      interaction, landmark, route, routeIndex, targetIndex, remainingSteps, direction, distance, ready,
+      progress: Math.max(0, Math.min(1, 1 - remainingSteps / longestApproach))
+    };
+  }
+
+  function renderObjectiveGuide() {
+    const status = objectiveStatus(), embodied = world3d.mode === 'embodied';
+    els.objectiveGuide.hidden = !embodied || !status;
+    if (!embodied || !status) return;
+    els.objectiveTitle.textContent = status.ready ? `已到达 · ${status.landmark.name}` : `前往 · ${status.landmark.name}`;
+    els.objectiveInstruction.textContent = status.interaction.instruction;
+    els.objectiveProgress.style.width = Math.round(status.progress * 100) + '%';
+    els.objectiveDistance.textContent = status.ready
+      ? `可以互动 · 按空格或“${status.interaction.action}”`
+      : `还需${status.direction} ${status.remainingSteps} 步 · 使用 W/S 或右下角按钮`;
+    els.objectiveGuide.classList.toggle('ready', status.ready);
   }
 
   function renderSpatialUI() {
@@ -145,7 +191,14 @@
     const routeLabel = route ? `${route.name} · ${route.cells.length} FCC cells` : '当前身体与相位无合法路线';
     const anchorLabel = phase.safetyAnchor ? `安全锚点 ${phase.safetyAnchor} · ` : '';
     els.spatialInspector.innerHTML = `<span>${world3d.mode === 'embodied' ? 'EMBODIED ROUTE' : 'FCC SPATIAL CONTRACT'}</span><b>${routeLabel}</b><p>${anchorLabel}${spatial.phaseId} · ${formatCoord(currentCell)} · parity ${Core.Spatial.isFCCCoord(currentCell) ? 'EVEN' : 'INVALID'}</p>`;
+    const objective = objectiveStatus();
+    els.walkPad.querySelectorAll('[data-step]').forEach(button => {
+      const delta = Number(button.dataset.step);
+      button.disabled = !route || (delta < 0 ? world3d.routeIndex <= 0 : world3d.routeIndex >= route.cells.length - 1);
+      button.classList.toggle('recommended', !!objective && !objective.ready && (objective.direction === '前进' ? delta > 0 : delta < 0));
+    });
     if (world3d.routeOverlay) world3d.routeOverlay.visible = world3d.showRoutes;
+    renderObjectiveGuide();
     updateDiagnostics();
   }
 
@@ -169,6 +222,22 @@
     els.missionText.textContent = mission.text;
     els.evidencePreview.innerHTML = `<span>${mission.complete ? '连续性证据' : '即将记录'}</span><b>${mission.evidence}</b>`;
     els.primaryAction.innerHTML = mission.action ? `<span>${mission.action}</span><i>→</i>` : '';
+    els.primaryAction.disabled = false;
+    els.primaryAction.removeAttribute('aria-disabled');
+    if (mission.interaction && world3d.mode === 'embodied') {
+      const objective = objectiveStatus();
+      els.missionText.textContent = mission.interaction.instruction;
+      if (objective) {
+        els.evidencePreview.innerHTML = objective.ready
+          ? `<span>已到达目标</span><b>${objective.landmark.name} · 可以执行“${mission.interaction.action}”</b>`
+          : `<span>移动提示</span><b>${objective.direction} ${objective.remainingSteps} 步 · 目标：${objective.landmark.name}</b>`;
+        els.primaryAction.disabled = !objective.ready;
+        els.primaryAction.setAttribute('aria-disabled', String(!objective.ready));
+        els.primaryAction.innerHTML = objective.ready
+          ? `<span>${mission.interaction.action}</span><i>空格</i>`
+          : `<span>继续${objective.direction} · 还差 ${objective.remainingSteps} 步</span><i>未到达</i>`;
+      }
+    }
     if (mission.options === 'body') {
       els.choicePanel.innerHTML = Object.values(Core.BODY_PARTS).map(part => `<button class="choice-option" data-body="${part.id}"><em>BODY ORGAN</em><b>${part.name}</b><span>${part.ability}<br>代价：${part.cost}</span></button>`).join('');
       els.choicePanel.querySelectorAll('[data-body]').forEach(button => button.addEventListener('click', () => { Core.chooseBodyPart(state, button.dataset.body); render(); }));
@@ -425,7 +494,9 @@
     const currentCell = state.worlds[worldId].currentCell || manifest.spawnPoints[0].coord;
     els.landmarkLayer.innerHTML = manifest.landmarks.map(item => {
       const hops = Core.Spatial.graphDistance(currentCell, item.anchor), qualifier = worldId === 'mine' && hops > 1 ? ' · 可见/需经路线' : '';
-      return `<button type="button" class="landmark-tag" data-landmark="${item.id}" data-hops="${hops}">${item.name}${qualifier}</button>`;
+      const objective = currentMissionInteraction();
+      const objectiveClass = objective && objective.landmarkId === item.id ? ' mission-target' : '';
+      return `<button type="button" class="landmark-tag${objectiveClass}" data-landmark="${item.id}" data-hops="${hops}">${item.name}${qualifier}</button>`;
     }).join('');
     els.landmarkLayer.querySelectorAll('[data-landmark]').forEach(button => button.addEventListener('click', () => focusLandmark(button.dataset.landmark)));
     routeGroup.visible = world3d.showRoutes;
@@ -443,7 +514,7 @@
     world3d.mode = 'observer'; world3d.focusLandmarkId = null; world3d.radius = world3d.overviewRadius;
     const profile = CAMERA_PROFILES[state.activeWorld];
     world3d.target.fromArray(profile.target); world3d.theta = profile.theta; world3d.phi = profile.phi;
-    setHudMode('observer'); renderSpatialUI();
+    setHudMode('observer'); renderSpatialUI(); renderMission();
   }
 
   function enterEmbodiedMode() {
@@ -453,7 +524,7 @@
     const savedCell = state.worlds[state.activeWorld].currentCell;
     const savedKey = savedCell && Core.Spatial.isFCCCoord(savedCell) ? Core.Spatial.coordKey(savedCell) : null;
     world3d.routeIndex = savedKey ? Math.max(0, world3d.activeRoute.cells.findIndex(cell => Core.Spatial.coordKey(cell) === savedKey)) : 0;
-    closeDrawers(); setHudMode('embodied'); positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); renderSpatialUI();
+    closeDrawers(); setHudMode('embodied'); positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); renderSpatialUI(); renderMission();
   }
 
   function positionAvatarAtCell(cell) {
@@ -465,7 +536,7 @@
   function stepEmbodied(delta) {
     if (world3d.mode !== 'embodied' || !world3d.activeRoute) return;
     world3d.routeIndex = Math.max(0, Math.min(world3d.activeRoute.cells.length - 1, world3d.routeIndex + delta));
-    positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); persistState(); renderSpatialUI();
+    positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); persistState(); renderSpatialUI(); renderMission();
   }
 
   function updateLandmarkTags() {
@@ -478,8 +549,8 @@
       const screenX = (projected.x + 1) * .5, screenY = (1 - projected.y) * .5;
       return { entry, tag, visible: visible && screenX > .02 && screenX < .98 && screenY > .06 && screenY < .96, screenX, screenY, routeRelevant: routeCells.has(Core.Spatial.coordKey(entry.definition.anchor)), distance: entry.object.getWorldPosition(new T.Vector3()).distanceTo(world3d.camera.position) };
     }).filter(Boolean);
-    const budget = rect.width <= 600 ? 2 : 3;
-    const selected = new Set(candidates.filter(item => item.visible).sort((a, b) => Number(b.entry.definition.id === world3d.focusLandmarkId) - Number(a.entry.definition.id === world3d.focusLandmarkId) || Number(b.routeRelevant) - Number(a.routeRelevant) || a.distance - b.distance).slice(0, budget).map(item => item.entry.definition.id));
+    const budget = rect.width <= 600 ? 2 : 3, objective = currentMissionInteraction();
+    const selected = new Set(candidates.filter(item => item.visible).sort((a, b) => Number(b.entry.definition.id === (objective && objective.landmarkId)) - Number(a.entry.definition.id === (objective && objective.landmarkId)) || Number(b.entry.definition.id === world3d.focusLandmarkId) - Number(a.entry.definition.id === world3d.focusLandmarkId) || Number(b.routeRelevant) - Number(a.routeRelevant) || a.distance - b.distance).slice(0, budget).map(item => item.entry.definition.id));
     candidates.forEach(item => {
       item.tag.hidden = !selected.has(item.entry.definition.id);
       if (!item.tag.hidden) { item.tag.style.left = (item.screenX * rect.width) + 'px'; item.tag.style.top = (item.screenY * rect.height) + 'px'; }
@@ -704,6 +775,12 @@
 
   els.primaryAction.addEventListener('click', () => {
     if (state.activeWorld === 'garden' && state.worlds.garden.completed) { openArchive(); return; }
+    const interaction = currentMissionInteraction();
+    if (interaction && world3d.mode !== 'embodied') { enterEmbodiedMode(); return; }
+    if (interaction) {
+      const objective = objectiveStatus();
+      if (!objective || !objective.ready) { renderMission(); return; }
+    }
     Core.advanceCurrentWorld(state); render();
   });
   els.observerMode.addEventListener('click', enterObserverMode);
@@ -738,6 +815,7 @@
     if (!els.mapOverlay.hidden || !els.archiveOverlay.hidden || !els.releaseOverlay.hidden) return;
     if (['ArrowUp','w','W'].includes(event.key)) { event.preventDefault(); stepEmbodied(1); }
     if (['ArrowDown','s','S'].includes(event.key)) { event.preventDefault(); stepEmbodied(-1); }
+    if (event.code === 'Space' && world3d.mode === 'embodied' && currentMissionInteraction() && !/^(BUTTON|INPUT)$/.test(document.activeElement.tagName)) { event.preventDefault(); els.primaryAction.click(); }
     if (event.key.toLowerCase() === 'e') enterEmbodiedMode();
     if (event.key.toLowerCase() === 'o') enterObserverMode();
     if (event.key.toLowerCase() === 'f' && !event.metaKey && !event.ctrlKey) toggleFullscreen();

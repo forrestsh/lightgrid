@@ -186,3 +186,29 @@ test('deployment is local-only and routes both /v2.2 spellings', () => {
   assert.equal(routes['/v2.2'], '/v2.2/index.html');
   assert.equal(routes['/v2.2/'], '/v2.2/index.html');
 });
+
+test('LIG-42 first embodied objective has a reachable inspection route and explicit action gate', () => {
+  const state = Core.createInitialState(), mission = Core.currentMission(state);
+  const target = Spatial.getLandmark('valley', mission.interaction.landmarkId);
+  const route = Spatial.getRoute('valley', mission.interaction.routeId);
+  const bypass = Spatial.getRoute('valley', 'forest_bypass');
+  assert.equal(state.worlds.valley.routeId, 'bridge_inspection');
+  assert.equal(mission.interaction.action, '检查旧桥');
+  assert.equal(Spatial.routeStatus('valley', route.id, 'base', state.spatial).open, true);
+  assert.ok(Math.min(...route.cells.map(cell => Spatial.graphDistance(cell, target.anchor))) <= mission.interaction.radius);
+  assert.ok(Math.min(...bypass.cells.map(cell => Spatial.graphDistance(cell, target.anchor))) > mission.interaction.radius);
+});
+
+test('LIG-42 embodied HUD explains direction, distance and the contextual inspection control', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../v2.2/index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../v2.2/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../v2.2/styles.css'), 'utf8');
+  assert.match(html, /id="objectiveGuide"[\s\S]*id="objectiveDistance"/);
+  assert.match(html, /<span>后退<\/span><kbd>S \/ ↓<\/kbd>/);
+  assert.match(html, /<span>前进<\/span><kbd>W \/ ↑<\/kbd>/);
+  assert.match(app, /还需\$\{status\.direction\} \$\{status\.remainingSteps\} 步/);
+  assert.match(app, /els\.primaryAction\.disabled = !objective\.ready/);
+  assert.match(app, /event\.code === 'Space'/);
+  assert.match(css, /\.landmark-tag\.mission-target/);
+  assert.match(css, /\.walk-pad button\.recommended/);
+});

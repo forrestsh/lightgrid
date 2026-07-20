@@ -171,6 +171,7 @@
       ],
       landmarks: valleyLandmarks,
       routes: [
+        route({ id: 'bridge_inspection', name: '旧桥检查线', anchors: [[-36,-8,-2],[-38,0,-2],[-18,0,0],[0,-1,-1]], baseCost: .8, dynamicEdgeRefs: ['bridge_gap'], fallbackRouteIds: ['ravine_maintenance'] }),
         route({ id: 'bridge_main', name: '旧桥主路', anchors: [[-36,-8,-2],[-38,0,-2],[-18,0,0],[18,0,0],[36,-8,-2]], baseCost: 1, dynamicEdgeRefs: ['bridge_gap'], fallbackRouteIds: ['forest_bypass'] }),
         route({ id: 'forest_bypass', name: '林间绕行', anchors: [[-38,0,-2],[-25,25,0],[1,25,0],[25,25,0],[36,-8,-2]], baseCost: 1.8, dynamicEdgeRefs: ['forest_clearance'], fallbackRouteIds: ['bridge_main'] }),
         route({ id: 'ravine_maintenance', name: '谷底维修路', anchors: [[-36,-8,-2],[-18,-10,-4],[0,-28,-2],[16,-8,-4],[18,0,0]], baseCost: 2.2, allowedBodies: ['base','feet','bladder'], dynamicEdgeRefs: ['ravine_access'], fallbackRouteIds: ['bridge_main'] })

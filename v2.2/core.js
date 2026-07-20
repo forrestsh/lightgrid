@@ -39,6 +39,10 @@
       title: '先读懂这座桥',
       text: '扫描裂纹与应力；角色会把你停下来检查公共设施的行为保存为证据。',
       action: '进入化身并检查旧桥',
+      interaction: {
+        landmarkId: 'bridge_gap', routeId: 'bridge_inspection', action: '检查旧桥', radius: 1,
+        instruction: '沿金色检查线前往“旧桥断口”。右下角按“前进”，到达后按“检查旧桥”。'
+      },
       evidence: '观察：旧桥北侧主梁出现周期性应力峰值',
       event: ['bridge_scanned', '扫描旧桥裂纹与应力拓扑'],
       health: '桥梁完整度 42%'
@@ -47,6 +51,10 @@
       title: '制作可维护的加固器',
       text: '临时补丁会再次老化。选择带维护接口的构件，让未来的角色能检查和更换它。',
       action: '在南岸工坊制作加固器',
+      interaction: {
+        landmarkId: 'workshop', routeId: 'bridge_inspection', action: '制作加固器', radius: 0,
+        instruction: '沿检查线后退回“南岸工坊”，到达后开始制作加固器。'
+      },
       evidence: '作品：共同桥梁加固器 · 版本 1',
       event: ['artifact_created', '与南岸工匠共同制作桥梁加固器'],
       health: '桥梁完整度 42% · 构件就绪'
@@ -55,6 +63,10 @@
       title: '安装并验证修复',
       text: '修复不是播放动画：系统会重新读取应力查询，并把结果写入不可变事件。',
       action: '安装构件并运行负载测试',
+      interaction: {
+        landmarkId: 'bridge_gap', routeId: 'bridge_inspection', action: '安装并测试', radius: 1,
+        instruction: '带着加固器返回“旧桥断口”，靠近主梁后安装并运行负载测试。'
+      },
       evidence: '结果：三轮负载测试通过 · 应力峰值下降 63%',
       event: ['bridge_repaired', '加固旧桥并通过三轮负载测试'],
       health: '桥梁完整度 86%'
@@ -63,6 +75,10 @@
       title: '留下一个真正的承诺',
       text: '承诺先成为结构化条件，再变成一句话。它会在你离开后参与角色的目标选择。',
       action: '承诺在暴雨后复查旧桥',
+      interaction: {
+        landmarkId: 'bridge_gap', routeId: 'bridge_inspection', action: '留下复查承诺', radius: 1,
+        instruction: '在旧桥旁确认维护结果，并留下暴雨后的复查承诺。'
+      },
       evidence: '承诺：下一场暴雨结束后检查北侧主梁',
       event: ['commitment_created', '承诺在下一场暴雨后复查旧桥'],
       health: '桥梁完整度 86% · 维护已排期'
@@ -161,7 +177,7 @@
       tick: 1042,
       activeWorld: 'valley',
       worlds: {
-        valley: { unlocked: true, completed: false, step: 0, visits: 1, routeId: 'forest_bypass', planHistory: [] },
+        valley: { unlocked: true, completed: false, step: 0, visits: 1, routeId: 'bridge_inspection', planHistory: [] },
         mine: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] },
         garden: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] }
       },
@@ -258,7 +274,10 @@
     const progress = state.worlds.valley;
     if (progress.step >= VALLEY_STEPS.length) return travelToWorld(state, 'mine');
     const step = VALLEY_STEPS[progress.step];
-    const candidateRoutes = progress.step === 0 ? ['ravine_maintenance', 'forest_bypass'] : ['bridge_main', 'forest_bypass'];
+    const interactionRoute = step.interaction && step.interaction.routeId;
+    const candidateRoutes = progress.step === VALLEY_STEPS.length - 1
+      ? []
+      : interactionRoute ? [interactionRoute] : ['bridge_main', 'forest_bypass'];
     const plan = Spatial.selectRoute('valley', candidateRoutes, state.agent.bodyPart || 'base', state.spatial);
     if (plan) { progress.routeId = plan.routeId; progress.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId }); }
     state.tick += 7;

@@ -63,6 +63,14 @@
         <p>偶宇称 · 12 邻接 · S = 0.58</p>
       </aside>
 
+      <aside class="objective-guide" id="objectiveGuide" aria-live="polite" hidden>
+        <span>当前目标</span>
+        <b id="objectiveTitle">前往旧桥断口</b>
+        <p id="objectiveInstruction">沿金色检查线前进，到达后检查旧桥。</p>
+        <div class="objective-progress" aria-hidden="true"><i id="objectiveProgress"></i></div>
+        <small id="objectiveDistance">正在定位目标</small>
+      </aside>
+
       <section class="mission-card" aria-labelledby="missionTitle">
         <div class="mission-topline">
           <span id="missionKicker">当前生活</span>
@@ -81,8 +89,8 @@
       </section>
 
       <div class="walk-pad" id="walkPad" aria-label="化身路线移动" hidden>
-        <button type="button" data-step="-1" aria-label="沿路线后退">↓</button>
-        <button type="button" data-step="1" aria-label="沿路线前进">↑</button>
+        <button type="button" data-step="-1" aria-label="沿路线后退"><span>后退</span><kbd>S / ↓</kbd></button>
+        <button type="button" data-step="1" aria-label="沿路线前进"><span>前进</span><kbd>W / ↑</kbd></button>
       </div>
       <div class="scene-controls" aria-hidden="true"><i></i>3D LIVE · 拖动旋转 · 滚轮缩放</div>
     </div>
