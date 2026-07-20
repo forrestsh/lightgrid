@@ -212,3 +212,32 @@ test('LIG-42 embodied HUD explains direction, distance and the contextual inspec
   assert.match(css, /\.landmark-tag\.mission-target/);
   assert.match(css, /\.walk-pad button\.recommended/);
 });
+
+test('LIG-43 every autonomous release exposes a playable three-stage spatial action', () => {
+  const state = completeThreeWorlds('sensor', 'escort');
+  ['short', 'schedule', 'crossworld'].forEach(boundary => {
+    const summary = Core.releaseAgent(state, boundary), playback = summary.playback;
+    const route = Spatial.getRoute(playback.worldId, playback.routeId);
+    const target = Spatial.getLandmark(playback.worldId, playback.targetLandmarkId);
+    assert.deepEqual(playback.stages.map(stage => stage.id), ['travel', 'act', 'verify']);
+    assert.deepEqual(playback.stages.map(stage => stage.endAt), [.62, .84, 1]);
+    assert.ok(route && target);
+    assert.ok(Math.min(...route.cells.map(cell => Spatial.graphDistance(cell, target.anchor))) <= 1);
+    assert.equal(playback.stages[1].detail, summary.action);
+    assert.equal(playback.stages[2].detail, summary.result);
+  });
+});
+
+test('LIG-43 release starts a skippable 3D playback before showing the return summary', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../v2.2/index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../v2.2/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../v2.2/styles.css'), 'utf8');
+  assert.match(html, /id="releasePlayback"[\s\S]*id="skipReleasePlayback"/);
+  assert.match(app, /function startReleasePlayback\(\)/);
+  assert.match(app, /function updateReleasePlayback\(time\)/);
+  assert.match(app, /world3d\.avatar\.position\.copy\(left\)\.lerp\(right, blend\)/);
+  assert.match(app, /playback\.effect\.visible = stageIndex > 0/);
+  assert.match(app, /els\.runReleaseButton\.addEventListener\('click', startReleasePlayback\)/);
+  assert.match(app, /els\.skipReleasePlayback\.addEventListener\('click', finishReleasePlayback\)/);
+  assert.match(css, /body\.release-playing/);
+});

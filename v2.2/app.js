@@ -11,6 +11,7 @@
   };
   let state = loadState();
   let selectedBoundary = 'short';
+  let releasePlayback = null;
   const world3d = {
     ready: false, failed: false, renderer: null, scene: null, camera: null, root: null,
     cellGeometry: null, signature: '', animationFrame: 0, theta: .76, phi: 1.05,
@@ -30,6 +31,8 @@
     'archiveOverlay', 'archiveClose', 'archiveMemoryCount', 'memoryMap', 'memoryInspector',
     'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList',
     'releaseButton', 'releaseOverlay', 'releaseClose', 'boundaryOptions', 'runReleaseButton',
+    'releasePlayback', 'releasePlaybackWorld', 'releasePlaybackTitle', 'releasePlaybackDetail',
+    'releasePlaybackProgress', 'releasePlaybackStages', 'skipReleasePlayback',
     'returnPanel', 'exportButton', 'importButton', 'importFile', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
     'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad', 'contextHud', 'safeFrame',
     'objectiveGuide', 'objectiveTitle', 'objectiveInstruction', 'objectiveProgress', 'objectiveDistance',
@@ -331,6 +334,97 @@
   }
 
   function openRelease() { closeDrawers(); setHudMode('release'); els.releaseOverlay.hidden = false; renderRelease(); }
+
+  function releaseTargetIndex(route, landmark) {
+    let bestIndex = 0, bestDistance = Infinity;
+    route.cells.forEach((cell, index) => {
+      const distance = Core.Spatial.graphDistance(cell, landmark.anchor);
+      if (distance < bestDistance) { bestDistance = distance; bestIndex = index; }
+    });
+    return bestIndex;
+  }
+
+  function addReleaseActionEffect() {
+    if (!world3d.ready || !world3d.root || !world3d.avatar) return null;
+    const T = window.THREE;
+    const ring = standardMesh(new T.TorusGeometry(.92, .055, 8, 48), 0xe4bd68, {
+      emissive: 0xe4bd68, emissiveIntensity: 1.4, opacity: .72, roughness: .2, doubleSide: true
+    });
+    ring.rotation.x = Math.PI / 2; ring.visible = false; ring.name = 'autonomous-action-scan'; world3d.root.add(ring);
+    return ring;
+  }
+
+  function updateReleasePlaybackPanel(progress, stageIndex) {
+    if (!releasePlayback) return;
+    els.releasePlaybackProgress.style.width = Math.round(progress * 100) + '%';
+    if (releasePlayback.renderedStage === stageIndex) return;
+    releasePlayback.renderedStage = stageIndex;
+    const contract = releasePlayback.summary.playback, stage = contract.stages[stageIndex];
+    els.releasePlaybackWorld.textContent = `AUTONOMOUS ACTION · ${Core.WORLD_DEFS[contract.worldId].name}`;
+    els.releasePlaybackTitle.textContent = stageIndex === 0 ? `澄正在前往${contract.targetName}` : stage.label;
+    els.releasePlaybackDetail.textContent = stage.detail;
+    els.releasePlaybackStages.innerHTML = contract.stages.map((item, index) => `<li class="${index < stageIndex ? 'done' : index === stageIndex ? 'on' : ''}"><i></i><span>${item.label}</span></li>`).join('');
+  }
+
+  function startReleasePlayback() {
+    if (releasePlayback) return;
+    const summary = Core.releaseAgent(state, selectedBoundary), contract = summary && summary.playback;
+    const route = contract && Core.Spatial.getRoute(contract.worldId, contract.routeId);
+    const landmark = contract && Core.Spatial.getLandmark(contract.worldId, contract.targetLandmarkId);
+    if (!summary || !contract || !route || !landmark) { render(); renderRelease(summary); return; }
+    const returnWorldId = state.activeWorld;
+    releasePlayback = {
+      summary, route, landmark, returnWorldId, startedAt: null,
+      duration: world3d.prefersReducedMotion ? 2200 : 7200,
+      targetIndex: releaseTargetIndex(route, landmark), effect: null, stageIndex: 0
+    };
+    state.activeWorld = contract.worldId;
+    world3d.mode = 'release'; world3d.signature = '';
+    els.releaseOverlay.hidden = true; els.releasePlayback.hidden = false;
+    document.body.classList.add('release-playing'); setHudMode('release'); renderStage();
+    world3d.activeRoute = route;
+    if (!world3d.ready || !world3d.avatar) { finishReleasePlayback(); return; }
+    if (world3d.avatar) {
+      const start = manifestPosition(route.cells[0]);
+      world3d.avatar.position.copy(start); world3d.target.copy(start); world3d.radius = 7.2;
+    }
+    releasePlayback.effect = addReleaseActionEffect();
+    updateReleasePlaybackPanel(0, 0);
+  }
+
+  function updateReleasePlayback(time) {
+    const playback = releasePlayback;
+    if (!playback || !world3d.avatar) return;
+    if (playback.startedAt == null) playback.startedAt = time;
+    const progress = Math.max(0, Math.min(1, (time - playback.startedAt) / playback.duration));
+    const contract = playback.summary.playback;
+    const stageIndex = progress < contract.stages[0].endAt ? 0 : progress < contract.stages[1].endAt ? 1 : 2;
+    playback.stageIndex = stageIndex;
+    const travelProgress = Math.min(1, progress / contract.stages[0].endAt);
+    const exactIndex = travelProgress * playback.targetIndex;
+    const leftIndex = Math.floor(exactIndex), rightIndex = Math.min(playback.targetIndex, leftIndex + 1), blend = exactIndex - leftIndex;
+    const left = manifestPosition(playback.route.cells[leftIndex]), right = manifestPosition(playback.route.cells[rightIndex]);
+    world3d.avatar.position.copy(left).lerp(right, blend);
+    world3d.target.lerp(world3d.avatar.position, .16);
+    if (playback.effect) {
+      playback.effect.visible = stageIndex > 0;
+      playback.effect.position.copy(world3d.avatar.position); playback.effect.position.y += .45;
+      playback.effect.rotation.z += .035;
+      playback.effect.scale.setScalar(1 + Math.sin(time * .008) * .2);
+      playback.effect.material.opacity = stageIndex === 1 ? .78 : .32;
+    }
+    updateReleasePlaybackPanel(progress, stageIndex);
+    if (progress >= 1) finishReleasePlayback();
+  }
+
+  function finishReleasePlayback() {
+    if (!releasePlayback) return;
+    const playback = releasePlayback;
+    releasePlayback = null; document.body.classList.remove('release-playing');
+    els.releasePlayback.hidden = true; state.activeWorld = playback.returnWorldId;
+    world3d.mode = 'observer'; world3d.signature = ''; render();
+    setHudMode('release'); els.releaseOverlay.hidden = false; renderRelease(playback.summary);
+  }
 
   function downloadExport() {
     const blob = new Blob([JSON.stringify(Core.exportBundle(state), null, 2)], { type: 'application/json' });
@@ -750,6 +844,7 @@
       migrant.object.position.copy(point); migrant.object.position.y += Math.sin(time * .002 + migrant.offset * 30) * .3; migrant.object.position.z += migrant.lane * .8;
       migrant.object.rotation.y += dt * .001;
     });
+    updateReleasePlayback(time);
     const r = world3d.radius, phi = world3d.phi, theta = world3d.theta;
     world3d.camera.position.set(world3d.target.x + r * Math.sin(phi) * Math.cos(theta), world3d.target.y + r * Math.cos(phi), world3d.target.z + r * Math.sin(phi) * Math.sin(theta));
     world3d.camera.lookAt(world3d.target); resizeWorld3d(); world3d.renderer.render(world3d.scene, world3d.camera); updateLandmarkTags();
@@ -796,7 +891,8 @@
   els.archiveClose.addEventListener('click', () => { els.archiveOverlay.hidden = true; });
   els.releaseButton.addEventListener('click', openRelease);
   els.releaseClose.addEventListener('click', () => { els.releaseOverlay.hidden = true; setHudMode(world3d.mode); });
-  els.runReleaseButton.addEventListener('click', () => { const summary = Core.releaseAgent(state, selectedBoundary); render(); renderRelease(summary); });
+  els.runReleaseButton.addEventListener('click', startReleasePlayback);
+  els.skipReleasePlayback.addEventListener('click', finishReleasePlayback);
   els.exportButton.addEventListener('click', downloadExport);
   els.importButton.addEventListener('click', () => els.importFile.click());
   els.importFile.addEventListener('change', () => importExport(els.importFile.files[0]));
@@ -811,6 +907,7 @@
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); els.mapOverlay.hidden = !els.mapOverlay.hidden; }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') { event.preventDefault(); els.archiveOverlay.hidden = !els.archiveOverlay.hidden; if (!els.archiveOverlay.hidden) renderArchive(); }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); els.releaseOverlay.hidden = !els.releaseOverlay.hidden; if (!els.releaseOverlay.hidden) renderRelease(); }
+    if (event.key === 'Escape' && releasePlayback) { event.preventDefault(); finishReleasePlayback(); return; }
     if (event.key === 'Escape') { closeDrawers(); els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; els.releaseOverlay.hidden = true; setHudMode(world3d.mode); }
     if (!els.mapOverlay.hidden || !els.archiveOverlay.hidden || !els.releaseOverlay.hidden) return;
     if (['ArrowUp','w','W'].includes(event.key)) { event.preventDefault(); stepEmbodied(1); }
