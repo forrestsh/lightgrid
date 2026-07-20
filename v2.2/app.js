@@ -12,6 +12,9 @@
   let state = loadState();
   let selectedBoundary = 'short';
   let releasePlayback = null;
+  let interactionChoiceKey = null;
+  let selectedInteractionChoiceId = null;
+  let choiceOutcomeTimer = 0;
   const world3d = {
     ready: false, failed: false, renderer: null, scene: null, camera: null, root: null,
     cellGeometry: null, signature: '', animationFrame: 0, theta: .76, phi: 1.05,
@@ -23,7 +26,7 @@
 
   const els = Object.fromEntries([
     'globalTick', 'worldList', 'worldCanvas', 'worldChapter', 'worldTitle', 'worldDescription',
-    'worldMeta', 'weatherLabel', 'worldHealth', 'missionKicker', 'missionTitle', 'missionText',
+    'worldMeta', 'weatherLabel', 'worldHealth', 'missionCard', 'missionKicker', 'missionTitle', 'missionText',
     'stepDots', 'evidencePreview', 'choicePanel', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
     'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore', 'commitmentValue', 'ecologyValue', 'skillCard',
     'skillProficiency', 'skillName', 'skillSteps', 'skillContext',
@@ -36,6 +39,7 @@
     'returnPanel', 'exportButton', 'importButton', 'importFile', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
     'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad', 'contextHud', 'safeFrame',
     'objectiveGuide', 'objectiveTitle', 'objectiveInstruction', 'objectiveProgress', 'objectiveDistance',
+    'choiceOutcome',
     'worldDrawerButton', 'agentDrawerButton', 'worldDrawer', 'agentDrawer', 'fullscreenButton', 'systemOverlay'
   ].map(id => [id, document.getElementById(id)]));
 
@@ -167,6 +171,33 @@
     };
   }
 
+  function currentInteractionChoice(mission) {
+    const choices = mission && mission.interaction && mission.interaction.choices || [];
+    if (!choices.length) return null;
+    const key = `${state.activeWorld}:${state.worlds[state.activeWorld].step}`;
+    if (interactionChoiceKey !== key || !choices.some(item => item.id === selectedInteractionChoiceId)) {
+      interactionChoiceKey = key; selectedInteractionChoiceId = choices[0].id;
+    }
+    return choices.find(item => item.id === selectedInteractionChoiceId) || choices[0];
+  }
+
+  function cycleInteractionChoice(delta) {
+    const mission = Core.currentMission(state), objective = objectiveStatus();
+    const choices = mission && mission.interaction && mission.interaction.choices || [];
+    if (world3d.mode !== 'embodied' || !objective || !objective.ready || choices.length < 2) return false;
+    const current = currentInteractionChoice(mission), index = Math.max(0, choices.findIndex(item => item.id === current.id));
+    selectedInteractionChoiceId = choices[(index + delta + choices.length) % choices.length].id;
+    renderMission(); return true;
+  }
+
+  function showChoiceOutcome(choice) {
+    if (!choice) return;
+    clearTimeout(choiceOutcomeTimer);
+    els.choiceOutcome.innerHTML = `<span>选择已记录</span><b>${choice.name}</b><p>${choice.effect}</p>`;
+    els.choiceOutcome.hidden = false;
+    choiceOutcomeTimer = setTimeout(() => { els.choiceOutcome.hidden = true; }, 3600);
+  }
+
   function renderObjectiveGuide() {
     const status = objectiveStatus(), embodied = world3d.mode === 'embodied';
     els.objectiveGuide.hidden = !embodied || !status;
@@ -174,8 +205,9 @@
     els.objectiveTitle.textContent = status.ready ? `已到达 · ${status.landmark.name}` : `前往 · ${status.landmark.name}`;
     els.objectiveInstruction.textContent = status.interaction.instruction;
     els.objectiveProgress.style.width = Math.round(status.progress * 100) + '%';
+    const hasChoices = status.interaction.choices && status.interaction.choices.length;
     els.objectiveDistance.textContent = status.ready
-      ? `可以互动 · 按空格或“${status.interaction.action}”`
+      ? hasChoices ? '已到达 · 点击选择做法，或用 A / D 切换、空格确认' : `可以互动 · 按空格或“${status.interaction.action}”`
       : `还需${status.direction} ${status.remainingSteps} 步 · 使用 W/S 或右下角按钮`;
     els.objectiveGuide.classList.toggle('ready', status.ready);
   }
@@ -219,7 +251,9 @@
       return;
     }
     els.choicePanel.hidden = !mission.options;
+    els.choicePanel.className = 'choice-panel';
     els.primaryAction.hidden = !!mission.options;
+    els.missionCard.classList.remove('has-interaction-choices');
     els.missionKicker.textContent = mission.complete ? '章节毕业' : '当前生活';
     els.missionTitle.textContent = mission.title;
     els.missionText.textContent = mission.text;
@@ -227,18 +261,25 @@
     els.primaryAction.innerHTML = mission.action ? `<span>${mission.action}</span><i>→</i>` : '';
     els.primaryAction.disabled = false;
     els.primaryAction.removeAttribute('aria-disabled');
+    let interactionObjective = null, interactionChoice = null;
     if (mission.interaction && world3d.mode === 'embodied') {
-      const objective = objectiveStatus();
+      interactionObjective = objectiveStatus();
       els.missionText.textContent = mission.interaction.instruction;
-      if (objective) {
-        els.evidencePreview.innerHTML = objective.ready
-          ? `<span>已到达目标</span><b>${objective.landmark.name} · 可以执行“${mission.interaction.action}”</b>`
-          : `<span>移动提示</span><b>${objective.direction} ${objective.remainingSteps} 步 · 目标：${objective.landmark.name}</b>`;
-        els.primaryAction.disabled = !objective.ready;
-        els.primaryAction.setAttribute('aria-disabled', String(!objective.ready));
-        els.primaryAction.innerHTML = objective.ready
-          ? `<span>${mission.interaction.action}</span><i>空格</i>`
-          : `<span>继续${objective.direction} · 还差 ${objective.remainingSteps} 步</span><i>未到达</i>`;
+      if (interactionObjective) {
+        interactionChoice = interactionObjective.ready ? currentInteractionChoice(mission) : null;
+        const hasChoices = interactionObjective.ready && mission.interaction.choices && mission.interaction.choices.length;
+        els.evidencePreview.innerHTML = interactionObjective.ready
+          ? hasChoices
+            ? `<span>由你决定</span><b>${mission.interaction.choices.length} 种做法都能继续，但会留下不同后果</b>`
+            : `<span>已到达目标</span><b>${interactionObjective.landmark.name} · 可以执行“${mission.interaction.action}”</b>`
+          : `<span>移动提示</span><b>${interactionObjective.direction} ${interactionObjective.remainingSteps} 步 · 目标：${interactionObjective.landmark.name}</b>`;
+        els.primaryAction.disabled = !interactionObjective.ready;
+        els.primaryAction.setAttribute('aria-disabled', String(!interactionObjective.ready));
+        els.primaryAction.innerHTML = interactionObjective.ready
+          ? interactionChoice
+            ? `<span>确认：${interactionChoice.name}</span><i>空格</i>`
+            : `<span>${mission.interaction.action}</span><i>空格</i>`
+          : `<span>继续${interactionObjective.direction} · 还差 ${interactionObjective.remainingSteps} 步</span><i>未到达</i>`;
       }
     }
     if (mission.options === 'body') {
@@ -247,8 +288,13 @@
     } else if (mission.options === 'ecology') {
       els.choicePanel.innerHTML = Object.values(Core.GARDEN_CHOICES).map(choice => `<button class="choice-option" data-ecology="${choice.id}"><em>VALUE EVIDENCE +${choice.delta.toFixed(2)}</em><b>${choice.name}</b><span>${choice.detail}</span></button>`).join('');
       els.choicePanel.querySelectorAll('[data-ecology]').forEach(button => button.addEventListener('click', () => { Core.resolveGardenChoice(state, button.dataset.ecology); render(); }));
+    } else if (interactionObjective && interactionObjective.ready && mission.interaction.choices && mission.interaction.choices.length) {
+      els.choicePanel.hidden = false; els.primaryAction.hidden = false; els.missionCard.classList.add('has-interaction-choices');
+      els.choicePanel.className = 'choice-panel interaction-choice-panel';
+      els.choicePanel.innerHTML = mission.interaction.choices.map((choice, index) => `<button class="choice-option ${choice.id === interactionChoice.id ? 'on' : ''}" data-interaction-choice="${choice.id}" aria-pressed="${choice.id === interactionChoice.id}"><em>${index + 1} · ${choice.effect}</em><b>${choice.name}</b><span>${choice.detail}</span></button>`).join('');
+      els.choicePanel.querySelectorAll('[data-interaction-choice]').forEach(button => button.addEventListener('click', () => { selectedInteractionChoiceId = button.dataset.interactionChoice; renderMission(); }));
     } else {
-      els.choicePanel.innerHTML = '';
+      els.choicePanel.className = 'choice-panel'; els.choicePanel.innerHTML = '';
     }
     const steps = state.activeWorld === 'mine' ? Core.MINE_STEPS : state.activeWorld === 'garden' ? Core.GARDEN_STEPS : Core.VALLEY_STEPS;
     const progress = state.worlds[state.activeWorld].step;
@@ -317,7 +363,8 @@
     }
     els.relationshipList.innerHTML = Object.values(state.relationships).map(relation => `<div class="relationship-row"><span>${relation.name}</span><div class="trust-track"><i style="width:${relation.trust}%"></i></div><b>${relation.trust}%</b></div>`).join('');
     els.artifactCount.textContent = state.artifacts.length + ' ARTIFACTS';
-    els.artifactList.innerHTML = state.artifacts.length ? state.artifacts.map(artifact => `<article class="artifact-card"><span>${artifact.semanticClass} · V${artifact.version}</span><h3>${artifact.name}</h3><div class="artifact-facts"><div><small>功能</small><b>${artifact.affordances.join(' · ')}</b></div><div><small>可靠性</small><b>${artifact.reliability}</b></div><div><small>共同作者</small><b>玩家 · 澄 · 南岸工匠</b></div><div><small>来源事件</small><b>${artifact.provenance.creatorEvents[0]}</b></div></div></article>`).join('') : '<p class="artifact-empty">尚无保存的共同作品。</p>';
+    const creatorNames = { 'agent-cheng': '澄', 'npc-south-artisan': '南岸工匠', player: '玩家' };
+    els.artifactList.innerHTML = state.artifacts.length ? state.artifacts.map(artifact => `<article class="artifact-card"><span>${artifact.semanticClass} · V${artifact.version} · ${(artifact.ownership || 'shared').toUpperCase()}</span><h3>${artifact.name}</h3><div class="artifact-facts"><div><small>功能</small><b>${artifact.affordances.join(' · ')}</b></div><div><small>可靠性</small><b>${artifact.reliability}</b></div><div><small>作者 / 所有者</small><b>${artifact.provenance.creators.map(id => creatorNames[id] || id).join(' · ')}</b></div><div><small>来源事件</small><b>${artifact.provenance.creatorEvents[0]}</b></div></div></article>`).join('') : '<p class="artifact-empty">尚无保存的共同作品。</p>';
   }
 
   function openArchive() { els.archiveOverlay.hidden = false; renderArchive(); }
@@ -876,7 +923,8 @@
       const objective = objectiveStatus();
       if (!objective || !objective.ready) { renderMission(); return; }
     }
-    Core.advanceCurrentWorld(state); render();
+    const mission = Core.currentMission(state), choice = currentInteractionChoice(mission);
+    Core.advanceCurrentWorld(state, choice && choice.id); interactionChoiceKey = null; selectedInteractionChoiceId = null; render(); showChoiceOutcome(choice);
   });
   els.observerMode.addEventListener('click', enterObserverMode);
   els.embodiedMode.addEventListener('click', enterEmbodiedMode);
@@ -910,9 +958,19 @@
     if (event.key === 'Escape' && releasePlayback) { event.preventDefault(); finishReleasePlayback(); return; }
     if (event.key === 'Escape') { closeDrawers(); els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; els.releaseOverlay.hidden = true; setHudMode(world3d.mode); }
     if (!els.mapOverlay.hidden || !els.archiveOverlay.hidden || !els.releaseOverlay.hidden) return;
+    if (['ArrowLeft','a','A'].includes(event.key) && cycleInteractionChoice(-1)) { event.preventDefault(); return; }
+    if (['ArrowRight','d','D'].includes(event.key) && cycleInteractionChoice(1)) { event.preventDefault(); return; }
+    if (/^[1-3]$/.test(event.key)) {
+      const mission = Core.currentMission(state), choices = mission && mission.interaction && mission.interaction.choices || [], index = Number(event.key) - 1;
+      const objective = objectiveStatus();
+      if (world3d.mode === 'embodied' && objective && objective.ready && choices[index]) { selectedInteractionChoiceId = choices[index].id; renderMission(); event.preventDefault(); return; }
+    }
     if (['ArrowUp','w','W'].includes(event.key)) { event.preventDefault(); stepEmbodied(1); }
     if (['ArrowDown','s','S'].includes(event.key)) { event.preventDefault(); stepEmbodied(-1); }
-    if (event.code === 'Space' && world3d.mode === 'embodied' && currentMissionInteraction() && !/^(BUTTON|INPUT)$/.test(document.activeElement.tagName)) { event.preventDefault(); els.primaryAction.click(); }
+    if (event.code === 'Space' && world3d.mode === 'embodied' && currentMissionInteraction()) {
+      const focusedChoice = document.activeElement.closest && document.activeElement.closest('[data-interaction-choice]');
+      if (focusedChoice || !/^(BUTTON|INPUT)$/.test(document.activeElement.tagName)) { event.preventDefault(); els.primaryAction.click(); }
+    }
     if (event.key.toLowerCase() === 'e') enterEmbodiedMode();
     if (event.key.toLowerCase() === 'o') enterObserverMode();
     if (event.key.toLowerCase() === 'f' && !event.metaKey && !event.ctrlKey) toggleFullscreen();
