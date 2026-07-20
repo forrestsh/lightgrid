@@ -7,6 +7,8 @@
     { "source": "/v2", "destination": "/v2/index.html" },
     { "source": "/v2/", "destination": "/v2/index.html" },
     { "source": "/v2.1", "destination": "/v2.1/index.html" },
-    { "source": "/v2.1/", "destination": "/v2.1/index.html" }
+    { "source": "/v2.1/", "destination": "/v2.1/index.html" },
+    { "source": "/v2.2", "destination": "/v2.2/index.html" },
+    { "source": "/v2.2/", "destination": "/v2.2/index.html" }
   ]
 }
