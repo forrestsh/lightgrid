@@ -285,3 +285,46 @@ test('LIG-44 embodied choice UI supports click, A-D, number keys and space confi
   assert.match(css, /\.mission-card\.has-interaction-choices/);
   assert.match(css, /\.choice-option\.on/);
 });
+
+test('LIG-45 Echo Mine teaches evidence, safe ordering, calibration and transfer', () => {
+  assert.deepEqual(Core.MINE_STEPS.map(step => step.lesson.type), ['evidence', 'sequence', 'calibrate', 'evidence']);
+  assert.deepEqual(Core.MINE_STEPS[1].lesson.correctOrder, ['scan', 'isolate', 'resync', 'verify']);
+  assert.equal(Core.MINE_STEPS[2].lesson.targetValue, 0);
+  assert.equal(Core.MINE_STEPS[2].lesson.tolerance, 1);
+  assert.equal(Core.MINE_STEPS[3].lesson.correctId, 'replan-parameters');
+});
+
+test('LIG-45 completed lessons become durable SkillGraph learning evidence', () => {
+  const state = Core.createInitialState(); finishValley(state); Core.advanceCurrentWorld(state);
+  const results = [
+    { lessonId: 'method-not-coordinates', completed: true, attempts: 2, response: 'diagnostic-method', mode: 'interactive' },
+    { lessonId: 'safe-diagnostic-order', completed: true, attempts: 1, response: ['scan', 'isolate', 'resync', 'verify'], mode: 'interactive' },
+    { lessonId: 'phase-calibration', completed: true, attempts: 3, response: 0, mode: 'interactive' },
+    { lessonId: 'parameter-transfer', completed: true, attempts: 2, response: 'replan-parameters', mode: 'interactive' }
+  ];
+  results.forEach(result => Core.advanceCurrentWorld(state, result));
+  assert.equal(state.worlds.mine.completed, true);
+  assert.deepEqual(state.worlds.mine.lessonHistory.map(item => item.lessonId), results.map(item => item.lessonId));
+  assert.deepEqual(state.worlds.mine.lessonHistory.map(item => item.attempts), [2, 1, 3, 2]);
+  assert.deepEqual(state.skills[0].learningEvidence, state.worlds.mine.lessonHistory);
+  assert.deepEqual(state.skills[0].contexts, ['NODE-17:+18', 'NODE-42:-11']);
+  assert.match(state.memories.at(-1).summary, /证据判断、步骤排序、相位校准和迁移考试/);
+});
+
+test('LIG-45 learning lab explains errors, supports retry and gates progression on mastery', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../v2.2/index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../v2.2/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../v2.2/styles.css'), 'utf8');
+  assert.match(html, /id="learningLab"/);
+  assert.match(app, /function renderEvidenceLesson\(lesson, lessonState\)/);
+  assert.match(app, /function renderSequenceLesson\(lesson, lessonState\)/);
+  assert.match(app, /function renderCalibrationLesson\(lesson, lessonState\)/);
+  assert.match(app, /答错可以继续尝试/);
+  assert.match(app, /会破坏安全链/);
+  assert.match(app, /els\.primaryAction\.hidden = !lessonState\.complete/);
+  assert.match(app, /Core\.advanceCurrentWorld\(state, result\)/);
+  assert.match(css, /\.sequence-slots/);
+  assert.match(css, /\.phase-dial/);
+  assert.match(css, /\.lesson-option\.correct/);
+  assert.match(css, /\.lesson-option\.wrong/);
+});

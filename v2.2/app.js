@@ -15,6 +15,8 @@
   let interactionChoiceKey = null;
   let selectedInteractionChoiceId = null;
   let choiceOutcomeTimer = 0;
+  let mineLessonKey = null;
+  let mineLessonState = null;
   const world3d = {
     ready: false, failed: false, renderer: null, scene: null, camera: null, root: null,
     cellGeometry: null, signature: '', animationFrame: 0, theta: .76, phi: 1.05,
@@ -27,7 +29,7 @@
   const els = Object.fromEntries([
     'globalTick', 'worldList', 'worldCanvas', 'worldChapter', 'worldTitle', 'worldDescription',
     'worldMeta', 'weatherLabel', 'worldHealth', 'missionCard', 'missionKicker', 'missionTitle', 'missionText',
-    'stepDots', 'evidencePreview', 'choicePanel', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
+    'stepDots', 'evidencePreview', 'learningLab', 'choicePanel', 'primaryAction', 'eventLog', 'agentRole', 'agentNarrative',
     'bodyLabel', 'energyLabel', 'memoryCount', 'commitmentCount', 'continuityScore', 'commitmentValue', 'ecologyValue', 'skillCard',
     'skillProficiency', 'skillName', 'skillSteps', 'skillContext',
     'nextCapability', 'mapButton', 'mapOverlay', 'mapClose', 'mapWorlds', 'archiveButton',
@@ -239,6 +241,87 @@
 
   function formatCoord(point) { return `(${point[0]}, ${point[1]}, ${point[2]})`; }
 
+  function currentMineLessonState(lesson) {
+    if (!lesson) return null;
+    const key = `${state.worlds.mine.step}:${lesson.id}`;
+    if (mineLessonKey !== key) {
+      mineLessonKey = key;
+      mineLessonState = {
+        lessonId: lesson.id, attempts: 0, complete: false, response: null, feedback: '',
+        sequence: [], value: lesson.initialValue == null ? 0 : lesson.initialValue
+      };
+    }
+    return mineLessonState;
+  }
+
+  function mineLessonResult(mission) {
+    const lessonState = mission && mission.lesson ? currentMineLessonState(mission.lesson) : null;
+    if (!lessonState || !lessonState.complete) return null;
+    return {
+      lessonId: lessonState.lessonId, completed: true, attempts: lessonState.attempts,
+      response: lessonState.response, mode: 'interactive'
+    };
+  }
+
+  function renderEvidenceLesson(lesson, lessonState) {
+    els.learningLab.innerHTML = `<div class="lab-heading"><span>${lesson.concept}</span><b>${lesson.prompt}</b></div><div class="lesson-options">${lesson.options.map(option => `<button type="button" class="lesson-option ${lessonState.response === option.id ? lessonState.complete ? 'correct' : 'wrong' : ''}" data-lesson-option="${option.id}" ${lessonState.complete ? 'disabled' : ''}><i></i><span>${option.label}</span></button>`).join('')}</div><p class="lesson-feedback ${lessonState.complete ? 'success' : ''}">${lessonState.feedback || '选择后会看到原因；答错可以继续尝试。'}</p>`;
+    els.learningLab.querySelectorAll('[data-lesson-option]').forEach(button => button.addEventListener('click', () => {
+      const option = lesson.options.find(item => item.id === button.dataset.lessonOption);
+      lessonState.attempts += 1; lessonState.response = option.id;
+      lessonState.complete = option.id === lesson.correctId;
+      lessonState.feedback = lessonState.complete ? `${lesson.success} ${option.explanation}` : `${option.explanation} 再试一次。`;
+      renderMission();
+    }));
+  }
+
+  function renderSequenceLesson(lesson, lessonState) {
+    const selected = new Set(lessonState.sequence);
+    els.learningLab.innerHTML = `<div class="lab-heading"><span>${lesson.concept}</span><b>${lesson.prompt}</b></div><div class="sequence-slots">${lesson.correctOrder.map((_, index) => `<span class="${lessonState.sequence[index] ? 'filled' : ''}">${lessonState.sequence[index] ? lesson.items.find(item => item.id === lessonState.sequence[index]).label : index + 1}</span>`).join('')}</div><div class="lesson-options sequence-options">${lesson.items.map(item => `<button type="button" class="lesson-option" data-sequence-item="${item.id}" ${selected.has(item.id) || lessonState.complete ? 'disabled' : ''}><i></i><span>${item.label}</span></button>`).join('')}</div><p class="lesson-feedback ${lessonState.complete ? 'success' : ''}">${lessonState.feedback || '从你认为应该最先发生的步骤开始。'}</p>`;
+    els.learningLab.querySelectorAll('[data-sequence-item]').forEach(button => button.addEventListener('click', () => {
+      const expectedId = lesson.correctOrder[lessonState.sequence.length], item = lesson.items.find(entry => entry.id === button.dataset.sequenceItem);
+      if (item.id === expectedId) {
+        lessonState.sequence.push(item.id); lessonState.feedback = item.explanation;
+        lessonState.complete = lessonState.sequence.length === lesson.correctOrder.length;
+        if (lessonState.complete) { lessonState.attempts += 1; lessonState.response = lessonState.sequence.slice(); lessonState.feedback = lesson.success; }
+      } else {
+        const expected = lesson.items.find(entry => entry.id === expectedId);
+        lessonState.attempts += 1; lessonState.sequence = [];
+        lessonState.feedback = `现在先做“${item.label}”会破坏安全链。下一步应是“${expected.label}”：${expected.explanation}`;
+      }
+      renderMission();
+    }));
+  }
+
+  function renderCalibrationLesson(lesson, lessonState) {
+    const residual = lessonState.value - lesson.targetValue;
+    els.learningLab.innerHTML = `<div class="lab-heading"><span>${lesson.concept}</span><b>${lesson.prompt}</b></div><div class="phase-console"><div class="phase-dial" style="--phase:${lessonState.value}deg"><i></i><span class="phase-value">${lessonState.value > 0 ? '+' : ''}${lessonState.value}°</span></div><label>相位补偿<input type="range" min="${lesson.min}" max="${lesson.max}" value="${lessonState.value}" step="1" ${lessonState.complete ? 'disabled' : ''}></label><div class="phase-error"><span>残余误差</span><b>${residual > 0 ? '+' : ''}${residual}°</b><small>安全带 ±${lesson.tolerance}°</small></div></div><button class="lab-check" type="button" ${lessonState.complete ? 'disabled' : ''}>锁定相位并检查误差</button><p class="lesson-feedback ${lessonState.complete ? 'success' : ''}">${lessonState.feedback || '提示：补偿后的残余误差越接近 0°，脉冲越稳定。'}</p>`;
+    const range = els.learningLab.querySelector('input[type="range"]');
+    if (range) range.addEventListener('input', () => {
+      lessonState.value = Number(range.value);
+      const liveResidual = lessonState.value - lesson.targetValue;
+      els.learningLab.querySelector('.phase-dial').style.setProperty('--phase', `${lessonState.value}deg`);
+      els.learningLab.querySelector('.phase-value').textContent = `${lessonState.value > 0 ? '+' : ''}${lessonState.value}°`;
+      els.learningLab.querySelector('.phase-error b').textContent = `${liveResidual > 0 ? '+' : ''}${liveResidual}°`;
+    });
+    const check = els.learningLab.querySelector('.lab-check');
+    if (check) check.addEventListener('click', () => {
+      lessonState.attempts += 1; lessonState.response = lessonState.value;
+      const error = lessonState.value - lesson.targetValue; lessonState.complete = Math.abs(error) <= lesson.tolerance;
+      lessonState.feedback = lessonState.complete ? lesson.success : error > 0 ? `仍然快 ${error}°；把补偿向左调低。` : `仍然慢 ${Math.abs(error)}°；把补偿向右调高。`;
+      renderMission();
+    });
+  }
+
+  function renderMineLesson(mission) {
+    const lesson = mission.lesson, lessonState = currentMineLessonState(lesson);
+    els.learningLab.hidden = false; els.missionCard.classList.add('has-learning-lab');
+    if (lesson.type === 'sequence') renderSequenceLesson(lesson, lessonState);
+    else if (lesson.type === 'calibrate') renderCalibrationLesson(lesson, lessonState);
+    else renderEvidenceLesson(lesson, lessonState);
+    els.primaryAction.hidden = !lessonState.complete;
+    if (lessonState.complete) els.primaryAction.innerHTML = `<span>记录所学并继续</span><i>→</i>`;
+  }
+
   function renderMission() {
     const mission = Core.currentMission(state);
     if (!mission) {
@@ -252,8 +335,9 @@
     }
     els.choicePanel.hidden = !mission.options;
     els.choicePanel.className = 'choice-panel';
+    els.learningLab.hidden = true; els.learningLab.innerHTML = '';
     els.primaryAction.hidden = !!mission.options;
-    els.missionCard.classList.remove('has-interaction-choices');
+    els.missionCard.classList.remove('has-interaction-choices', 'has-learning-lab');
     els.missionKicker.textContent = mission.complete ? '章节毕业' : '当前生活';
     els.missionTitle.textContent = mission.title;
     els.missionText.textContent = mission.text;
@@ -296,6 +380,7 @@
     } else {
       els.choicePanel.className = 'choice-panel'; els.choicePanel.innerHTML = '';
     }
+    if (state.activeWorld === 'mine' && world3d.mode === 'embodied' && mission.lesson) renderMineLesson(mission);
     const steps = state.activeWorld === 'mine' ? Core.MINE_STEPS : state.activeWorld === 'garden' ? Core.GARDEN_STEPS : Core.VALLEY_STEPS;
     const progress = state.worlds[state.activeWorld].step;
     els.stepDots.innerHTML = steps.map((_, i) => `<i class="${i < progress ? 'done' : ''}"></i>`).join('');
@@ -319,7 +404,8 @@
       els.skillName.textContent = skill ? skill.name : '等待示范';
       els.skillProficiency.textContent = skill ? `${skill.successes}/${skill.attempts || 1} 成功` : '未录制';
       els.skillSteps.innerHTML = ['扫描','隔离','重同步','验证'].map((label, i) => `<i class="${i < done ? 'done' : ''}" data-label="${label}"></i>`).join('');
-      els.skillContext.textContent = skill && skill.contexts.length ? `已验证情境：${skill.contexts.join(' · ')}` : '首次执行将进入监督模式。';
+      const learningCount = skill && skill.learningEvidence ? skill.learningEvidence.length : 0;
+      els.skillContext.textContent = skill && skill.contexts.length ? `已验证情境：${skill.contexts.join(' · ')} · 学习证据 ${learningCount}/4` : learningCount ? `学习证据 ${learningCount}/4 · 首次执行将进入监督模式。` : '首次执行将进入监督模式。';
     }
     if (state.worlds.garden.unlocked) {
       els.nextCapability.innerHTML = state.worlds.garden.completed
@@ -917,13 +1003,20 @@
 
   els.primaryAction.addEventListener('click', () => {
     if (state.activeWorld === 'garden' && state.worlds.garden.completed) { openArchive(); return; }
+    const mission = Core.currentMission(state);
+    if (state.activeWorld === 'mine' && mission && mission.lesson) {
+      const result = mineLessonResult(mission);
+      if (!result) { renderMission(); return; }
+      Core.advanceCurrentWorld(state, result); mineLessonKey = null; mineLessonState = null; render();
+      showChoiceOutcome({ name: mission.lesson.concept, effect: '已写入 SkillGraph 学习证据' }); return;
+    }
     const interaction = currentMissionInteraction();
     if (interaction && world3d.mode !== 'embodied') { enterEmbodiedMode(); return; }
     if (interaction) {
       const objective = objectiveStatus();
       if (!objective || !objective.ready) { renderMission(); return; }
     }
-    const mission = Core.currentMission(state), choice = currentInteractionChoice(mission);
+    const choice = currentInteractionChoice(mission);
     Core.advanceCurrentWorld(state, choice && choice.id); interactionChoiceKey = null; selectedInteractionChoiceId = null; render(); showChoiceOutcome(choice);
   });
   els.observerMode.addEventListener('click', enterObserverMode);
