@@ -30,7 +30,7 @@
     'archiveOverlay', 'archiveClose', 'archiveMemoryCount', 'memoryMap', 'memoryInspector',
     'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList',
     'releaseButton', 'releaseOverlay', 'releaseClose', 'boundaryOptions', 'runReleaseButton',
-    'returnPanel', 'exportButton', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
+    'returnPanel', 'exportButton', 'importButton', 'importFile', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
     'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad', 'contextHud', 'safeFrame',
     'worldDrawerButton', 'agentDrawerButton', 'worldDrawer', 'agentDrawer', 'fullscreenButton', 'systemOverlay'
   ].map(id => [id, document.getElementById(id)]));
@@ -266,6 +266,19 @@
   function downloadExport() {
     const blob = new Blob([JSON.stringify(Core.exportBundle(state), null, 2)], { type: 'application/json' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'lightgrid-v2.2-cheng-save.json'; link.click(); URL.revokeObjectURL(link.href);
+  }
+
+  async function importExport(file) {
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text()), restored = Core.hydrateState(parsed);
+      state = restored; world3d.signature = ''; world3d.mode = 'observer'; closeDrawers(); setHudMode('observer');
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(MIGRATION_MARKER, '1');
+      els.archiveOverlay.hidden = true; render();
+    } catch (_) {
+      els.systemOverlay.hidden = false; els.systemOverlay.textContent = '无法导入该存档。请选择 Lightgrid V1、V2、V2.1 或 V2.2 导出的 JSON。';
+      setTimeout(() => { els.systemOverlay.hidden = true; }, 2400);
+    } finally { els.importFile.value = ''; }
   }
 
   function drawWorld(id) {
@@ -708,6 +721,8 @@
   els.releaseClose.addEventListener('click', () => { els.releaseOverlay.hidden = true; setHudMode(world3d.mode); });
   els.runReleaseButton.addEventListener('click', () => { const summary = Core.releaseAgent(state, selectedBoundary); render(); renderRelease(summary); });
   els.exportButton.addEventListener('click', downloadExport);
+  els.importButton.addEventListener('click', () => els.importFile.click());
+  els.importFile.addEventListener('change', () => importExport(els.importFile.files[0]));
   els.deleteButton.addEventListener('click', () => {
     if (!els.deleteButton.classList.contains('confirming')) { els.deleteButton.classList.add('confirming'); els.deleteButton.textContent = '再次点击确认清除'; return; }
     localStorage.removeItem(STORAGE_KEY); localStorage.setItem(MIGRATION_MARKER, '1'); state = Core.createInitialState(); els.deleteButton.classList.remove('confirming'); els.deleteButton.textContent = '彻底清除本地角色'; els.archiveOverlay.hidden = true; render();

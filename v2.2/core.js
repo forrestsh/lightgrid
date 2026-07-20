@@ -191,6 +191,8 @@
       },
       releaseCount: 0,
       returnSummaries: [],
+      transfers: [],
+      migration: { source: null, importedAt: null, warnings: [] },
       scheduler: { mode: 'active', lastBoundary: null, pendingIrreversible: [] },
       commitments: [{ id: 'com-bridge-open', text: '让南北两岸保持通行', status: 'active', sourceEventId: 'evt-1038' }]
     };
@@ -449,15 +451,27 @@
   function travelToWorld(state, worldId) {
     if (!WORLD_DEFS[worldId] || !state.worlds[worldId].unlocked) return state;
     if (state.activeWorld === worldId) return state;
+    const sourceWorldId = state.activeWorld, transferId = 'transfer-' + state.tick + '-' + sourceWorldId + '-' + worldId;
+    const prepared = eventAt(++state.tick, 'TransferPrepared', '准备将澄从' + WORLD_DEFS[sourceWorldId].name + '转移到' + WORLD_DEFS[worldId].name, 'verified', {
+      worldId: sourceWorldId, transferId, entityId: state.agent.id,
+      spatial: spatialContext(state, sourceWorldId, [], null, state.worlds[sourceWorldId].routeId)
+    });
+    state.events.push(prepared);
     state.activeWorld = worldId;
     state.worlds[worldId].visits += 1;
-    state.tick += 3;
+    state.tick += 2;
     const spawn = Spatial.getManifest(worldId).spawnPoints[0];
     const spawnLandmark = Spatial.getManifest(worldId).landmarks.find(item => Spatial.coordKey(item.anchor) === Spatial.coordKey(spawn.coord));
     const evt = eventAt(state.tick, 'world_entered', '澄前往' + WORLD_DEFS[worldId].name, 'verified', {
       worldId, spatial: spatialContext(state, worldId, spawnLandmark ? [spawnLandmark.id] : [], spawnLandmark ? spawnLandmark.regionId : null, null)
     });
     state.events.push(evt);
+    const committed = eventAt(++state.tick, 'TransferCommitted', '澄已抵达' + WORLD_DEFS[worldId].name + '，身份与携带作品保持连续', 'verified', {
+      worldId, transferId, entityId: state.agent.id,
+      spatial: spatialContext(state, worldId, spawnLandmark ? [spawnLandmark.id] : [], spawnLandmark ? spawnLandmark.regionId : null, null)
+    });
+    state.events.push(committed);
+    state.transfers.push({ id: transferId, entityId: state.agent.id, sourceWorldId, targetWorldId: worldId, preparedEventId: prepared.id, committedEventId: committed.id, status: 'committed' });
     return state;
   }
 
@@ -561,14 +575,49 @@
     return summary;
   }
 
+  function migrateV1Valley(candidate) {
+    const state = createInitialState(), legacyEvents = Array.isArray(candidate.events) ? candidate.events : [];
+    state.migration = { source: 'broken_bridge_valley_v1', importedAt: new Date().toISOString(), warnings: ['V1 连续坐标未作为权威位置导入；仅保留行为与决定摘要。'] };
+    const routeId = candidate.bridgeInspected ? 'ravine_maintenance' : candidate.bridgePassed ? 'forest_bypass' : 'forest_bypass';
+    const refs = [];
+    legacyEvents.forEach((legacy, index) => {
+      const text = legacy.text || legacy.summary || legacy.type || 'V1 行为记录', type = 'legacy_' + (legacy.type || 'event');
+      const bridgeRelated = /bridge|桥/.test(type + text), coreRelated = /core|规则/.test(type + text), deliveryRelated = /deliver|温室|晶体/.test(type + text);
+      const spatial = bridgeRelated
+        ? spatialContext(state, 'valley', ['bridge_gap'], 'ravine', routeId)
+        : coreRelated
+          ? spatialContext(state, 'valley', ['rule_core'], 'ravine_floor', 'ravine_maintenance')
+          : deliveryRelated
+            ? spatialContext(state, 'valley', ['greenhouse'], 'north_bank', routeId)
+            : spatialContext(state, 'valley', ['workshop'], 'south_bank', routeId);
+      const event = eventAt(state.tick + index + 1, type, 'V1 导入：' + text, 'legacy-import', { worldId: 'valley', spatial });
+      state.events.push(event); refs.push(event.id);
+    });
+    state.tick += legacyEvents.length;
+    if (refs.length) state.memories.push({
+      id: 'mem-v1-import', title: '断桥谷的第一次经历', worldId: 'valley',
+      summary: '从 V1 原型导入的送货、桥梁观察、规则选择与第一次放手摘要。', eventRefs: refs,
+      locationIds: ['south_bank', 'ravine', 'north_bank'], landmarkIds: ['workshop', 'bridge_gap', 'greenhouse', 'rule_core'],
+      routeIds: [routeId], phaseIds: ['bridge_broken'], salience: .78, verified: true, sourceVersion: 1
+    });
+    if (candidate.coreChoice) {
+      state.agent.narrative = '我记得第一次在断桥谷作出的“' + candidate.coreChoice + '”选择，但仍会重新验证这里现在的事实。';
+      state.commitments.push({ id: 'com-v1-consequence', text: '复查第一次规则核心选择留下的长期后果', status: 'active', sourceEventId: refs[refs.length - 1] || 'evt-1038' });
+    }
+    return state;
+  }
+
   function hydrateState(candidate) {
-    if (!candidate || !candidate.worlds || !candidate.agent || !Array.isArray(candidate.events) || ![1, 2, '2.1', '2.2'].includes(candidate.version)) return createInitialState();
+    if (candidate && candidate.state && candidate.format) candidate = candidate.state;
+    if (candidate && candidate.version === 1 && !candidate.worlds && Array.isArray(candidate.events)) return migrateV1Valley(candidate);
+    if (!candidate || !candidate.worlds || !candidate.agent || !Array.isArray(candidate.events) || ![2, '2.1', '2.2'].includes(candidate.version)) return createInitialState();
     const base = createInitialState();
     const migrated = Object.assign({}, candidate, { version: '2.2' });
     const result = Object.assign(base, migrated, {
       agent: Object.assign(base.agent, candidate.agent),
       worlds: Object.fromEntries(WORLD_ORDER.map(id => [id, Object.assign(base.worlds[id], candidate.worlds[id] || {})])),
       scheduler: Object.assign(base.scheduler, candidate.scheduler || {}),
+      migration: Object.assign(base.migration, candidate.migration || { source: String(candidate.version), importedAt: new Date().toISOString(), warnings: [] }),
       spatial: Object.assign(base.spatial, candidate.spatial || {}, {
         valley: Object.assign(base.spatial.valley, candidate.spatial && candidate.spatial.valley || {}),
         mine: Object.assign(base.spatial.mine, candidate.spatial && candidate.spatial.mine || {}),
@@ -580,12 +629,21 @@
     return result;
   }
 
+  function hashPayload(value) {
+    const input = typeof value === 'string' ? value : JSON.stringify(value);
+    let hash = 2166136261;
+    for (let index = 0; index < input.length; index += 1) { hash ^= input.charCodeAt(index); hash = Math.imul(hash, 16777619); }
+    return 'fnv1a32:' + (hash >>> 0).toString(16).padStart(8, '0');
+  }
+
   function exportBundle(state) {
-    return {
+    const bundle = {
       exportedAt: new Date().toISOString(), format: 'lightgrid-v2.2-alpha-save',
       versionManifest: { simulationVersion: '2.2', sceneSchemaVersion: 2, contentVersion: '2.2', eventSchemaVersion: 2, memoryPolicyVersion: 2, skillSchemaVersion: 1, modelPolicyVersion: 'offline-rules-v1' },
       state
     };
+    bundle.integrityHash = hashPayload({ format: bundle.format, versionManifest: bundle.versionManifest, state: bundle.state });
+    return bundle;
   }
 
   return {
@@ -614,6 +672,8 @@
     ,releaseAgent
     ,catchUpOffline
     ,hydrateState
+    ,migrateV1Valley
+    ,hashPayload
     ,exportBundle
   };
 });
