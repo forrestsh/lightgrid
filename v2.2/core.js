@@ -275,7 +275,9 @@
     if (progress.step >= VALLEY_STEPS.length) return travelToWorld(state, 'mine');
     const step = VALLEY_STEPS[progress.step];
     const interactionRoute = step.interaction && step.interaction.routeId;
-    const candidateRoutes = interactionRoute ? [interactionRoute] : ['bridge_main', 'forest_bypass'];
+    const candidateRoutes = progress.step === VALLEY_STEPS.length - 1
+      ? []
+      : interactionRoute ? [interactionRoute] : ['bridge_main', 'forest_bypass'];
     const plan = Spatial.selectRoute('valley', candidateRoutes, state.agent.bodyPart || 'base', state.spatial);
     if (plan) { progress.routeId = plan.routeId; progress.planHistory.push({ tick: state.tick, routeId: plan.routeId, phaseId: plan.phaseId }); }
     state.tick += 7;
