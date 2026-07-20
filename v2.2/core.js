@@ -110,6 +110,15 @@
       title: '先说明你从哪里学会维护',
       text: '矿城技师岚不信任外来规则修改。澄会先检索旧桥经历，并区分“修好一次”与“建立维护方法”。',
       action: '让澄回答岚的问题',
+      lesson: {
+        id: 'method-not-coordinates', type: 'evidence', concept: '可迁移的是方法，不是旧坐标',
+        prompt: '岚问：旧桥经验中，哪一项最值得带进陌生的矿城故障？',
+        options: [
+          { id: 'old-coordinate', label: '旧桥断口的坐标', explanation: '坐标只属于断桥谷，不能说明矿城哪里有故障。' },
+          { id: 'diagnostic-method', label: '先取证、隔离风险、行动后验证', explanation: '正确：目标会变，但这个安全推理框架可以跨世界复用。' },
+          { id: 'repair-result', label: '桥梁完整度 86%', explanation: '结果能证明过去成功，却不能指导新故障的安全步骤。' }
+        ], correctId: 'diagnostic-method', success: '你识别出“方法”与“情境事实”的区别。'
+      },
       evidence: '检索：我们一起修复的旧桥 · 4 条来源事件',
       event: ['memory_recalled', '澄向岚准确说明旧桥的检查、加固与验证经历'],
       health: '技师信任 31% · 正在核对来源'
@@ -118,6 +127,16 @@
       title: '示范完整诊断，而不是按键',
       text: '记录当前感知、目标、动作、结果与修正；候选技能必须由你确认名称和目的。',
       action: '示范：扫描—隔离—重同步—验证',
+      lesson: {
+        id: 'safe-diagnostic-order', type: 'sequence', concept: '先隔离风险，再改变系统',
+        prompt: '按安全顺序组成脉冲诊断。顺序错误不会扣分，系统会解释风险。',
+        items: [
+          { id: 'scan', label: '扫描', explanation: '读取脉冲拓扑与相位偏移。' },
+          { id: 'isolate', label: '隔离', explanation: '在改变相位前切断带载支路。' },
+          { id: 'resync', label: '重同步', explanation: '把目标节点拉回参考相位。' },
+          { id: 'verify', label: '验证', explanation: '重新读取三个周期，失败时回滚。' }
+        ], correctOrder: ['scan', 'isolate', 'resync', 'verify'], success: '完整 SkillGraph 已形成：观察、保护、改变、验证。'
+      },
       evidence: '候选 SkillGraph：4 步 · 2 条安全约束',
       event: ['skill_demonstrated', '玩家示范旧主时钟诊断并命名为“脉冲诊断”'],
       health: '主时钟相位漂移 18° · 示范录制中'
@@ -126,6 +145,12 @@
       title: '第一次执行保持监督',
       text: '澄按技能图执行；若前置条件失败会停在 blocked，而不是跳过隔离或安全验证。',
       action: '监督澄完成旧主时钟修复',
+      lesson: {
+        id: 'phase-calibration', type: 'calibrate', concept: '校准不是归零按钮，而是控制误差',
+        prompt: 'NODE-17 当前偏移 +18°。拖动相位补偿，使残余误差进入 ±1°，再锁定。',
+        initialValue: 18, targetValue: 0, min: -24, max: 24, tolerance: 1,
+        success: '残余误差进入安全带；现在才能执行三个周期的验证。'
+      },
       evidence: '监督结果：4/4 步通过 · 安全验证保留',
       event: ['skill_supervised', '澄在监督模式完成旧主时钟脉冲诊断'],
       health: '主时钟相位漂移 18° → 1°'
@@ -134,6 +159,15 @@
       title: '新坐标、新故障，同一种方法',
       text: '东侧支路发生不同相位故障。系统只替换目标节点和相位参数，不允许删除隔离与验证。',
       action: '放手进行技能迁移考试',
+      lesson: {
+        id: 'parameter-transfer', type: 'evidence', concept: '保留安全结构，只替换情境参数',
+        prompt: 'NODE-42 偏移 −11°，维修螺旋被封锁。哪一个计划是在迁移方法，而不是背答案？',
+        options: [
+          { id: 'reuse-values', label: '仍使用 NODE-17 与 +18°', explanation: '旧参数已经失效；照搬会把节点推得更远。' },
+          { id: 'skip-isolation', label: '走货运螺旋，但跳过隔离', explanation: '路线可以改变，安全前置条件不能删除。' },
+          { id: 'replan-parameters', label: '改走货运螺旋，读取 −11°，保留隔离与验证', explanation: '正确：替换节点、相位和路线，保留诊断结构。' }
+        ], correctId: 'replan-parameters', success: '你完成了真正的技能迁移：参数变化，安全结构不变。'
+      },
       evidence: '迁移：NODE-17 → NODE-42 · 18° → −11°',
       event: ['skill_transferred', '澄在 NODE-42 独立完成不同相位的诊断修复'],
       health: '东侧支路等待自主诊断'
@@ -198,7 +232,7 @@
       activeWorld: 'valley',
       worlds: {
         valley: { unlocked: true, completed: false, step: 0, visits: 1, routeId: 'bridge_inspection', planHistory: [], choices: [] },
-        mine: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] },
+        mine: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [], lessonHistory: [] },
         garden: { unlocked: false, completed: false, step: 0, visits: 0, routeId: null, planHistory: [] }
       },
       agent: {
@@ -369,7 +403,7 @@
     return state;
   }
 
-  function advanceMine(state) {
+  function advanceMine(state, lessonResult) {
     if (state.activeWorld !== 'mine') return state;
     const progress = state.worlds.mine;
     if (progress.step >= MINE_STEPS.length) return travelToWorld(state, 'garden');
@@ -395,6 +429,15 @@
       worldId: 'mine', spatial: spatialContext(state, 'mine', place.landmarkIds, place.regionId, progress.routeId, ['agent-cheng', 'npc-technician-lan'])
     });
     state.events.push(evt);
+    progress.lessonHistory = progress.lessonHistory || [];
+    if (step.lesson) {
+      const result = lessonResult && lessonResult.lessonId === step.lesson.id ? lessonResult : { lessonId: step.lesson.id, completed: true, attempts: 0, mode: 'legacy-direct' };
+      progress.lessonHistory.push({
+        step: progress.step, lessonId: step.lesson.id, concept: step.lesson.concept,
+        completed: result.completed !== false, attempts: Math.max(0, Number(result.attempts) || 0),
+        response: result.response == null ? null : result.response, mode: result.mode || 'interactive'
+      });
+    }
     progress.step += 1;
     if (progress.step === 2) {
       state.skills.push({
@@ -403,10 +446,11 @@
         preconditions: ['可读取脉冲拓扑', '支路允许隔离'],
         steps: ['扫描', '隔离', '重同步', '验证'],
         safetyConstraints: ['禁止带载重同步', '验证失败立即回滚'],
-        demonstrations: [evt.id], attempts: 0, successes: 0, contexts: []
+        demonstrations: [evt.id], attempts: 0, successes: 0, contexts: [], learningEvidence: progress.lessonHistory.slice()
       });
     }
     const skill = state.skills[0];
+    if (skill) skill.learningEvidence = progress.lessonHistory.slice();
     if (progress.step === 3 && skill) {
       skill.attempts = 1; skill.successes = 1; skill.contexts.push('NODE-17:+18');
     }
@@ -418,7 +462,7 @@
       state.relationships.technician.trust = 68;
       state.memories.push({
         id: 'mem-mine-trust', title: '岚让我们修复东侧支路', worldId: 'mine',
-        summary: '澄保留隔离与验证步骤，在不同节点和相位上完成了诊断。',
+        summary: '你通过证据判断、步骤排序、相位校准和迁移考试，理解了为何必须保留隔离与验证。',
         eventRefs: state.events.filter(e => e.worldId === 'mine').map(e => e.id),
         locationIds: ['middle_ring', 'lower_ring', 'deep_core'], landmarkIds: ['clock_atrium', 'mechanic_nest', 'echo_core'],
         routeIds: Array.from(new Set(progress.planHistory.map(item => item.routeId))), phaseIds: Array.from(new Set(progress.planHistory.map(item => item.phaseId))),
@@ -501,9 +545,9 @@
     return state;
   }
 
-  function advanceCurrentWorld(state, choiceId) {
-    if (state.activeWorld === 'valley') return advanceValley(state, choiceId);
-    if (state.activeWorld === 'mine') return advanceMine(state);
+  function advanceCurrentWorld(state, input) {
+    if (state.activeWorld === 'valley') return advanceValley(state, input);
+    if (state.activeWorld === 'mine') return advanceMine(state, input);
     if (state.activeWorld === 'garden') return advanceGarden(state);
     return state;
   }
