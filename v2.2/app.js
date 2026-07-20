@@ -4,6 +4,11 @@
   const STORAGE_KEY = 'lightgrid.v2.2.alpha.save';
   const LEGACY_STORAGE_KEYS = ['lightgrid.v2.1.alpha.save', 'lightgrid.v2.demo.save', 'lightgrid.valley.autosave.v1'];
   const MIGRATION_MARKER = 'lightgrid.v2.2.legacy-migration-complete';
+  const CAMERA_PROFILES = {
+    valley: { target: [1.2, -.5, 0], theta: .68, phi: 1.05 },
+    mine: { target: [.3, -1.2, 0], theta: .72, phi: 1.08 },
+    garden: { target: [1.2, 1.5, 0], theta: .56, phi: 1.08 }
+  };
   let state = loadState();
   let selectedBoundary = 'short';
   const world3d = {
@@ -404,7 +409,11 @@
       beacon.scale.setScalar(.38); beacon.position.copy(manifestPosition(item.anchor)); beacon.name = 'landmark:' + item.id; parent.add(beacon);
       world3d.landmarkObjects.push({ definition: item, object: beacon });
     });
-    els.landmarkLayer.innerHTML = manifest.landmarks.map(item => `<button type="button" class="landmark-tag" data-landmark="${item.id}">${item.name}</button>`).join('');
+    const currentCell = state.worlds[worldId].currentCell || manifest.spawnPoints[0].coord;
+    els.landmarkLayer.innerHTML = manifest.landmarks.map(item => {
+      const hops = Core.Spatial.graphDistance(currentCell, item.anchor), qualifier = worldId === 'mine' && hops > 1 ? ' · 可见/需经路线' : '';
+      return `<button type="button" class="landmark-tag" data-landmark="${item.id}" data-hops="${hops}">${item.name}${qualifier}</button>`;
+    }).join('');
     els.landmarkLayer.querySelectorAll('[data-landmark]').forEach(button => button.addEventListener('click', () => focusLandmark(button.dataset.landmark)));
     routeGroup.visible = world3d.showRoutes;
   }
@@ -419,8 +428,8 @@
 
   function enterObserverMode() {
     world3d.mode = 'observer'; world3d.focusLandmarkId = null; world3d.radius = world3d.overviewRadius;
-    const defaults = { valley: [1.2,-.5,0], mine: [.8,-.25,-1], garden: [1.6,.4,0] };
-    world3d.target.fromArray(defaults[state.activeWorld]);
+    const profile = CAMERA_PROFILES[state.activeWorld];
+    world3d.target.fromArray(profile.target); world3d.theta = profile.theta; world3d.phi = profile.phi;
     setHudMode('observer'); renderSpatialUI();
   }
 
@@ -448,25 +457,33 @@
 
   function updateLandmarkTags() {
     if (!world3d.ready || !world3d.camera) return;
-    const rect = els.worldCanvas.getBoundingClientRect(), T = window.THREE;
-    world3d.landmarkObjects.forEach(entry => {
+    const rect = els.worldCanvas.getBoundingClientRect(), T = window.THREE, route = currentSpatialRoute(), routeCells = new Set((route ? route.cells : []).map(Core.Spatial.coordKey));
+    const candidates = world3d.landmarkObjects.map(entry => {
       const tag = els.landmarkLayer.querySelector(`[data-landmark="${entry.definition.id}"]`);
-      if (!tag) return;
+      if (!tag) return null;
       const projected = entry.object.getWorldPosition(new T.Vector3()).project(world3d.camera), visible = projected.z > -1 && projected.z < 1;
-      tag.hidden = !visible;
-      if (visible) { tag.style.left = ((projected.x + 1) * .5 * rect.width) + 'px'; tag.style.top = ((1 - projected.y) * .5 * rect.height) + 'px'; }
+      const screenX = (projected.x + 1) * .5, screenY = (1 - projected.y) * .5;
+      return { entry, tag, visible: visible && screenX > .02 && screenX < .98 && screenY > .06 && screenY < .96, screenX, screenY, routeRelevant: routeCells.has(Core.Spatial.coordKey(entry.definition.anchor)), distance: entry.object.getWorldPosition(new T.Vector3()).distanceTo(world3d.camera.position) };
+    }).filter(Boolean);
+    const budget = rect.width <= 600 ? 2 : 3;
+    const selected = new Set(candidates.filter(item => item.visible).sort((a, b) => Number(b.entry.definition.id === world3d.focusLandmarkId) - Number(a.entry.definition.id === world3d.focusLandmarkId) || Number(b.routeRelevant) - Number(a.routeRelevant) || a.distance - b.distance).slice(0, budget).map(item => item.entry.definition.id));
+    candidates.forEach(item => {
+      item.tag.hidden = !selected.has(item.entry.definition.id);
+      if (!item.tag.hidden) { item.tag.style.left = (item.screenX * rect.width) + 'px'; item.tag.style.top = (item.screenY * rect.height) + 'px'; }
     });
   }
 
   function updateDiagnostics() {
     if (!world3d.ready) return;
-    const manifest = Core.Spatial.getManifest(state.activeWorld), route = currentSpatialRoute();
+    const manifest = Core.Spatial.getManifest(state.activeWorld), route = currentSpatialRoute(), rect = els.worldCanvas.getBoundingClientRect();
     window.__lightgrid3d = {
       ready: true, renderer: 'WebGL', revision: window.THREE.REVISION, world: state.activeWorld,
       signature: world3d.signature, objects: world3d.root ? countObjects(world3d.root) : 0,
       manifestVersion: manifest.version, parityValid: Core.Spatial.validateManifest(manifest),
       mode: world3d.mode, phaseId: state.spatial[state.activeWorld].phaseId,
-      routeId: route && route.id, landmarkCount: manifest.landmarks.length, routeCount: manifest.routes.length
+      routeId: route && route.id, landmarkCount: manifest.landmarks.length, routeCount: manifest.routes.length,
+      viewportFillRatio: Number(((rect.width * rect.height) / Math.max(1, innerWidth * innerHeight)).toFixed(4)),
+      labelBudget: innerWidth <= 600 ? 2 : 3, cameraProfile: CAMERA_PROFILES[state.activeWorld]
     };
     Object.assign(els.worldCanvas.dataset, {
       manifestVersion: manifest.version,
@@ -519,7 +536,7 @@
     world3d.animated.push({ object: crystalMesh, kind: 'crystals' });
     addSettlement(parent, -7.1, -3.7, 0xe1b85d); addSettlement(parent, 7.2, 3.6, 0x7edbc0);
     addAvatar(parent, [-5.2, -.55, 1.35]);
-    world3d.scene.background.setHex(0x07110f); world3d.scene.fog.color.setHex(0x07110f); world3d.radius = 19; world3d.target.set(1.2, -.5, 0);
+    world3d.scene.background.setHex(0x07110f); world3d.scene.fog.color.setHex(0x07110f); world3d.radius = 21; world3d.target.set(1.2, -.5, 0); world3d.theta = .68; world3d.phi = 1.05;
   }
 
   function addSettlement(parent, x, z, color) {
@@ -529,54 +546,68 @@
   }
 
   function buildMine(parent) {
-    const T = window.THREE, step = state.worlds.mine.step, tunnel = [], floor = [];
-    for (let z = -8; z <= 8; z++) {
-      for (let a = 0; a <= 12; a++) {
-        const angle = Math.PI * a / 12, x = Math.cos(angle) * 7.2, y = Math.sin(angle) * 5.2 - 2.35;
-        if ((a + z + 20) % 2 === 0) tunnel.push([x, y, z * .72, .72]);
+    const T = window.THREE, step = state.worlds.mine.step, structure = [], platforms = [];
+    const levels = [{ y: 5.8, radius: 6.2, color: 0x75bfff }, { y: .4, radius: 5.4, color: 0xf0a35e }, { y: -5.2, radius: 6.7, color: 0x6e82d6 }];
+    levels.forEach((level, levelIndex) => {
+      for (let segment = 0; segment < 32; segment++) {
+        const angle = segment / 32 * Math.PI * 2, radius = level.radius + (segment % 2 ? .22 : 0);
+        platforms.push([Math.cos(angle) * radius, level.y, Math.sin(angle) * radius, .68]);
+        if (segment % 4 === 0) for (let vertical = -2; vertical <= 2; vertical++) structure.push([Math.cos(angle) * (radius + .55), level.y + vertical * .68, Math.sin(angle) * (radius + .55), .56]);
       }
-      for (let x = -7; x <= 7; x += 2) floor.push([x, -2.5, z * .72, .72]);
-    }
-    cellCloud(parent, tunnel, { name: 'mine-vault', color: 0x263952, metalness: .22 });
-    cellCloud(parent, floor, { name: 'mine-floor', color: 0x34475b, metalness: .15 });
-    for (const x of [-1.18, 1.18]) {
-      const rail = standardMesh(new T.BoxGeometry(.09, .09, 13), 0x9ab0bd, { metalness: .75, roughness: .25 }); rail.position.set(x, -1.95, 0); parent.add(rail);
-    }
+      const ring = standardMesh(new T.TorusGeometry(level.radius, .09, 8, 80), level.color, { emissive: level.color, emissiveIntensity: .5, metalness: .5, roughness: .25 });
+      ring.rotation.x = Math.PI / 2; ring.position.y = level.y; ring.name = ['upper-ring','clock-atrium','lower-ring'][levelIndex]; parent.add(ring);
+    });
+    cellCloud(parent, structure, { name: 'mine-vertical-frames', color: 0x283a52, metalness: .3 });
+    cellCloud(parent, platforms, { name: 'mine-ring-platforms', color: 0x3d5268, metalness: .18 });
+    const helix = (radius, offset, color, name) => {
+      const points = [];
+      for (let index = 0; index <= 72; index++) { const progress = index / 72, angle = progress * Math.PI * 5 + offset; points.push(new T.Vector3(Math.cos(angle) * radius, 6.4 - progress * 14.4, Math.sin(angle) * radius)); }
+      const curve = new T.CatmullRomCurve3(points), mesh = standardMesh(new T.TubeGeometry(curve, 144, .08, 6, false), color, { emissive: color, emissiveIntensity: .45, metalness: .35, roughness: .3, opacity: .8 });
+      mesh.name = name; parent.add(mesh); return curve;
+    };
+    const cargoCurve = helix(5.8, 0, 0x73b8ff, 'cargo-spiral');
+    helix(4.7, Math.PI, 0xf0a35e, 'service-spiral');
+    const clockSpine = standardMesh(new T.CylinderGeometry(.13, .13, 14, 10), 0x9ab0bd, { metalness: .72, roughness: .22 }); clockSpine.position.y = -.8; parent.add(clockSpine);
     for (let i = 0; i < 3; i++) {
-      const ring = standardMesh(new T.TorusGeometry(2.1 + i * 1.05, .08 + i * .025, 10, 64), i === 1 ? 0xf0a35e : 0x73b8ff, { emissive: i === 1 ? 0xb94716 : 0x256eb7, emissiveIntensity: .8, metalness: .45, roughness: .25 });
-      ring.position.set(0, .25, -2.2 + i * .12); ring.rotation.z = i * .36; parent.add(ring); world3d.animated.push({ object: ring, kind: 'clock', speed: (i % 2 ? -1 : 1) * (.16 + i * .05) });
+      const ring = standardMesh(new T.TorusGeometry(1.15 + i * .7, .07, 8, 48), i === 1 ? 0xf0a35e : 0x73b8ff, { emissive: i === 1 ? 0xb94716 : 0x256eb7, emissiveIntensity: .9, metalness: .45, roughness: .25 });
+      ring.position.y = .4; ring.rotation.x = Math.PI / 2; ring.rotation.y = i * .36; parent.add(ring); world3d.animated.push({ object: ring, kind: 'clock', speed: (i % 2 ? -1 : 1) * (.16 + i * .05) });
     }
     const nodeColor = step >= 3 ? 0x6df0c8 : 0xff765e;
     const node = standardMesh(new T.IcosahedronGeometry(.72, 1), nodeColor, { emissive: nodeColor, emissiveIntensity: 1.05, metalness: .25, roughness: .2 });
-    node.name = step >= 3 ? 'synchronized-node' : 'fault-node'; node.position.set(0, .25, -2.05); parent.add(node); world3d.animated.push({ object: node, kind: 'node' });
+    node.name = step >= 3 ? 'synchronized-node' : 'fault-node'; node.position.set(0, -8.7, 0); parent.add(node); world3d.animated.push({ object: node, kind: 'node' });
     for (let i = 0; i < 7; i++) {
       const pulse = standardMesh(new T.SphereGeometry(.12, 12, 8), 0x8fd4ff, { emissive: 0x4fa9ff, emissiveIntensity: 1.4, roughness: .2 });
-      pulse.position.set(i % 2 ? -1.18 : 1.18, -1.8, -7 + i * 2.1); parent.add(pulse); world3d.pulses.push({ object: pulse, offset: i * 2.1 });
+      pulse.position.copy(cargoCurve.getPoint(i / 7)); parent.add(pulse); world3d.pulses.push({ object: pulse, offset: i / 7, curve: cargoCurve });
     }
-    addAvatar(parent, [-3.8, -1.6, 2.5]);
-    world3d.scene.background.setHex(0x050b13); world3d.scene.fog.color.setHex(0x050b13); world3d.radius = 18; world3d.target.set(.8, -.25, -1);
+    addAvatar(parent, [-4.9, 5.9, 1.2]);
+    world3d.scene.background.setHex(0x050b13); world3d.scene.fog.color.setHex(0x050b13); world3d.radius = 23; world3d.target.set(.3, -1.2, 0); world3d.theta = .72; world3d.phi = 1.08;
   }
 
   function buildGarden(parent) {
-    const T = window.THREE, islands = [], roots = [], part = state.agent.bodyPart;
-    for (let cluster = 0; cluster < 9; cluster++) {
-      const angle = cluster * .83, radius = 2.5 + cluster * .58, cx = Math.cos(angle) * radius, cz = Math.sin(angle) * radius, cy = -1 + Math.sin(cluster * 1.7) * 2.1;
+    const T = window.THREE, islands = [], roots = [], ghost = [], part = state.agent.bodyPart, phase = state.spatial.garden.phaseId;
+    const phaseShift = { phase_a: [0, 0], phase_b: [1.5, -1.1], phase_c: [-1.2, 1.6] }[phase] || [0, 0];
+    const nextShift = phase === 'phase_a' ? [1.5, -1.1] : phase === 'phase_b' ? [-1.2, 1.6] : [0, 0];
+    const layerHeights = [-4.2, -.6, 3.4, 7.2];
+    for (let cluster = 0; cluster < 12; cluster++) {
+      const layer = cluster % 4, angle = cluster * .79, radius = 2.4 + cluster * .52, cx = Math.cos(angle) * radius + phaseShift[0] * (layer / 3), cz = Math.sin(angle) * radius + phaseShift[1] * (layer / 3), cy = layerHeights[layer] + Math.sin(cluster * 1.7) * .45;
       for (let i = 0; i < 18; i++) {
         const a = i * 2.39, r = Math.sqrt(i) * .36;
         islands.push([cx + Math.cos(a) * r, cy - r * .14, cz + Math.sin(a) * r, .55 + noise(i, cluster, 4) * .22]);
+        if (i < 7) ghost.push([cx + (nextShift[0] - phaseShift[0]) * (layer / 3) + Math.cos(a) * r, cy - r * .14, cz + (nextShift[1] - phaseShift[1]) * (layer / 3) + Math.sin(a) * r, .5]);
       }
       for (let y = 1; y <= 4; y++) roots.push([cx + Math.sin(y) * .12, cy - y * .58, cz + Math.cos(y) * .12, .38]);
     }
     const islandMesh = cellCloud(parent, islands, { name: 'living-islands', color: 0x866fd0, emissive: 0x3e278b, emissiveIntensity: .22, metalness: .1 });
     cellCloud(parent, roots, { name: 'living-roots', color: 0x65d6b0, emissive: 0x1d795e, emissiveIntensity: .3 });
-    world3d.animated.push({ object: islandMesh, kind: 'islands' });
-    const migrationCurve = new T.CatmullRomCurve3([new T.Vector3(-8,2,-4), new T.Vector3(-3,3,1), new T.Vector3(1,.5,3), new T.Vector3(5,2,0), new T.Vector3(8,0,-3)]);
+    cellCloud(parent, ghost, { name: 'next-phase-ghosts', color: 0x91d9ff, emissive: 0x4b8fc5, emissiveIntensity: .35, transparent: true, opacity: .1 });
+    world3d.animated.push({ object: islandMesh, kind: 'islands', bornAt: performance.now() });
+    const migrationCurve = new T.CatmullRomCurve3([new T.Vector3(-8,-3.8,-4), new T.Vector3(-4,-.2,1), new T.Vector3(0,3.1,3), new T.Vector3(4,5.6,0), new T.Vector3(8,7.2,-3)]);
     const path = standardMesh(new T.TubeGeometry(migrationCurve, 80, .045, 6, false), 0x6df0c8, { emissive: 0x6df0c8, emissiveIntensity: .85, opacity: .55, roughness: .25 }); parent.add(path);
     for (let i = 0; i < 34; i++) {
       const migrant = standardMesh(world3d.cellGeometry, i % 4 === 0 ? 0xf2c96d : 0x8ef6d1, { emissive: i % 4 === 0 ? 0xc98322 : 0x38b88d, emissiveIntensity: .75, opacity: .92, roughness: .3 });
       migrant.scale.setScalar(.22 + noise(i, 4, 9) * .16); parent.add(migrant); world3d.migrants.push({ object: migrant, offset: i / 34, lane: noise(i, 5, 2) - .5, curve: migrationCurve });
     }
-    const avatar = addAvatar(parent, [-2.2, 1.8, .9]);
+    const avatar = addAvatar(parent, [-4.8, -3.5, .9]);
     if (part === 'sensor') {
       const sensor = standardMesh(new T.TorusGeometry(.68, .065, 8, 32), 0x6df0c8, { emissive: 0x6df0c8, emissiveIntensity: 1 }); sensor.rotation.x = Math.PI / 2; sensor.position.y = 1.52; avatar.add(sensor); world3d.animated.push({ object: sensor, kind: 'sensor' });
     } else if (part === 'feet') {
@@ -584,7 +615,7 @@
     } else if (part === 'bladder') {
       const bladder = standardMesh(new T.SphereGeometry(.78, 24, 14), 0x9dc9ff, { emissive: 0x5c8fd9, emissiveIntensity: .38, opacity: .42, roughness: .15 }); bladder.scale.y = 1.25; bladder.position.y = 1.2; avatar.add(bladder); world3d.animated.push({ object: bladder, kind: 'bladder' });
     }
-    world3d.scene.background.setHex(0x0b0817); world3d.scene.fog.color.setHex(0x0b0817); world3d.radius = 20; world3d.target.set(1.6, .4, 0);
+    world3d.scene.background.setHex(0x0b0817); world3d.scene.fog.color.setHex(0x0b0817); world3d.radius = 23; world3d.target.set(1.2, 1.5, 0); world3d.theta = .56; world3d.phi = 1.08;
   }
 
   function addAvatar(parent, position) {
@@ -621,11 +652,15 @@
       if (item.kind === 'crystals') item.object.material.emissiveIntensity = .25 + Math.sin(time * .002) * .12;
       if (item.kind === 'avatar') item.object.position.y += Math.sin(time * .0022) * .0006 * dt;
       if (item.kind === 'water') item.object.material.opacity = .42 + Math.sin(time * .0015) * .08;
-      if (item.kind === 'islands') item.object.rotation.y = Math.sin(time * .00025) * .035;
+      if (item.kind === 'islands') { item.object.rotation.y = Math.sin(time * .00025) * .035; item.object.scale.setScalar(Math.min(1, .88 + Math.max(0, time - item.bornAt) / 750 * .12)); }
       if (item.kind === 'sensor') item.object.rotation.z += dt * .0012;
       if (item.kind === 'bladder') item.object.scale.setScalar(1 + Math.sin(time * .002) * .035);
     });
-    world3d.pulses.forEach(pulse => { pulse.object.position.z = -7 + ((time * .004 + pulse.offset) % 14); pulse.object.material.emissiveIntensity = .8 + Math.sin(time * .006 + pulse.offset) * .5; });
+    world3d.pulses.forEach(pulse => {
+      if (pulse.curve) pulse.object.position.copy(pulse.curve.getPoint((pulse.offset + time * .000045) % 1));
+      else pulse.object.position.z = -7 + ((time * .004 + pulse.offset) % 14);
+      pulse.object.material.emissiveIntensity = .8 + Math.sin(time * .006 + pulse.offset) * .5;
+    });
     world3d.migrants.forEach(migrant => {
       const t = (migrant.offset + time * .000025) % 1, point = migrant.curve.getPoint(t);
       migrant.object.position.copy(point); migrant.object.position.y += Math.sin(time * .002 + migrant.offset * 30) * .3; migrant.object.position.z += migrant.lane * .8;
