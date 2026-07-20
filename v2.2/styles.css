@@ -366,6 +366,38 @@ body.debug-safe-frame .safe-frame { opacity: 1; }
 .interaction-choice-panel .choice-option { min-height: 96px; position: relative; }
 .interaction-choice-panel .choice-option em { color: var(--gold); }
 .interaction-choice-panel .choice-option.on em { color: var(--green); }
+.mission-card.has-learning-lab { width: min(760px, calc(100vw - 36px)); max-height: 58vh; }
+.learning-lab { margin-top: 12px; border-top: 1px solid rgba(114,185,255,.28); padding-top: 11px; }
+.learning-lab[hidden] { display: none; }
+.lab-heading > span { color: var(--blue); font: 500 7px var(--mono); letter-spacing: .15em; }
+.lab-heading > b { display: block; margin-top: 4px; color: #dbe9f6; font-size: 10px; font-weight: 500; line-height: 1.55; }
+.lesson-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.lesson-option { min-height: 58px; display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.025); color: #c7d5df; padding: 9px; text-align: left; cursor: pointer; }
+.lesson-option i { flex: 0 0 auto; width: 9px; height: 9px; border: 1px solid #627986; border-radius: 50%; }
+.lesson-option span { font-size: 8px; line-height: 1.45; }
+.lesson-option:hover { border-color: var(--blue); }
+.lesson-option.correct { border-color: var(--green); background: rgba(120,225,189,.08); }
+.lesson-option.correct i { border-color: var(--green); background: var(--green); box-shadow: 0 0 10px var(--green); }
+.lesson-option.wrong { border-color: var(--danger); background: rgba(255,130,111,.06); }
+.lesson-option.wrong i { border-color: var(--danger); background: var(--danger); }
+.lesson-option:disabled { cursor: default; }
+.lesson-feedback { min-height: 28px; margin: 9px 0 0; padding: 7px 9px; border-left: 2px solid var(--gold); background: rgba(228,189,104,.04); color: #b9aaa0; font-size: 8px; line-height: 1.55; }
+.lesson-feedback.success { border-color: var(--green); color: #abd8c9; background: rgba(120,225,189,.05); }
+.sequence-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
+.sequence-slots span { min-height: 28px; display: grid; place-items: center; border: 1px dashed rgba(255,255,255,.16); color: #61736d; font: 500 7px var(--mono); }
+.sequence-slots span.filled { border-style: solid; border-color: var(--blue); color: #bcdcff; background: rgba(114,185,255,.07); }
+.phase-console { display: grid; grid-template-columns: 92px 1fr 100px; align-items: center; gap: 14px; margin-top: 10px; padding: 10px; background: rgba(114,185,255,.04); border: 1px solid rgba(114,185,255,.16); }
+.phase-dial { width: 72px; height: 72px; position: relative; display: grid; place-items: center; border: 1px solid rgba(114,185,255,.5); border-radius: 50%; background: radial-gradient(circle, rgba(114,185,255,.13), transparent 62%); }
+.phase-dial::before { content: ""; position: absolute; inset: 8px; border: 1px dashed rgba(255,255,255,.16); border-radius: 50%; }
+.phase-dial i { position: absolute; left: calc(50% - 1px); bottom: 50%; width: 2px; height: 26px; transform-origin: 50% 100%; transform: rotate(var(--phase)); background: var(--gold); box-shadow: 0 0 9px var(--gold); }
+.phase-dial span { z-index: 1; margin-top: 38px; color: #e6cf99; font: 600 9px var(--mono); }
+.phase-console label { display: grid; gap: 8px; color: #9fb1bc; font-size: 8px; }
+.phase-console input { width: 100%; accent-color: var(--blue); }
+.phase-error { display: grid; gap: 3px; text-align: right; }
+.phase-error span, .phase-error small { color: var(--muted); font: 500 7px var(--mono); }
+.phase-error b { color: var(--blue); font: 600 17px var(--mono); }
+.lab-check { width: 100%; margin-top: 8px; border: 1px solid var(--blue); background: rgba(114,185,255,.08); color: #c8e1fa; padding: 9px; font: 500 8px var(--mono); cursor: pointer; }
+.lab-check:disabled { opacity: .45; cursor: default; }
 .evidence-preview { padding: 7px 9px; }
 .event-strip { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6; width: min(42vw, 560px); padding: 9px 11px; border: 1px solid rgba(255,255,255,.1); background: rgba(3,10,9,.56); backdrop-filter: blur(12px); }
 .event-strip ol { display: block; }
@@ -473,8 +505,13 @@ body.release-playing #worldCanvas { cursor: default; }
   .stage-status { right: max(10px, env(safe-area-inset-right)); top: calc(96px + env(safe-area-inset-top)); }
   .mission-card { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); width: auto; max-height: 36vh; }
   .mission-card.has-interaction-choices { width: auto; max-height: 54vh; }
+  .mission-card.has-learning-lab { width: auto; max-height: 62vh; }
   .mission-card .interaction-choice-panel { grid-template-columns: 1fr; }
   .interaction-choice-panel .choice-option { min-height: 70px; }
+  .lesson-options { grid-template-columns: 1fr; }
+  .lesson-option { min-height: 46px; }
+  .phase-console { grid-template-columns: 76px 1fr; }
+  .phase-error { grid-column: 1 / -1; display: flex; justify-content: space-between; text-align: left; }
   .mission-card > p, .mission-card .evidence-preview { display: none; }
   .mission-card h2 { font-size: 15px; }
   .spatial-inspector { left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); top: calc(92px + env(safe-area-inset-top)); width: auto; }
