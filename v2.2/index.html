@@ -3,75 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#06100f">
+  <meta name="theme-color" content="#030807">
   <meta name="description" content="Lightgrid V2.2 全屏 FCC 3D 可玩 Alpha：三个立体小世界、空间记忆、身体培育与持续成长。">
   <title>Lightgrid V2.2 · 全屏 FCC 3D 连续世界</title>
   <link rel="stylesheet" href="/v2.2/styles.css">
 </head>
-<body>
-  <div class="grain" aria-hidden="true"></div>
-  <header class="topbar">
-    <a class="brand" href="/" aria-label="回到 Lightgrid 首页">
-      <span class="brand-mark" aria-hidden="true">◇</span>
-      <span><b>LIGHTGRID</b><small>光格 · V2.2 FULL-SCREEN FCC 3D ALPHA</small></span>
-    </a>
-    <div class="continuity" aria-label="角色连续性状态">
-      <span class="pulse"></span>
-      <span>同一意识在线</span>
-      <strong id="globalTick">TICK 1042</strong>
-    </div>
-    <div class="top-actions">
-      <button class="quiet-button" id="releaseButton" type="button">放手计划 <span>⌘L</span></button>
-      <button class="quiet-button" id="archiveButton" type="button">连续性档案 <span>⌘J</span></button>
-      <button class="quiet-button" id="mapButton" type="button">世界地图 <span>⌘K</span></button>
-    </div>
-  </header>
+<body class="hud-observer">
+  <main id="app" aria-label="Lightgrid V2.2 全屏 FCC 世界">
+    <section class="world-stage" id="worldStage" aria-labelledby="worldTitle">
+      <canvas id="worldCanvas" aria-label="当前世界的可交互三维 FCC 场景"></canvas>
+      <div class="stage-vignette" aria-hidden="true"></div>
+      <div class="safe-frame" id="safeFrame" aria-hidden="true"></div>
+      <div id="landmarkLayer" class="landmark-layer" aria-label="语义地标"></div>
+      <div class="grain" aria-hidden="true"></div>
+    </section>
 
-  <div class="app-shell">
-    <nav class="world-rail" aria-label="三个小世界">
-      <div class="rail-heading">
-        <span>CONNECTED WORLDS</span>
-        <strong>三个世界，一段记忆</strong>
-      </div>
-      <div id="worldList" class="world-list"></div>
-      <div class="dependency-card">
-        <span>跨世界依赖</span>
-        <div><i></i><p><b>矿城构件</b>加固旧桥</p></div>
-        <div><i></i><p><b>花园活材</b>修复温室</p></div>
-      </div>
-    </nav>
+    <div class="context-hud" id="contextHud">
+      <header class="topbar">
+        <div class="top-cluster">
+          <a class="brand" href="/" aria-label="回到 Lightgrid 首页">
+            <span class="brand-mark" aria-hidden="true">◇</span>
+            <span><b>LIGHTGRID</b><small>V2.2 · FULL-SCREEN FCC 3D</small></span>
+          </a>
+          <button class="hud-button" id="worldDrawerButton" type="button" aria-controls="worldDrawer" aria-expanded="false">世界</button>
+        </div>
+        <div class="continuity" aria-label="角色连续性状态">
+          <span class="pulse"></span><span>同一意识在线</span><strong id="globalTick">TICK 1042</strong>
+        </div>
+        <div class="top-actions">
+          <button class="hud-button" id="agentDrawerButton" type="button" aria-controls="agentDrawer" aria-expanded="false">澄</button>
+          <button class="hud-button" id="archiveButton" type="button">记忆</button>
+          <button class="hud-button" id="mapButton" type="button">地图</button>
+          <button class="hud-button release-button" id="releaseButton" type="button">放手</button>
+          <button class="hud-button" id="fullscreenButton" type="button" aria-label="进入浏览器全屏">全屏</button>
+        </div>
+      </header>
 
-    <main class="main-stage">
-      <section class="world-stage" id="worldStage" aria-labelledby="worldTitle">
-        <canvas id="worldCanvas" aria-label="当前世界的可交互三维 FCC 场景"></canvas>
-        <div class="stage-vignette"></div>
-        <div class="spatial-toolbar" aria-label="空间观察模式">
-          <button id="observerMode" class="on" type="button">观察者</button>
-          <button id="embodiedMode" type="button">进入化身</button>
-          <button id="routeToggle" class="on" type="button">路线可见</button>
-        </div>
-        <div id="landmarkLayer" class="landmark-layer" aria-label="语义地标"></div>
-        <aside class="spatial-inspector" id="spatialInspector" aria-live="polite">
-          <span>FCC SPATIAL CONTRACT</span>
-          <b>正在读取 SceneManifest</b>
-          <p>偶宇称 · 12 邻接 · S = 0.58</p>
-        </aside>
-        <div class="walk-pad" id="walkPad" aria-label="化身路线移动" hidden>
-          <button type="button" data-step="-1" aria-label="沿路线后退">↓</button>
-          <button type="button" data-step="1" aria-label="沿路线前进">↑</button>
-        </div>
-        <div class="stage-copy">
-          <span class="chapter" id="worldChapter">CHAPTER I · CONTINUITY</span>
-          <h1 id="worldTitle">断桥谷</h1>
-          <p id="worldDescription">维护共同道路，让过去在离开后仍然存在。</p>
-          <div class="world-meta" id="worldMeta"></div>
-        </div>
-        <div class="stage-status">
-          <span id="weatherLabel">薄雾 · 维护窗口 06:40</span>
-          <b id="worldHealth">桥梁完整度 42%</b>
-        </div>
-        <div class="scene-controls" aria-hidden="true"><i></i>3D LIVE · 拖动旋转 · 滚轮缩放</div>
-      </section>
+      <div class="spatial-toolbar" aria-label="空间观察模式">
+        <button id="observerMode" class="on" type="button">观察者</button>
+        <button id="embodiedMode" type="button">进入化身</button>
+        <button id="routeToggle" class="on" type="button">路线可见</button>
+      </div>
+
+      <div class="stage-copy">
+        <span class="chapter" id="worldChapter">CHAPTER I · CONTINUITY</span>
+        <h1 id="worldTitle">断桥谷</h1>
+        <p id="worldDescription">维护共同道路，让过去在离开后仍然存在。</p>
+        <div class="world-meta" id="worldMeta"></div>
+      </div>
+
+      <div class="stage-status">
+        <span id="weatherLabel">薄雾 · 维护窗口 06:40</span>
+        <b id="worldHealth">桥梁完整度 42%</b>
+      </div>
+
+      <aside class="spatial-inspector" id="spatialInspector" aria-live="polite">
+        <span>FCC SPATIAL CONTRACT</span>
+        <b>正在读取 SceneManifest</b>
+        <p>偶宇称 · 12 邻接 · S = 0.58</p>
+      </aside>
 
       <section class="mission-card" aria-labelledby="missionTitle">
         <div class="mission-topline">
@@ -80,39 +70,44 @@
         </div>
         <h2 id="missionTitle">先读懂这座桥</h2>
         <p id="missionText">扫描裂纹与应力；角色会把你停下来检查公共设施的行为保存为证据。</p>
-        <div class="evidence-preview" id="evidencePreview">
-          <span>即将记录</span>
-          <b>地点 · 目标 · 动作 · 结果</b>
-        </div>
+        <div class="evidence-preview" id="evidencePreview"><span>即将记录</span><b>地点 · 目标 · 动作 · 结果</b></div>
         <div class="choice-panel" id="choicePanel" hidden></div>
-        <button class="primary-action" id="primaryAction" type="button">
-          <span>进入化身并检查旧桥</span><i>→</i>
-        </button>
+        <button class="primary-action" id="primaryAction" type="button"><span>进入化身并检查旧桥</span><i>→</i></button>
       </section>
 
       <section class="event-strip" aria-label="最近事件">
-        <div class="strip-title"><span>LIVE EVENT LOG</span><b>可验证世界事实</b></div>
+        <div class="strip-title"><span>LIVE EVENT</span><b>可验证世界事实</b></div>
         <ol id="eventLog"></ol>
       </section>
-    </main>
 
-    <aside class="agent-rail">
+      <div class="walk-pad" id="walkPad" aria-label="化身路线移动" hidden>
+        <button type="button" data-step="-1" aria-label="沿路线后退">↓</button>
+        <button type="button" data-step="1" aria-label="沿路线前进">↑</button>
+      </div>
+      <div class="scene-controls" aria-hidden="true"><i></i>3D LIVE · 拖动旋转 · 滚轮缩放</div>
+    </div>
+
+    <nav class="edge-drawer world-drawer" id="worldDrawer" aria-label="三个小世界" aria-hidden="true">
+      <div class="drawer-heading"><span>CONNECTED WORLDS</span><strong>三个世界，一段记忆</strong><button type="button" data-close-drawer aria-label="关闭世界抽屉">×</button></div>
+      <div id="worldList" class="world-list"></div>
+      <div class="dependency-card">
+        <span>跨世界依赖</span>
+        <div><i></i><p><b>矿城构件</b>加固旧桥</p></div>
+        <div><i></i><p><b>花园活材</b>修复温室</p></div>
+      </div>
+    </nav>
+
+    <aside class="edge-drawer agent-drawer" id="agentDrawer" aria-label="主要智能体澄" aria-hidden="true">
+      <div class="drawer-heading"><span>PRIMARY AGENT</span><strong>同一个澄</strong><button type="button" data-close-drawer aria-label="关闭角色抽屉">×</button></div>
       <section class="agent-card">
         <div class="agent-portrait" aria-hidden="true"><span>澄</span><i></i></div>
-        <div class="agent-heading">
-          <span>PRIMARY AGENT</span>
-          <h2>澄 <small>CHENG</small></h2>
-          <p id="agentRole">桥梁维护者 · 仍在形成</p>
-        </div>
+        <div class="agent-heading"><span>PRIMARY AGENT</span><h2>澄 <small>CHENG</small></h2><p id="agentRole">桥梁维护者 · 仍在形成</p></div>
         <blockquote id="agentNarrative">“我先学会照看我们共同走过的路。”</blockquote>
         <div class="agent-stats">
-          <div><span>身体</span><b id="bodyLabel">初生晶体框架</b></div>
-          <div><span>能量</span><b id="energyLabel">82%</b></div>
-          <div><span>活动记忆</span><b id="memoryCount">0</b></div>
-          <div><span>未决承诺</span><b id="commitmentCount">1</b></div>
+          <div><span>身体</span><b id="bodyLabel">初生晶体框架</b></div><div><span>能量</span><b id="energyLabel">82%</b></div>
+          <div><span>活动记忆</span><b id="memoryCount">0</b></div><div><span>未决承诺</span><b id="commitmentCount">1</b></div>
         </div>
       </section>
-
       <section class="continuity-card">
         <div class="card-heading"><span>IDENTITY CONTINUITY</span><b id="continuityScore">稳定</b></div>
         <div class="continuity-line"><i style="--p:78%"></i></div>
@@ -120,87 +115,41 @@
         <div class="value-row"><span>履行承诺</span><b id="commitmentValue">明确倾向</b></div>
         <div class="value-row"><span>生态克制</span><b id="ecologyValue">尚不确定</b></div>
       </section>
-
       <section class="skill-card" id="skillCard" hidden>
         <div class="card-heading"><span>ACTIVE SKILLGRAPH</span><b id="skillProficiency">学习中</b></div>
-        <h3 id="skillName">脉冲诊断</h3>
-        <div class="skill-steps" id="skillSteps"></div>
-        <p id="skillContext">等待玩家示范。</p>
+        <h3 id="skillName">脉冲诊断</h3><div class="skill-steps" id="skillSteps"></div><p id="skillContext">等待玩家示范。</p>
       </section>
-
-      <section class="locked-preview" id="nextCapability">
-        <span>NEXT CAPABILITY</span>
-        <b>回声矿城 · 技能迁移</b>
-        <p>完成断桥谷维护后开放。</p>
-      </section>
+      <section class="locked-preview" id="nextCapability"><span>NEXT CAPABILITY</span><b>回声矿城 · 技能迁移</b><p>完成断桥谷维护后开放。</p></section>
     </aside>
-  </div>
 
-  <div class="map-overlay" id="mapOverlay" hidden>
-    <button class="overlay-close" id="mapClose" type="button" aria-label="关闭世界地图">×</button>
-    <div class="map-copy"><span>WORLD DEPENDENCY MAP</span><h2>每个世界都改变下一个世界</h2></div>
-    <div id="mapWorlds" class="map-worlds"></div>
-  </div>
-
-  <div class="archive-overlay" id="archiveOverlay" hidden>
-    <button class="overlay-close" id="archiveClose" type="button" aria-label="关闭连续性档案">×</button>
-    <header class="archive-heading">
-      <span>AGENT CONTINUITY ARCHIVE · CHENG</span>
-      <h2>它如何在时间中成为同一个自己</h2>
-      <p>不是聊天记录。每个结论都回到世界事实、共同作品与关系事件。</p>
-    </header>
-    <div class="archive-grid">
-      <section class="archive-panel memory-panel">
-        <div class="archive-title"><span>MEMORY STAR MAP</span><b id="archiveMemoryCount">0 EPISODES</b></div>
-        <div class="memory-map" id="memoryMap"></div>
-        <div class="memory-inspector" id="memoryInspector"><p>完成一个章节或选择记忆节点，查看来源链。</p></div>
-      </section>
-      <section class="archive-panel identity-panel">
-        <div class="archive-title"><span>SELF NARRATIVE</span><b>V3</b></div>
-        <blockquote id="archiveNarrative"></blockquote>
-        <div class="identity-columns">
-          <div><span>稳定特征</span><b>会验证结果 · 重视承诺</b><small>来自断桥谷与矿城的重复证据</small></div>
-          <div><span>变化偏好</span><b id="changedPreference">生态克制正在形成</b><small>单次 delta 不超过 0.06</small></div>
-        </div>
-      </section>
-      <section class="archive-panel relationship-panel">
-        <div class="archive-title"><span>PERSISTENT RELATIONSHIPS</span><b>4 NPC</b></div>
-        <div id="relationshipList" class="relationship-list"></div>
-      </section>
-      <section class="archive-panel artifact-panel">
-        <div class="archive-title"><span>CREATION LIBRARY</span><b id="artifactCount">0 ARTIFACTS</b></div>
-        <div id="artifactList" class="artifact-list"></div>
-      </section>
+    <div class="map-overlay modal-layer" id="mapOverlay" hidden>
+      <button class="overlay-close" id="mapClose" type="button" aria-label="关闭世界地图">×</button>
+      <div class="map-copy"><span>WORLD DEPENDENCY MAP</span><h2>每个世界都改变下一个世界</h2></div>
+      <div id="mapWorlds" class="map-worlds"></div>
     </div>
-    <section class="data-controls">
-      <div><span>PLAYER DATA CONTROL</span><b>本地存档与可移植数据</b><p>遥测与存档分离；本演示不上传对话、记忆正文或自由文本。</p></div>
-      <button id="exportButton" type="button">导出角色 JSON</button>
-      <button class="danger-button" id="deleteButton" type="button">彻底清除本地角色</button>
-    </section>
-  </div>
 
-  <div class="release-overlay" id="releaseOverlay" hidden>
-    <button class="overlay-close" id="releaseClose" type="button" aria-label="关闭放手计划">×</button>
-    <div class="release-layout">
-      <section class="release-planner">
-        <span>INTERRUPTIBLE LIFE PLAN</span>
-        <h2>放手，不是下达一串命令</h2>
-        <p>你只定义离开边界。澄会用承诺、关系、技能和当前世界事实选择可中断计划。</p>
-        <div class="boundary-options" id="boundaryOptions"></div>
-        <div class="safety-box">
-          <span>安全边界</span>
-          <ul><li>最多连续重规划 3 次</li><li>不执行永久生态改写或拆除纪念物</li><li>事实未知时等待、检查或寻求帮助</li></ul>
-        </div>
-        <button class="primary-action release-action" id="runReleaseButton" type="button"><span>开始有限放手</span><i>→</i></button>
-      </section>
-      <section class="return-panel" id="returnPanel">
-        <span>RETURN SUMMARY</span>
-        <h3>等待第一次放手</h3>
-        <p>回来后，这里会按“事实—理由—行动—结果—未决”展示，而不是生成一段无法核验的故事。</p>
-      </section>
+    <div class="archive-overlay modal-layer" id="archiveOverlay" hidden>
+      <button class="overlay-close" id="archiveClose" type="button" aria-label="关闭连续性档案">×</button>
+      <header class="archive-heading"><span>AGENT CONTINUITY ARCHIVE · CHENG</span><h2>它如何在时间中成为同一个自己</h2><p>不是聊天记录。每个结论都回到世界事实、共同作品与关系事件。</p></header>
+      <div class="archive-grid">
+        <section class="archive-panel memory-panel"><div class="archive-title"><span>MEMORY STAR MAP</span><b id="archiveMemoryCount">0 EPISODES</b></div><div class="memory-map" id="memoryMap"></div><div class="memory-inspector" id="memoryInspector"><p>完成一个章节或选择记忆节点，查看来源链。</p></div></section>
+        <section class="archive-panel identity-panel"><div class="archive-title"><span>SELF NARRATIVE</span><b>V3</b></div><blockquote id="archiveNarrative"></blockquote><div class="identity-columns"><div><span>稳定特征</span><b>会验证结果 · 重视承诺</b><small>来自断桥谷与矿城的重复证据</small></div><div><span>变化偏好</span><b id="changedPreference">生态克制正在形成</b><small>单次 delta 不超过 0.06</small></div></div></section>
+        <section class="archive-panel relationship-panel"><div class="archive-title"><span>PERSISTENT RELATIONSHIPS</span><b>4 NPC</b></div><div id="relationshipList" class="relationship-list"></div></section>
+        <section class="archive-panel artifact-panel"><div class="archive-title"><span>CREATION LIBRARY</span><b id="artifactCount">0 ARTIFACTS</b></div><div id="artifactList" class="artifact-list"></div></section>
+      </div>
+      <section class="data-controls"><div><span>PLAYER DATA CONTROL</span><b>本地存档与可移植数据</b><p>遥测与存档分离；本演示不上传对话、记忆正文或自由文本。</p></div><button id="exportButton" type="button">导出角色 JSON</button><button class="danger-button" id="deleteButton" type="button">彻底清除本地角色</button></section>
     </div>
-  </div>
 
+    <div class="release-overlay modal-layer" id="releaseOverlay" hidden>
+      <button class="overlay-close" id="releaseClose" type="button" aria-label="关闭放手计划">×</button>
+      <div class="release-layout">
+        <section class="release-planner"><span>INTERRUPTIBLE LIFE PLAN</span><h2>放手，不是下达一串命令</h2><p>你只定义离开边界。澄会用承诺、关系、技能和当前世界事实选择可中断计划。</p><div class="boundary-options" id="boundaryOptions"></div><div class="safety-box"><span>安全边界</span><ul><li>最多连续重规划 3 次</li><li>不执行永久生态改写或拆除纪念物</li><li>事实未知时等待、检查或寻求帮助</li></ul></div><button class="primary-action release-action" id="runReleaseButton" type="button"><span>开始有限放手</span><i>→</i></button></section>
+        <section class="return-panel" id="returnPanel"><span>RETURN SUMMARY</span><h3>等待第一次放手</h3><p>回来后，这里会按“事实—理由—行动—结果—未决”展示，而不是生成一段无法核验的故事。</p></section>
+      </div>
+    </div>
+
+    <div class="system-overlay" id="systemOverlay" hidden role="alert"></div>
+  </main>
   <script src="/vendor/three.min.js"></script>
   <script src="/v2.2/spatial.js"></script>
   <script src="/v2.2/core.js"></script>

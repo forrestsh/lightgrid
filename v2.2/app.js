@@ -26,8 +26,38 @@
     'archiveNarrative', 'changedPreference', 'relationshipList', 'artifactCount', 'artifactList',
     'releaseButton', 'releaseOverlay', 'releaseClose', 'boundaryOptions', 'runReleaseButton',
     'returnPanel', 'exportButton', 'deleteButton', 'worldStage', 'observerMode', 'embodiedMode',
-    'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad'
+    'routeToggle', 'landmarkLayer', 'spatialInspector', 'walkPad', 'contextHud', 'safeFrame',
+    'worldDrawerButton', 'agentDrawerButton', 'worldDrawer', 'agentDrawer', 'fullscreenButton', 'systemOverlay'
   ].map(id => [id, document.getElementById(id)]));
+
+  function setHudMode(mode) {
+    document.body.classList.remove('hud-observer', 'hud-embodied', 'hud-release');
+    document.body.classList.add('hud-' + mode);
+  }
+
+  function closeDrawers() {
+    [els.worldDrawer, els.agentDrawer].forEach(drawer => { drawer.classList.remove('open'); drawer.setAttribute('aria-hidden', 'true'); });
+    [els.worldDrawerButton, els.agentDrawerButton].forEach(button => button.setAttribute('aria-expanded', 'false'));
+  }
+
+  function toggleDrawer(drawer, button) {
+    const shouldOpen = !drawer.classList.contains('open');
+    closeDrawers();
+    if (shouldOpen) { drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); button.setAttribute('aria-expanded', 'true'); }
+  }
+
+  function updateFullscreenLabel() {
+    els.fullscreenButton.textContent = document.fullscreenElement ? '退出全屏' : '全屏';
+    els.fullscreenButton.setAttribute('aria-label', document.fullscreenElement ? '退出浏览器全屏' : '进入浏览器全屏');
+  }
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+    } catch (_) { /* Full viewport remains available when the browser denies Fullscreen API. */ }
+    updateFullscreenLabel();
+  }
 
   function loadState() {
     try {
@@ -68,6 +98,7 @@
       button.addEventListener('click', () => {
         Core.travelToWorld(state, button.dataset.world);
         world3d.mode = 'observer'; world3d.routeIndex = 0; world3d.focusLandmarkId = null;
+        closeDrawers(); setHudMode('observer');
         render();
       });
     });
@@ -225,7 +256,7 @@
     els.returnPanel.innerHTML = `<span>RETURN ${current.count} · ${current.startTick}—${current.endTick}</span><h3>澄独自生活了一段时间</h3><div class="summary-flow"><div class="summary-item"><span>发生了什么 · FACT</span><b>${current.fact}</b></div><div class="summary-item"><span>为什么关注 · MEMORY / VALUE</span><b>${current.reason}</b></div><div class="summary-item"><span>做了什么 · ACTION</span><b>${current.action}</b></div><div class="summary-item"><span>世界怎样改变 · RESULT</span><b>${current.result}</b></div><div class="summary-item"><span>仍未解决 · COMMITMENT</span><b>${current.unresolved}</b></div></div><div class="replay-refs">${current.eventRefs.join('<br>')}<br>IRREVERSIBLE ACTIONS: ${current.irreversibleActions}</div>`;
   }
 
-  function openRelease() { els.releaseOverlay.hidden = false; renderRelease(); }
+  function openRelease() { closeDrawers(); setHudMode('release'); els.releaseOverlay.hidden = false; renderRelease(); }
 
   function downloadExport() {
     const blob = new Blob([JSON.stringify(Core.exportBundle(state), null, 2)], { type: 'application/json' });
@@ -390,7 +421,7 @@
     world3d.mode = 'observer'; world3d.focusLandmarkId = null; world3d.radius = world3d.overviewRadius;
     const defaults = { valley: [1.2,-.5,0], mine: [.8,-.25,-1], garden: [1.6,.4,0] };
     world3d.target.fromArray(defaults[state.activeWorld]);
-    renderSpatialUI();
+    setHudMode('observer'); renderSpatialUI();
   }
 
   function enterEmbodiedMode() {
@@ -400,7 +431,7 @@
     const savedCell = state.worlds[state.activeWorld].currentCell;
     const savedKey = savedCell && Core.Spatial.isFCCCoord(savedCell) ? Core.Spatial.coordKey(savedCell) : null;
     world3d.routeIndex = savedKey ? Math.max(0, world3d.activeRoute.cells.findIndex(cell => Core.Spatial.coordKey(cell) === savedKey)) : 0;
-    positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); renderSpatialUI();
+    closeDrawers(); setHudMode('embodied'); positionAvatarAtCell(world3d.activeRoute.cells[world3d.routeIndex]); renderSpatialUI();
   }
 
   function positionAvatarAtCell(cell) {
@@ -608,10 +639,14 @@
   function resizeWorld3d() {
     if (!world3d.ready) return;
     const width = Math.max(1, els.worldCanvas.clientWidth), height = Math.max(1, els.worldCanvas.clientHeight);
+    const targetDpr = Math.min(devicePixelRatio || 1, width < 760 ? 1.25 : 1.75);
+    if (Math.abs(world3d.renderer.getPixelRatio() - targetDpr) > .01) world3d.renderer.setPixelRatio(targetDpr);
     const drawing = world3d.renderer.getDrawingBufferSize(new window.THREE.Vector2());
     const ratio = world3d.renderer.getPixelRatio();
     if (drawing.x !== Math.floor(width * ratio) || drawing.y !== Math.floor(height * ratio)) world3d.renderer.setSize(width, height, false);
     world3d.camera.aspect = width / height; world3d.camera.updateProjectionMatrix();
+    document.documentElement.style.setProperty('--viewport-aspect', (width / height).toFixed(4));
+    els.safeFrame.dataset.viewport = `${width}x${height}@${targetDpr.toFixed(2)}`;
   }
 
   function countObjects(root) { let count = 0; root.traverse(() => count++); return count; }
@@ -625,12 +660,17 @@
   });
   els.observerMode.addEventListener('click', enterObserverMode);
   els.embodiedMode.addEventListener('click', enterEmbodiedMode);
+  els.worldDrawerButton.addEventListener('click', () => toggleDrawer(els.worldDrawer, els.worldDrawerButton));
+  els.agentDrawerButton.addEventListener('click', () => toggleDrawer(els.agentDrawer, els.agentDrawerButton));
+  document.querySelectorAll('[data-close-drawer]').forEach(button => button.addEventListener('click', closeDrawers));
+  els.fullscreenButton.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => { updateFullscreenLabel(); resizeWorld3d(); });
   els.routeToggle.addEventListener('click', () => { world3d.showRoutes = !world3d.showRoutes; renderSpatialUI(); });
   els.walkPad.querySelectorAll('[data-step]').forEach(button => button.addEventListener('click', () => stepEmbodied(Number(button.dataset.step))));
   els.archiveButton.addEventListener('click', openArchive);
   els.archiveClose.addEventListener('click', () => { els.archiveOverlay.hidden = true; });
   els.releaseButton.addEventListener('click', openRelease);
-  els.releaseClose.addEventListener('click', () => { els.releaseOverlay.hidden = true; });
+  els.releaseClose.addEventListener('click', () => { els.releaseOverlay.hidden = true; setHudMode(world3d.mode); });
   els.runReleaseButton.addEventListener('click', () => { const summary = Core.releaseAgent(state, selectedBoundary); render(); renderRelease(summary); });
   els.exportButton.addEventListener('click', downloadExport);
   els.deleteButton.addEventListener('click', () => {
@@ -644,13 +684,14 @@
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); els.mapOverlay.hidden = !els.mapOverlay.hidden; }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') { event.preventDefault(); els.archiveOverlay.hidden = !els.archiveOverlay.hidden; if (!els.archiveOverlay.hidden) renderArchive(); }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'l') { event.preventDefault(); els.releaseOverlay.hidden = !els.releaseOverlay.hidden; if (!els.releaseOverlay.hidden) renderRelease(); }
-    if (event.key === 'Escape') { els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; els.releaseOverlay.hidden = true; }
+    if (event.key === 'Escape') { closeDrawers(); els.mapOverlay.hidden = true; els.archiveOverlay.hidden = true; els.releaseOverlay.hidden = true; setHudMode(world3d.mode); }
     if (!els.mapOverlay.hidden || !els.archiveOverlay.hidden || !els.releaseOverlay.hidden) return;
     if (['ArrowUp','w','W'].includes(event.key)) { event.preventDefault(); stepEmbodied(1); }
     if (['ArrowDown','s','S'].includes(event.key)) { event.preventDefault(); stepEmbodied(-1); }
     if (event.key.toLowerCase() === 'e') enterEmbodiedMode();
     if (event.key.toLowerCase() === 'o') enterObserverMode();
+    if (event.key.toLowerCase() === 'f' && !event.metaKey && !event.ctrlKey) toggleFullscreen();
   });
-  window.addEventListener('resize', () => drawWorld(state.activeWorld));
-  render();
+  window.addEventListener('resize', () => { drawWorld(state.activeWorld); resizeWorld3d(); });
+  setHudMode('observer'); updateFullscreenLabel(); render();
 })();
